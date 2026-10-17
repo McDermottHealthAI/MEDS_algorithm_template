@@ -22,7 +22,7 @@ def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path):
     import polars as pl
     from meds_evaluation.schema import PredictionSchema
 
-    from .e2e import prepare_mimic_demo, run_e2e
+    from .e2e import {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}mimic_task_criteria, {% endif %}prepare_mimic_demo, run_e2e
 
     dataset_dir, labels_dir, predicates_file = prepare_mimic_demo(meds_dev, tmp_path)
     assert dataset_dir.is_dir() and labels_dir.exists()
@@ -33,7 +33,8 @@ def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path):
         external_meds_dir=dataset_dir,
         external_labels_dir=labels_dir,
         external_predicates_file=predicates_file,
-        splits=["held_out"],
+{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}        external_task_criteria_file=mimic_task_criteria(meds_dev),
+{% endif %}        splits=["held_out"],
     )
     artifacts = result.artifacts
     predictions_dir = artifacts["predict"]

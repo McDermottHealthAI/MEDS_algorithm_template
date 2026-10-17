@@ -34,7 +34,38 @@ intermediate payload formats, reject incompatible inputs before expensive work, 
 record input digests and measurements. Frameworks, subprocesses, services, batching, and non-batched
 systems are all allowed.
 
-## 5. Complete operational interfaces
+{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}### Zero-shot: task in, probabilities out
+
+This profile receives the task itself (SPEC.md sections 2.4 and 3.1). Implement the model as a
+`meds_model_contract.ZeroShotTranslator`:
+
+1. **`encode`** turns the ACES task (`TaskSpec`) and the label-blind index (`read_index`) into the model's
+   inference target. Use [`aces-relaxations`](https://github.com/McDermottHealthAI/aces-relaxations) to
+   reason about the task before any data is seen: reject tasks that are not future-only
+   (`validate_future_only`) or degenerate (`degeneracies`), apply the label-preserving rewrites
+   (`require_bounding_events`, `normalize`), then whichever approximations the model's query language needs
+   (`simplify_constraints`, `last_link_target`) and the model's own assumptions. Return each step as a
+   `Relaxation`; do not hard-code a ledger.
+2. **`infer`** runs the pretrained model on that target and writes its raw outputs.
+3. **`decode`** turns raw outputs into `predicted_boolean_probability` for every index key, joined by key.
+   Validate with `check_decoded`.
+
+[`aces-to-motor`](https://github.com/McDermottHealthAI/aces-to-motor) is the reference translator: its
+`encode` writes `index.parquet`, `query.json` and `relaxation_report.md`; a MOTOR runner writes
+`hazards.npz`; its `decode` returns the predictions. Its fixed pipeline maps onto ledger entries:
+
+| aces-to-motor step | `kind` | `direction` |
+|---|---|---|
+| `require_bounding_events`, `normalize` | `label_preserving` | `exact` |
+| vocabulary restriction (unmatched predicate -> `marginal`) | `model_assumption` | `unknown` |
+| `label_only`: drop inclusion/exclusion and bounding-event branches | `model_assumption` | `unknown` |
+| `last_link_target` + TTE stationarity (label window promoted to start now) | `approximation` / `model_assumption` | `exact` only when `last_link_target` reports it and no window is discarded; otherwise `unknown` |
+| decode `and`/`or` under independence; same-timestamp `and` -> within-window `and` | `model_assumption` | `unknown` / `weakening` |
+
+Record the model's whole query language in `IMPLEMENTATION_REPORT.md`, and which MEDS-DEV and benchmark
+tasks it can answer exactly, approximately, or not at all.
+
+{% endif %}## 5. Complete operational interfaces
 
 Finalize `model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`. The local adapter runs the
 real model profile. The MEDS-DEV adapter supplies its isolated invocation. The MIMIC adapter locates/builds the demo

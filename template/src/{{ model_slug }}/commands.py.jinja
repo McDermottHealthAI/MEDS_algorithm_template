@@ -2,11 +2,16 @@
 
 Replace the bodies below. The contract deliberately does not prescribe batching, frameworks, payload
 formats, or checkpointing. Keep ``IS_STUB`` true until the rendered end-to-end test runs the real model profile.
-"""
+{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}
+Zero-shot: the task-conditioned commands below receive the task itself (``external_task_criteria_file``)
+and should be built from a ``meds_model_contract.ZeroShotTranslator`` (encode -> infer -> decode). Read the
+index only through ``meds_model_contract.read_index`` so no label column is ever loaded, and publish the
+encoded target with its ``relaxations.yaml``. See SPEC.md section 3.1.
+{% endif %}"""
 
 from pathlib import Path
 
-from meds_model_contract import ArtifactType, Command, CommandName, measured_artifact
+from meds_model_contract import ArtifactType, Command, CommandName, {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}TaskSpec, {% endif %}measured_artifact
 
 IS_STUB = True
 
@@ -14,6 +19,7 @@ IS_STUB = True
 class StubCommand(Command):
     artifact_type: ArtifactType
     output_argument: str
+    task_conditioned = False
 
     def resolve_output(self, arguments):
         return arguments.get(self.output_argument)
@@ -22,13 +28,19 @@ class StubCommand(Command):
         output = self.resolve_output(arguments)
         if output is None:
             raise ValueError(f"{self.name.value} requires {self.output_argument}=<path>")
-        with measured_artifact(
+        task = None
+{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}        if self.task_conditioned:
+            # Validate the task before any expensive work; its digest binds this artifact to the task.
+            task = TaskSpec.from_arguments(arguments)
+{% endif %}        with measured_artifact(
             Path(output),
             artifact_type=self.artifact_type.value,
             command=self.name.value,
             producer=f"{{ model_slug }}.commands.{type(self).__name__}",
             payload_format="stub/v1",
             external_predicates_file=arguments.get("external_predicates_file"),
+            inputs=None if task is None else {"task": task.provenance()},
+            semantics_digest=None if task is None else task.semantics_digest(),
             overwrite=bool(arguments.get("do_overwrite", False)),
         ):
             raise NotImplementedError(
@@ -55,7 +67,9 @@ class Infer(StubCommand):
     name = CommandName.infer
     artifact_type = ArtifactType.inference
     output_argument = "output_inference_subdir"
-
+{% if profile == 'zero_shot_materialized' %}    # encode + model inference: publishes the encoded target, relaxations.yaml, and raw model outputs.
+    task_conditioned = True
+{% endif %}
     def resolve_output(self, arguments):
         if arguments.get("input_data_dir") and arguments.get(self.output_argument):
             return Path(arguments["input_data_dir"]) / arguments[self.output_argument]
@@ -73,7 +87,11 @@ class Predict(StubCommand):
     name = CommandName.predict
     artifact_type = ArtifactType.predictions
     output_argument = "output_predictions_dir"
-
+{% if profile == 'zero_shot_direct' %}    # encode -> infer -> decode in one command; also publishes the encoded target and relaxations.yaml.
+    task_conditioned = True
+{% elif profile == 'zero_shot_materialized' %}    # decode only; reject an inference artifact whose semantics_digest differs from this task's.
+    task_conditioned = True
+{% endif %}
 
 COMMANDS = {
 {% if profile in ['supervised', 'finetune', 'probe', 'zero_shot_direct', 'zero_shot_materialized', 'packaged'] %}    CommandName.preprocess_data: PreprocessData,

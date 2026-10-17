@@ -2,8 +2,9 @@
 
 import os
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -13,6 +14,9 @@ class E2EResult:
     artifacts: Mapping[str, Path]
     labels_dir: Path
     splits: Sequence[str]
+    # The external inputs passed to the commands, so tests can rerun the profile with altered inputs.
+    # Zero-shot profiles MUST include external_meds_dir, external_labels_dir, and external_task_criteria_file.
+    inputs: Mapping[str, Any] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -26,9 +30,10 @@ class MEDSDevRun:
 
 
 def run_e2e(tmp_path, **inputs):
+    """Run the selected profile; any ``external_*`` input given here overrides the local fixture's."""
     raise NotImplementedError(
         "Prepare a small MEDS input/task, execute the selected model profile's real commands, and return "
-        "E2EResult(artifacts, labels_dir, evaluated splits)."
+        "E2EResult(artifacts, labels_dir, evaluated splits, external inputs used)."
     )
 
 
@@ -73,3 +78,8 @@ def prepare_mimic_demo(meds_dev, tmp_path):
     )
     predicates_file = meds_dev / "src" / "MEDS_DEV" / "datasets" / "MIMIC-IV" / "predicates.yaml"
     return dataset_dir, labels_dir, predicates_file
+
+
+def mimic_task_criteria(meds_dev) -> Path:
+    """MEDS-DEV's own ACES criteria for the demo task: what a zero-shot model is asked to predict."""
+    return meds_dev / "src" / "MEDS_DEV" / "tasks" / "mortality" / "in_icu" / "first_24h.yaml"

@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import types
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -352,3 +353,105 @@ def test_measurement_manifest_is_plausible(tmp_path, monkeypatch):
     registered = register(dst, meds_dev, "measurement-model")
     assert (registered / "model.yaml").is_file()
     assert str(dst.resolve()) in (registered / "requirements.txt").read_text()
+
+
+ZERO_SHOT_PROFILES = ["zero_shot_direct", "zero_shot_materialized"]
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
+    dst = tmp_path / profile
+    render(dst, profile)
+    model_yaml = (dst / "model.yaml").read_text()
+    predict = yaml.safe_load(model_yaml)["commands"]["supervised"]["predict"]
+    slurm = (dst / "slurm/config.sh").read_text()
+    end_to_end = (dst / "tests/test_end_to_end.py").read_text()
+    if profile in ZERO_SHOT_PROFILES:
+        assert "external_task_criteria_file={task_criteria_path}" in predict
+        assert "TASK_CRITERIA_FILE" in slurm
+        assert "Zero-shot: task in, probabilities out" in (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
+        assert "test_zero_shot_predictions_ignore_index_labels" in end_to_end
+    else:
+        assert "task_criteria_path" not in model_yaml
+        assert "TASK_CRITERIA_FILE" not in slurm
+        assert "zero_shot" not in end_to_end
+
+
+@pytest.mark.parametrize("profile", ZERO_SHOT_PROFILES)
+def test_zero_shot_stub_rejects_a_missing_task_before_work(tmp_path, profile):
+    dst = tmp_path / profile
+    slug = render(dst, profile)
+    env = {**os.environ, "PYTHONPATH": str(dst / "src")}
+    output = tmp_path / "predictions"
+    command = ["python", "-m", slug, "predict", f"output_predictions_dir={output}"]
+    missing = subprocess.run(command, env=env, text=True, capture_output=True)
+    assert missing.returncode != 0
+    assert "external_task_criteria_file" in missing.stderr
+    assert not output.exists()
+
+    criteria = tmp_path / "task.yaml"
+    criteria.write_text("predicates: {}\n")
+    stub = subprocess.run(
+        [*command, f"external_task_criteria_file={criteria}"], env=env, text=True, capture_output=True
+    )
+    assert "NotImplementedError" in stub.stderr, "a valid task reaches the model-owned body"
+
+
+def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
+    import polars as pl
+
+    dst = tmp_path / "task-contract"
+    render(dst, "zero_shot_direct")
+    monkeypatch.syspath_prepend(str(dst / "src"))
+    from meds_model_contract import Relaxation, RelaxationLedger, TaskSpec, check_decoded, read_index
+
+    criteria = tmp_path / "task.yaml"
+    criteria.write_text("trigger: admission\n")
+    mimic, other = tmp_path / "mimic.yaml", tmp_path / "other.yaml"
+    mimic.write_text("admission: {code: ADM}\n")
+    other.write_text("admission: {code: ADMIT}\n")
+    with pytest.raises(ValueError, match="external_task_criteria_file"):
+        TaskSpec.from_arguments({})
+    with pytest.raises(FileNotFoundError):
+        TaskSpec(tmp_path / "missing.yaml")
+    bound = TaskSpec.from_arguments(
+        {"external_task_criteria_file": str(criteria), "external_predicates_file": str(mimic)}
+    )
+    digests = {TaskSpec(criteria).semantics_digest(), bound.semantics_digest()}
+    digests.add(TaskSpec(criteria, other).semantics_digest())
+    assert len(digests) == 3, "the digest must change with the criteria or the predicates bound to them"
+    assert bound.semantics_digest() == TaskSpec(criteria, mimic).semantics_digest()
+    assert bound.provenance()["predicates_file"]["digest"].startswith("sha256:")
+
+    held_out = tmp_path / "labels" / "held_out"
+    held_out.mkdir(parents=True)
+    times = [datetime(2020, 1, 1), datetime(2020, 1, 2)]
+    labels = pl.DataFrame({"subject_id": [1, 2], "prediction_time": times, "boolean_value": [True, False]})
+    labels.write_parquet(held_out / "0.parquet")
+    pl.DataFrame({"subject_id": [3], "prediction_time": times[:1], "boolean_value": [True]}).write_parquet(
+        tmp_path / "labels" / "train.parquet"
+    )
+    index = read_index(tmp_path / "labels", ["held_out"])
+    assert index.columns == ["subject_id", "prediction_time"]
+    assert sorted(index["subject_id"]) == [1, 2]
+
+    with pytest.raises(ValueError, match="must be exact"):
+        Relaxation("normalize", "label_preserving", "weakening")
+    ledger = RelaxationLedger(
+        query_language="test",
+        decoded_quantity="P(death within 30d)",
+        relaxations=(
+            Relaxation("normalize", "label_preserving", "exact"),
+            Relaxation("label_only", "model_assumption", "unknown", "dropped 1 criteria branch"),
+        ),
+    )
+    ledger.write(tmp_path)
+    assert RelaxationLedger.read(tmp_path) == ledger
+    assert yaml.safe_load((tmp_path / "relaxations.yaml").read_text())["exact"] is False
+
+    predictions = index.with_columns(pl.Series("predicted_boolean_probability", [0.2, 0.9]))
+    assert check_decoded(index, predictions.reverse()).height == 2
+    with pytest.raises(ValueError, match="miss 1"):
+        check_decoded(index, predictions.head(1))
+    with pytest.raises(ValueError, match=r"\[0, 1\]"):
+        check_decoded(index, predictions.with_columns(pl.lit(1.5).alias("predicted_boolean_probability")))

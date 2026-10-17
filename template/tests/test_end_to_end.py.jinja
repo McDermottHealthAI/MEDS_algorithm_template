@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from meds_model_contract import MODEL_PROFILES, read_manifest
+from meds_model_contract import MODEL_PROFILES, {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}ZERO_SHOT_TASK_COMMANDS, RelaxationLedger, TaskSpec, {% endif %}read_manifest
 from {{ model_slug }}.commands import IS_STUB
 
 
@@ -31,3 +31,61 @@ def test_end_to_end(tmp_path: Path):
     from .integration import assert_prediction_keys
 
     assert_prediction_keys(artifacts["predict"], result.labels_dir, result.splits)
+{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}
+
+
+def _task_artifacts(result):
+    return {command.value: result.artifacts[command.value] for command in ZERO_SHOT_TASK_COMMANDS["{{ profile }}"]}
+
+
+def test_zero_shot_artifacts_name_their_task_and_relaxations(tmp_path: Path):
+    if IS_STUB:
+        pytest.skip("model_stub: implement commands and the repository-specific run_e2e adapter")
+    from .e2e import run_e2e
+
+    result = run_e2e(tmp_path)
+    task = TaskSpec.from_arguments(result.inputs)
+    for command, directory in _task_artifacts(result).items():
+        manifest = read_manifest(directory)
+        assert manifest["semantics_digest"] == task.semantics_digest(), f"{command} is not bound to the task"
+        assert manifest["inputs"]["task"]["criteria_file"]["digest"].startswith("sha256:")
+    ledgers = [path.parent for d in result.artifacts.values() for path in Path(d).rglob("relaxations.yaml")]
+    assert ledgers, "encode must publish relaxations.yaml with the inference target"
+    for directory in ledgers:
+        ledger = RelaxationLedger.read(directory)
+        assert ledger.query_language and ledger.decoded_quantity
+
+
+def test_zero_shot_predictions_ignore_index_labels(tmp_path: Path):
+    if IS_STUB:
+        pytest.skip("model_stub: implement commands and the repository-specific run_e2e adapter")
+    import polars as pl
+
+    from . import e2e
+    from .e2e import run_e2e
+
+    original = run_e2e(tmp_path / "original")
+    flipped_dir = tmp_path / "flipped-labels"
+    for path in Path(original.labels_dir).rglob("*.parquet"):
+        frame = pl.read_parquet(path)
+        if "boolean_value" in frame.columns:
+            frame = frame.with_columns(~pl.col("boolean_value"))
+        target = flipped_dir / path.relative_to(original.labels_dir)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        frame.write_parquet(target)
+    flipped = run_e2e(tmp_path / "flipped", **{**original.inputs, "external_labels_dir": flipped_dir})
+
+    keys = ["subject_id", "prediction_time"]
+    probability = "predicted_boolean_probability"
+
+    def read(result):
+        return pl.read_parquet(Path(result.artifacts["predict"]) / "predictions.parquet").select(*keys, probability)
+
+    joined = read(original).join(read(flipped), on=keys, suffix="_flipped")
+    assert joined.height == read(original).height
+    # Only nondeterministic kernels justify a looser tolerance; record the reason next to the constant.
+    tolerance = getattr(e2e, "LABEL_INVARIANCE_ATOL", 1e-6)
+    assert (joined[probability] - joined[f"{probability}_flipped"]).abs().max() <= tolerance, (
+        "zero-shot predictions changed when only the index labels changed"
+    )
+{% endif %}

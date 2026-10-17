@@ -58,6 +58,12 @@ so the command remains usable if formatting/bootstrap tasks are added later.
 Profiles are `supervised`, `finetune`, `probe`, `zero_shot_direct`, `zero_shot_materialized`, and
 `packaged`. A model profile selects required commands, not an architecture or execution backend.
 
+The two zero-shot profiles also receive the task itself: an ACES criteria file passed as
+`external_task_criteria_file` (`{task_criteria_path}` in `model.yaml`). They implement it as
+encode -> infer -> decode and publish a `relaxations.yaml` ledger stating how the answered task differs from
+the requested one. See [`docs/ZERO_SHOT.md`](docs/ZERO_SHOT.md) for the design, the MOTOR mapping, and the
+MEDS-DEV passthrough this needs.
+
 ## Work in the generated repository
 
 ```bash
