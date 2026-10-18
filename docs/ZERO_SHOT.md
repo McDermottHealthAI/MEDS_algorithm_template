@@ -12,6 +12,19 @@ dataset predicates, and every manifest recorded `semantics_digest: null`. A supe
 from labels; a zero-shot model never sees labels, so it could only predict a task hard-coded into it, or
 read the labels, which is leakage.
 
+## Who builds what
+
+| Product | Built by | Where |
+|---|---|---|
+| Cohort / index `(subject_id, prediction_time)` and labels | one ACES extraction, upstream of every model | MEDS-DEV `meds-dev-task` (demo), `meds-task-selection` `work/` bundle (full data) |
+| Query for the model | the zero-shot model, from the same ACES task | the model repository (`encode`) |
+| Predictions | the model | the model repository (`decode`) |
+
+The model repository never builds, filters, or extends the cohort (SPEC section 2.2). Suppose a zero-shot
+model rebuilt the cohort from the ACES task: every model could then end up scoring different rows, and the
+cohort extraction would read the labels it is meant to be blind to. The ACES task reaches the model only
+so that it knows *what* to ask about each requested row.
+
 ## The interface
 
 Zero-shot prediction mirrors the supervised `predict`, with the task as an extra input:

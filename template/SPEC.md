@@ -38,6 +38,14 @@ which population rather than leave the scope unstated.
 A task input is an index of `(subject_id, prediction_time)` and, for training/evaluation only, a value
 column such as `boolean_value`. Prediction code MUST operate on the index without reading ground truth.
 
+The cohort is built upstream, not in the model repository. The index and its labels come from one ACES
+extraction run outside every model: MEDS-DEV's `meds-dev-task` for the MIMIC-IV demo, and the shared
+`meds-task-selection` `work/` bundle for full-data runs. That extraction applies the trigger,
+inclusion/exclusion criteria, and splits once, so every model scores the same keys. A model repository
+MUST NOT re-extract, filter, or extend the index; it predicts every requested row (section 5). This holds
+for zero-shot profiles too: they receive the ACES task (section 2.4) to build their *query*, never to
+rebuild their cohort.
+
 ### 2.3 Dataset predicates
 
 Dataset-specific predicates are external inputs, supplied through the established
