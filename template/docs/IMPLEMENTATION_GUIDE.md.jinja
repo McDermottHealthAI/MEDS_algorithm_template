@@ -36,23 +36,64 @@ systems are all allowed.
 
 {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}### Zero-shot: task in, probabilities out
 
-This profile receives the task itself (SPEC.md sections 2.4 and 3.1). Implement the model as a
-`meds_model_contract.ZeroShotTranslator`:
+This profile receives the task itself (SPEC.md sections 2.4 and 3.1). The contract requires only the task
+argument, a label-blind index, the semantics digest, complete predictions, and `relaxations.yaml`. How
+the model gets from the task to predictions is its own. The recommended shape is an `aces-to-<model>`
+adapter built on [`aces-relaxations`](https://github.com/McDermottHealthAI/aces-relaxations), with three
+steps:
 
-1. **`encode`** turns the ACES task (`TaskSpec`) and the label-blind index (`read_index`) into the model's
-   inference target. Use [`aces-relaxations`](https://github.com/McDermottHealthAI/aces-relaxations) to
-   reason about the task before any data is seen: reject tasks that are not future-only
-   (`validate_future_only`) or degenerate (`degeneracies`), apply the label-preserving rewrites
-   (`require_bounding_events`, `normalize`), then whichever approximations the model's query language needs
-   (`simplify_constraints`, `last_link_target`) and the model's own assumptions. Return each step as a
-   `Relaxation`; do not hard-code a ledger.
-2. **`infer`** runs the pretrained model on that target and writes its raw outputs.
-3. **`decode`** turns raw outputs into `predicted_boolean_probability` for every index key, joined by key.
-   Validate with `check_decoded`.
+```python
+from abc import ABC, abstractmethod
+from pathlib import Path
 
-[`aces-to-motor`](https://github.com/McDermottHealthAI/aces-to-motor) is the reference translator: its
-`encode` writes `index.parquet`, `query.json` and `relaxation_report.md`; a MOTOR runner writes
-`hazards.npz`; its `decode` returns the predictions. Its fixed pipeline maps onto ledger entries:
+import polars as pl
+
+from meds_model_contract import RelaxationLedger, TaskSpec
+
+
+class ZeroShotTranslator(ABC):
+    """A recommended shape for a zero-shot model; not part of the contract."""
+
+    @abstractmethod
+    def encode(self, task: TaskSpec, index: pl.DataFrame, model_dir: Path, output_dir: Path) -> RelaxationLedger:
+        """Write the model's query for `task` over `index` (keys only) and return its ledger."""
+
+    @abstractmethod
+    def infer(self, encoded_dir: Path, data_dir: Path, model_dir: Path, output_dir: Path) -> None:
+        """Run the pretrained model on the query and write its raw outputs."""
+
+    @abstractmethod
+    def decode(self, encoded_dir: Path, inference_dir: Path, index: pl.DataFrame) -> pl.DataFrame:
+        """Return `index` with `predicted_boolean_probability` for every key, joined by key."""
+```
+
+1. **`encode`** turns the ACES task (`TaskSpec`: criteria plus predicates) and the label-blind index
+   (`read_index`) into the model's query. Use aces-relaxations to reason about the task before any data is
+   seen:
+   - reject tasks that are not future-only (`validate_future_only`) or are degenerate (`degeneracies`);
+   - apply the label-preserving rewrites (`require_bounding_events`, `normalize`);
+   - then apply whichever approximations the model's query language needs (`simplify_constraints`,
+     `last_link_target`), plus the model's own assumptions, such as restricting predicates to its
+     vocabulary.
+
+   Record each step in the ledger as it is applied; do not hard-code the ledger. aces-relaxations is
+   pre-1.0, so pin the exact version or commit in `requirements.txt`.
+2. **`infer`** runs the pretrained model on that query and writes its raw outputs. In
+   `zero_shot_materialized`, `encode` and `infer` together make up the `infer` command.
+3. **`decode`** turns raw outputs into `predicted_boolean_probability` for every index key. Validate with
+   `check_decoded`.
+
+The contract does not validate ledger steps. The recommended keys for each step are `name`, `kind`,
+`direction`, and `detail`:
+
+| `kind` | Meaning | `direction` |
+|---|---|---|
+| `label_preserving` | a rewrite that changes no label on extracted rows (`normalize`, `require_bounding_events`) | `exact` |
+| `approximation` | a task rewrite with a known effect (`simplify_constraints`, `last_link_target`) | `exact`, `weakening` (superset of positives), or `strengthening` (subset) |
+| `model_assumption` | what the query language forces (vocabulary restriction, dropping criteria, independence between codes) | usually `unknown` |
+
+For example, [`aces-to-motor`](https://github.com/McDermottHealthAI/aces-to-motor) is a MOTOR adapter. It
+is model-specific and not part of this template. Its fixed pipeline maps onto these steps:
 
 | aces-to-motor step | `kind` | `direction` |
 |---|---|---|

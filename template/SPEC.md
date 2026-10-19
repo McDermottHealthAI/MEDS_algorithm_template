@@ -71,11 +71,10 @@ section 2.3 when the criteria do not define their own. The pair is the *task spe
   validate it before expensive work, and MUST record `TaskSpec.provenance()` under `inputs.task` and
   `TaskSpec.semantics_digest()` as the manifest `semantics_digest`.
 - Those commands receive the task index through `external_labels_dir` for its keys only. They MUST read it
-  through `meds_model_contract.read_index`, or an equivalent that never selects a label column. Changing
-  every label in the index MUST NOT change any prediction.
-- Through MEDS-DEV, the criteria path reaches `model.yaml` as `{task_criteria_path}`. MEDS-DEV currently
-  forwards only `{predicates_path}`; until it also forwards the criteria file of the selected `task_name`,
-  zero-shot repositories run through MEDS-DEV only from a revision with that passthrough.
+  through `meds_model_contract.read_index`, or an equivalent that never selects a label column.
+- Through MEDS-DEV, the criteria path reaches `model.yaml` as `{task_criteria_path}` (MEDS-DEV PR #330):
+  the `task_criteria_path` argument, else the registered criteria file of `task_name`. MEDS-DEV forwards
+  the original task; relaxing it is the model's job.
 
 Non-zero-shot profiles MAY accept the same argument but do not require it, and record `semantics_digest:
 null`.
@@ -103,41 +102,31 @@ by producer and checked by consumer.
 ### 3.1 Zero-shot prediction
 
 A zero-shot model maps *(task specification, label-blind index, MEDS dataset)* to *predictions* with no
-task-specific training. Internally this is three model-owned steps, the methods of
-`meds_model_contract.ZeroShotTranslator`:
-
-| Step | Input | Output |
-|---|---|---|
-| `encode` | task specification, index | the model's *inference target* in its own query language, and a relaxation ledger |
-| `infer` | inference target, MEDS data, pretrained model | raw model outputs (hazards, generated trajectories, logits, ...) |
-| `decode` | inference target, raw outputs, index | one `predicted_boolean_probability` per index key |
-
-In `zero_shot_direct`, `predict` runs all three. In `zero_shot_materialized`, the `infer` command runs
-`encode` and `infer` and publishes the target and raw outputs together as the inference artifact; `predict`
-runs `decode` and MUST reject an inference artifact whose `semantics_digest` differs from its own task's.
-The inference target and raw outputs are implementation-defined payloads, as in section 4.
+task-specific training. How it does so is model-owned; the implementation guide recommends an
+encode -> infer -> decode shape. The profile fixes only the command boundaries: in `zero_shot_direct`,
+`predict` does all the work. In `zero_shot_materialized`, `infer` publishes the task-conditioned model
+outputs, and `predict` turns them into predictions and MUST reject an inference artifact whose
+`semantics_digest` differs from its own task's. Intermediate payloads are implementation-defined, as in
+section 4.
 
 **Relaxations.** Most zero-shot models cannot answer an arbitrary ACES task exactly; they answer a related
-question their query language can express. `encode` MUST therefore publish `relaxations.yaml`
-(`RelaxationLedger`) next to the inference target, stating the model's query language, the decoded quantity
-in words, and every step between the requested and the answered task:
+question their query language can express. Every zero-shot run MUST therefore publish `relaxations.yaml`
+(`meds_model_contract.RelaxationLedger`) in a task-conditioned artifact. Three fields are required:
 
 ```yaml
-query_language: MOTOR first-occurrence time-to-event over task-head codes
-decoded_quantity: P(any of {MEDS_DEATH} first occurs before the first of {ICU_DISCHARGE, MEDS_DEATH})
-exact: false
-relaxations:
+query_language: MOTOR first-occurrence time-to-event over task-head codes   # required
+decoded_quantity: P(any of {MEDS_DEATH} first occurs before the first of {ICU_DISCHARGE, MEDS_DEATH})  # required
+exact: false                                                                # required
+steps:                                                                      # free-form, recommended
   - {name: normalize, kind: label_preserving, direction: exact, detail: re-rooted at the prediction time}
   - {name: label_only, kind: model_assumption, direction: unknown, detail: dropped 2 criteria branches}
 ```
 
-`kind` is `label_preserving` (changes no label on extracted rows), `approximation` (a task rewrite that
-changes labels in a stated `direction`: `weakening` accepts a superset of positives, `strengthening` a
-subset), or `model_assumption` (what the query language forces, such as independence between codes;
-`direction` is usually `unknown`). `exact: true` is a claim that the decoded quantity is the requested
-label's probability under the model. A model MUST raise rather than encode a task it cannot pose (for
-example, one whose label is not future-only), and MUST NOT omit a relaxation because it is expected to be
-small.
+`exact: true` is a claim that the decoded quantity is the requested label's probability under the model;
+an exact model lists no steps. Each entry of `steps` describes one rewrite or assumption; its keys are not
+validated, and the implementation guide recommends a vocabulary for them. A model MUST raise rather than
+answer a task it cannot pose (for example, one whose label is not future-only), and MUST NOT omit a step
+because it is expected to be small.
 
 ## 4. Intermediate artifacts
 
@@ -231,8 +220,7 @@ portable pass/fail thresholds.
 The generated repository MUST test command discovery, selected-model-profile consistency, artifact compatibility,
 atomic publication, predicate provenance, prediction key coverage/uniqueness, absence of label
 leakage and of transductive fitting (section 2.1), resource measurement presence, `model.yaml`, SLURM
-dry-run, and its real end-to-end chain. A zero-shot repository additionally tests that predictions are
-invariant to the index's labels, that task-conditioned manifests carry the task's semantics digest, and
-that a valid `relaxations.yaml` is published.
+dry-run, and its real end-to-end chain. A zero-shot repository additionally tests that task-conditioned
+manifests carry the task's semantics digest and that a valid `relaxations.yaml` is published.
 MIMIC-IV demo conformance is opt-in through a `real_data` pytest marker; a normal test run MUST NOT
 download it.

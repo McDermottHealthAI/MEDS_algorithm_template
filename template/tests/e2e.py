@@ -14,8 +14,8 @@ class E2EResult:
     artifacts: Mapping[str, Path]
     labels_dir: Path
     splits: Sequence[str]
-    # The external inputs passed to the commands, so tests can rerun the profile with altered inputs.
-    # Zero-shot profiles MUST include external_meds_dir, external_labels_dir, and external_task_criteria_file.
+    # The external inputs passed to the commands. Zero-shot profiles MUST include external_task_criteria_file
+    # (and external_predicates_file when used) so tests can check which task each artifact answers.
     inputs: Mapping[str, Any] = field(default_factory=dict)
 
 

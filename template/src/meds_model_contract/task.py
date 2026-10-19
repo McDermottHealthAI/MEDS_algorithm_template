@@ -1,27 +1,20 @@
-"""The zero-shot task boundary: task specification, label-blind index, translator, and relaxation ledger.
+"""The zero-shot task boundary: task specification, label-blind index, and relaxation ledger.
 
 A supervised model learns *what* to predict from labels. A zero-shot model is never shown labels, so the
 task definition itself must cross the contract boundary. The overall task language is ACES: a task is an
-ACES criteria file plus, optionally, a dataset predicates file. A zero-shot model answers it in three
-model-owned steps:
+ACES criteria file plus, optionally, a dataset predicates file.
 
-1. ``encode``: task + label-blind index -> an inference target in the model's own query language,
-   together with the relaxations that reduction required;
-2. ``infer``: inference target + MEDS data + pretrained model -> raw model outputs;
-3. ``decode``: raw outputs -> one predicted probability per requested ``(subject_id, prediction_time)``.
-
-The payloads of all three steps are implementation-defined. The contract fixes only the inputs (task,
-index, MEDS data), the final predictions, the semantics digest that ties every artifact to the exact task
-it answers, and the machine-readable ledger of how the answered task differs from the requested one.
+The contract fixes only the inputs (task, index, MEDS data), the final predictions, the semantics digest
+that ties every artifact to the exact task it answers, and a minimal ledger of how the answered task
+differs from the requested one. How a model turns the task into predictions is its own; the
+implementation guide recommends an encode -> infer -> decode shape.
 """
 
 from __future__ import annotations
 
 import hashlib
-from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass, field
-from enum import StrEnum
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -126,58 +119,36 @@ def read_index(labels_dir: Path | str, splits: Sequence[str] | None = None) -> p
     return index
 
 
-class RelaxationKind(StrEnum):
-    """Where a difference between the requested and the answered task comes from."""
-
-    label_preserving = "label_preserving"  # a rewrite that changes no label on extracted rows
-    approximation = "approximation"  # a task rewrite that changes labels in a stated direction
-    model_assumption = "model_assumption"  # an assumption the model's query language forces
-
-
-class RelaxationDirection(StrEnum):
-    exact = "exact"
-    weakening = "weakening"  # the answered task accepts a superset of the requested positives
-    strengthening = "strengthening"  # the answered task accepts a subset of the requested positives
-    unknown = "unknown"  # the direction depends on the data distribution
-
-
-@dataclass(frozen=True)
-class Relaxation:
-    """One step between the requested ACES task and the quantity the model actually returns."""
-
-    name: str
-    kind: RelaxationKind
-    direction: RelaxationDirection
-    detail: str = ""
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "kind", RelaxationKind(self.kind))
-        object.__setattr__(self, "direction", RelaxationDirection(self.direction))
-        if self.kind is RelaxationKind.label_preserving and self.direction is not RelaxationDirection.exact:
-            raise ValueError(f"label-preserving relaxation {self.name!r} must be exact")
-
-
 @dataclass(frozen=True)
 class RelaxationLedger:
-    """The machine-readable record of what a zero-shot prediction actually estimates."""
+    """What a zero-shot prediction actually estimates, written as ``relaxations.yaml``.
+
+    Only ``query_language``, ``decoded_quantity``, and ``exact`` are required. ``steps`` is free-form: one
+    mapping per rewrite or assumption between the requested and the answered task. The implementation
+    guide recommends ``name``, ``kind``, ``direction``, and ``detail`` keys; the contract does not validate
+    them. An exact model writes ``exact: true`` and no steps.
+    """
 
     query_language: str
     decoded_quantity: str
-    relaxations: Sequence[Relaxation] = field(default_factory=tuple)
+    exact: bool
+    steps: Sequence[Mapping[str, Any]] = field(default_factory=tuple)
 
-    @property
-    def is_exact(self) -> bool:
-        return all(r.direction is RelaxationDirection.exact for r in self.relaxations)
+    def __post_init__(self) -> None:
+        for name in ("query_language", "decoded_quantity"):
+            if not isinstance(getattr(self, name), str) or not getattr(self, name).strip():
+                raise ValueError(f"{RELAXATIONS_FILENAME} requires a non-empty {name}")
+        if not isinstance(self.exact, bool):
+            raise ValueError(f"{RELAXATIONS_FILENAME} requires exact: true or false")
+        object.__setattr__(self, "steps", tuple(dict(step) for step in self.steps))
 
     def write(self, directory: Path | str) -> Path:
         path = Path(directory) / RELAXATIONS_FILENAME
         value = {
             "query_language": self.query_language,
             "decoded_quantity": self.decoded_quantity,
-            "exact": self.is_exact,
-            "relaxations": [
-                {**asdict(r), "kind": r.kind.value, "direction": r.direction.value} for r in self.relaxations
-            ],
+            "exact": self.exact,
+            "steps": [dict(step) for step in self.steps],
         }
         path.write_text(yaml.safe_dump(value, sort_keys=False))
         return path
@@ -187,41 +158,16 @@ class RelaxationLedger:
         path = Path(directory) / RELAXATIONS_FILENAME
         if not path.is_file():
             raise FileNotFoundError(f"{directory} has no {RELAXATIONS_FILENAME}")
-        value = yaml.safe_load(path.read_text())
+        value = yaml.safe_load(path.read_text()) or {}
+        missing = {"query_language", "decoded_quantity", "exact"} - set(value)
+        if missing:
+            raise ValueError(f"{path} lacks required fields {sorted(missing)}")
         return cls(
             query_language=value["query_language"],
             decoded_quantity=value["decoded_quantity"],
-            relaxations=tuple(Relaxation(**r) for r in value["relaxations"]),
+            exact=value["exact"],
+            steps=value.get("steps") or (),
         )
-
-
-class ZeroShotTranslator(ABC):
-    """The model-owned encode / infer / decode triple behind a zero-shot ``predict``.
-
-    ``zero_shot_direct`` runs all three inside ``predict``. ``zero_shot_materialized`` runs ``encode`` and
-    ``infer`` in the ``infer`` command, publishing the encoded target and raw outputs as the inference
-    artifact, and runs ``decode`` in ``predict``. Either way the encoded target and its relaxation ledger
-    are published, and every task-conditioned artifact carries ``TaskSpec.semantics_digest()``.
-    """
-
-    @abstractmethod
-    def encode(
-        self, task: TaskSpec, index: pl.DataFrame, model_dir: Path, output_dir: Path
-    ) -> RelaxationLedger:
-        """Write the model's inference target for ``task`` over ``index`` into ``output_dir``.
-
-        ``index`` has exactly ``subject_id`` and ``prediction_time``. Return the ledger of every rewrite or
-        assumption the reduction into the model's query language required; the caller writes it. Raise
-        rather than silently degrade when the task cannot be posed (for example, it is not future-only).
-        """
-
-    @abstractmethod
-    def infer(self, encoded_dir: Path, data_dir: Path, model_dir: Path, output_dir: Path) -> None:
-        """Run the model on the encoded target and write its raw outputs into ``output_dir``."""
-
-    @abstractmethod
-    def decode(self, encoded_dir: Path, inference_dir: Path, index: pl.DataFrame) -> pl.DataFrame:
-        """Return ``index`` with ``predicted_boolean_probability`` for every row, joined by key."""
 
 
 def check_decoded(index: pl.DataFrame, predictions: pl.DataFrame) -> pl.DataFrame:

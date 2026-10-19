@@ -3,10 +3,10 @@
 Replace the bodies below. The contract deliberately does not prescribe batching, frameworks, payload
 formats, or checkpointing. Keep ``IS_STUB`` true until the rendered end-to-end test runs the real model profile.
 {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}
-Zero-shot: the task-conditioned commands below receive the task itself (``external_task_criteria_file``)
-and should be built from a ``meds_model_contract.ZeroShotTranslator`` (encode -> infer -> decode). Read the
-index only through ``meds_model_contract.read_index`` so no label column is ever loaded, and publish the
-encoded target with its ``relaxations.yaml``. See SPEC.md section 3.1.
+Zero-shot: the task-conditioned commands below receive the task itself (``external_task_criteria_file``).
+Read the index only through ``meds_model_contract.read_index`` so no label column is ever loaded, and
+publish a ``relaxations.yaml`` (``meds_model_contract.RelaxationLedger``). See SPEC.md section 3.1 and the
+recommended encode -> infer -> decode shape in docs/IMPLEMENTATION_GUIDE.md.
 {% endif %}"""
 
 from pathlib import Path

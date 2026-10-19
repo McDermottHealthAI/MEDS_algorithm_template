@@ -11,12 +11,8 @@ from .contract import (
 from .manifest import measured_artifact, read_manifest
 from .results import write_run_result
 from .task import (
-    Relaxation,
-    RelaxationDirection,
-    RelaxationKind,
     RelaxationLedger,
     TaskSpec,
-    ZeroShotTranslator,
     check_decoded,
     read_index,
 )
@@ -28,12 +24,8 @@ __all__ = [
     "Command",
     "CommandName",
     "ModelRepository",
-    "Relaxation",
-    "RelaxationDirection",
-    "RelaxationKind",
     "RelaxationLedger",
     "TaskSpec",
-    "ZeroShotTranslator",
     "check_decoded",
     "measured_artifact",
     "read_index",

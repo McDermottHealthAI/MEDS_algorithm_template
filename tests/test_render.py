@@ -382,8 +382,11 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
     if profile in ZERO_SHOT_PROFILES:
         assert "external_task_criteria_file={task_criteria_path}" in predict
         assert "TASK_CRITERIA_FILE" in slurm
-        assert "Zero-shot: task in, probabilities out" in (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
-        assert "test_zero_shot_predictions_ignore_index_labels" in end_to_end
+        guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
+        assert "Zero-shot: task in, probabilities out" in guide
+        assert "class ZeroShotTranslator(ABC)" in guide, "the translator shape is guidance, kept in the guide"
+        assert "test_zero_shot_artifacts_name_their_task_and_relaxations" in end_to_end
+        assert "flipped" not in end_to_end
     else:
         assert "task_criteria_path" not in model_yaml
         assert "TASK_CRITERIA_FILE" not in slurm
@@ -416,7 +419,10 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
     dst = tmp_path / "task-contract"
     render(dst, "zero_shot_direct")
     monkeypatch.syspath_prepend(str(dst / "src"))
-    from meds_model_contract import Relaxation, RelaxationLedger, TaskSpec, check_decoded, read_index
+    import meds_model_contract
+    from meds_model_contract import RelaxationLedger, TaskSpec, check_decoded, read_index
+
+    assert not hasattr(meds_model_contract, "ZeroShotTranslator"), "the translator is guidance, not contract"
 
     criteria = tmp_path / "task.yaml"
     criteria.write_text("trigger: admission\n")
@@ -448,19 +454,34 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
     assert index.columns == ["subject_id", "prediction_time"]
     assert sorted(index["subject_id"]) == [1, 2]
 
-    with pytest.raises(ValueError, match="must be exact"):
-        Relaxation("normalize", "label_preserving", "weakening")
     ledger = RelaxationLedger(
         query_language="test",
         decoded_quantity="P(death within 30d)",
-        relaxations=(
-            Relaxation("normalize", "label_preserving", "exact"),
-            Relaxation("label_only", "model_assumption", "unknown", "dropped 1 criteria branch"),
+        exact=False,
+        steps=(
+            {"name": "normalize", "kind": "label_preserving", "direction": "exact"},
+            {"name": "label_only", "detail": "dropped 1 criteria branch"},  # step keys are free-form
         ),
     )
     ledger.write(tmp_path)
     assert RelaxationLedger.read(tmp_path) == ledger
     assert yaml.safe_load((tmp_path / "relaxations.yaml").read_text())["exact"] is False
+    assert RelaxationLedger.read(tmp_path).steps[1] == {
+        "name": "label_only",
+        "detail": "dropped 1 criteria branch",
+    }
+
+    exact = tmp_path / "exact"
+    exact.mkdir()
+    (exact / "relaxations.yaml").write_text(
+        "query_language: trajectories\ndecoded_quantity: P(y)\nexact: true\n"
+    )
+    assert RelaxationLedger.read(exact).steps == ()
+    (exact / "relaxations.yaml").write_text("query_language: trajectories\nexact: true\n")
+    with pytest.raises(ValueError, match="decoded_quantity"):
+        RelaxationLedger.read(exact)
+    with pytest.raises(ValueError, match="exact"):
+        RelaxationLedger(query_language="q", decoded_quantity="d", exact="yes")
 
     predictions = index.with_columns(pl.Series("predicted_boolean_probability", [0.2, 0.9]))
     assert check_decoded(index, predictions.reverse()).height == 2

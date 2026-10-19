@@ -36,7 +36,8 @@ Zero-shot prediction mirrors the supervised `predict`, with the task as an extra
 | Data | MEDS dataset (via `preprocess_data`) | MEDS dataset (via `preprocess_data`) + pretrained model |
 | Output | `predictions.parquet` | `predictions.parquet` + `relaxations.yaml` |
 
-Internally the model implements `ZeroShotTranslator`, which has three steps:
+Internally, the recommended shape (the `ZeroShotTranslator` sketch in the rendered implementation guide; not enforced) is an
+`aces-to-<model>` adapter with three steps:
 
 ```text
            TaskSpec (ACES criteria + predicates)       label-blind index
@@ -53,22 +54,35 @@ Internally the model implements `ZeroShotTranslator`, which has three steps:
   are task-conditioned (`ZERO_SHOT_TASK_COMMANDS`), and `predict` rejects an inference artifact whose
   `semantics_digest` differs from its own task's.
 
+### What is enforced, and what is guidance
+
+| Enforced by the contract and tests | Guidance only |
+|---|---|
+| `external_task_criteria_file`, checked before work | building on aces-relaxations, and which of its functions to call |
+| `semantics_digest` and task provenance in task-conditioned manifests | the encode -> infer -> decode split and the `ZeroShotTranslator` sketch |
+| index read without label columns (`read_index`) | the `kind` / `direction` vocabulary for ledger steps |
+| complete, unique prediction keys | |
+| `relaxations.yaml` with `query_language`, `decoded_quantity`, `exact` | |
+
+aces-relaxations is not a template dependency. It is pre-1.0, and its PR #18 already moved functions that
+aces-to-motor imports, so each adapter pins its own version.
+
 The contract guarantees four things:
 
 1. **Task identity.** `TaskSpec.semantics_digest()` hashes the criteria bytes together with the predicates
    bytes. MEDS-DEV task files leave dataset predicates as `???`, so the same criteria bound to MIMIC-IV
    and to eICU predicates are different tasks and get different digests.
-2. **Label blindness at the boundary.** `read_index` never selects a label column. The rendered
-   `test_zero_shot_predictions_ignore_index_labels` reruns the model with every `boolean_value` flipped
-   and requires identical predictions.
+2. **Label blindness at the boundary.** `read_index` never selects a label column. This is a rule plus a
+   helper, not a test: a test comparing runs with flipped labels would also require deterministic
+   predictions, which sampling-based models do not give.
 3. **Relaxations are published, not implied.** See below.
 4. **Predictions are complete and keyed.** `check_decoded` checks the decoded probabilities by key against
    the requested index and requires values in [0, 1].
 
 ## Relaxations: three kinds
 
-`aces-relaxations` and the model translators use "relaxation" for three different things. The ledger
-gives each step a `kind` so they are never confused.
+`aces-relaxations` and the model adapters use "relaxation" for three different things. The recommended
+ledger `kind` keeps them apart; the contract does not validate it.
 
 | `kind` | Owner | Examples | Effect on labels |
 |---|---|---|---|
@@ -108,15 +122,14 @@ each index time) can be shared across tasks.
 | `infer` (encode) | `aces_to_motor.encode(TaskExtractorConfig.load(criteria, predicates), ModelSpec.from_dir(...), read_index(...))` | exists |
 | `infer` (model) | bundle (`index.parquet` + `query.json`) to `hazards.npz` | **missing.** `femr_runner/scripts/eval.py` already computes `time_dependent_logits` per row (`run_inference`, `match_logits_to_rows`), but only for per-(code, horizon) AUROC. It needs a small `infer_bundle.py` that reads `query.json["codes"]`, maps them to head indices, writes `rates = 2**logits` with `bin_edges_s` from the motor task's time bins, computes `marginal_mean_F` over the full vocabulary when `needs_marginal`, and writes `inference_stats.json` |
 | `predict` (decode) | `aces_to_motor.decode(bundle, index)` | exists; the result must pass `check_decoded` |
-| ledger | `relaxation_report.md` (prose) | convert the fixed pipeline's steps into `Relaxation` entries (table in the rendered implementation guide) |
+| ledger | `relaxation_report.md` (prose) | write the fixed pipeline's steps as `relaxations.yaml` `steps` (table in the rendered implementation guide) |
 
 Multi-task: `aces_to_motor.encode_tasks` shares one inference pass across many tasks. That fits a later
 `infer` over the union index, with per-task `predict` decodes that each check their own digest. The
 current contract runs one task per `predict`, which is correct but repeats inference. Also note that FEMR's
 batch builder makes a row's representation depend on *which* other rows a subject carries (median |dp| = 0,
-6-10% of rows move by more than 0.01 when tasks are batched together). This is not label leakage. The
-label-invariance test flips label values but keeps the rows, so the batching is unchanged. If GPU
-nondeterminism still moves probabilities, set `LABEL_INVARIANCE_ATOL` in `tests/e2e.py` and record why.
+6-10% of rows move by more than 0.01 when tasks are batched together). This is not label leakage, but it
+means a task's probabilities can differ slightly between a standalone and a batched run.
 
 Suggested MOTOR test plan, in order:
 

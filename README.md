@@ -59,10 +59,11 @@ Profiles are `supervised`, `finetune`, `probe`, `zero_shot_direct`, `zero_shot_m
 `packaged`. A model profile selects required commands, not an architecture or execution backend.
 
 The two zero-shot profiles also receive the task itself: an ACES criteria file passed as
-`external_task_criteria_file` (`{task_criteria_path}` in `model.yaml`). They implement it as
-encode -> infer -> decode and publish a `relaxations.yaml` ledger stating how the answered task differs from
-the requested one. See [`docs/ZERO_SHOT.md`](docs/ZERO_SHOT.md) for the design, the MOTOR mapping, and the
-MEDS-DEV passthrough this needs.
+`external_task_criteria_file` (`{task_criteria_path}` in `model.yaml`). They must publish a
+`relaxations.yaml` ledger stating how the answered task differs from the requested one. The recommended
+internal shape, an `aces-to-<model>` adapter on aces-relaxations doing encode -> infer -> decode, is guidance
+only. See [`docs/ZERO_SHOT.md`](docs/ZERO_SHOT.md) for the design, the MOTOR mapping, and the MEDS-DEV
+passthrough this needs.
 
 ## Work in the generated repository
 
@@ -127,6 +128,15 @@ do not assume MIMIC mappings apply to another dataset. Keep such mappings in dat
 configuration or model-owned code. Do not introduce a generic predicate-derived feature representation
 into the contract package. Keep the provided MIMIC-IV demo code, task, and MEDS-DEV predicates as the
 canonical smoke test, regardless of the full-data target.
+
+For a zero_shot_direct or zero_shot_materialized model: the model receives the original ACES task through
+external_task_criteria_file (with the dataset predicates) and the upstream-built index through
+external_labels_dir. Never build, filter, or extend the cohort, and read the index only through
+meds_model_contract.read_index. Reuse an existing aces-to-<model> adapter for this model if one exists;
+otherwise write one on aces-relaxations, pinned to an exact version: reject tasks that are not future-only
+or are degenerate, normalize, then apply only the approximations and assumptions the model's query
+language forces. Publish relaxations.yaml with every step, and report per task whether the answer is exact.
+Follow the encode -> infer -> decode shape in docs/IMPLEMENTATION_GUIDE.md.
 Do not omit source behavior because it is inconvenient for a fixture; adapt the implementation or fixture
 instead.
 
