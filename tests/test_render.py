@@ -386,6 +386,14 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
         assert "Zero-shot: task in, probabilities out" in guide
         assert "class ZeroShotTranslator(ABC)" in guide, "the translator shape is guidance, kept in the guide"
         assert "test_zero_shot_artifacts_name_their_task_and_relaxations" in end_to_end
+        predict_line = next(line for line in slurm.splitlines() if line.strip().startswith("predict)"))
+        if profile == "zero_shot_materialized":
+            assert "input_inference_subdir=inference/default" in predict_line
+            assert "input_pretrained_model_dir" not in predict_line
+            infer = yaml.safe_load(model_yaml)["commands"]["supervised"]["predict"].splitlines()[0]
+            assert "splits=[{split}]" in infer, "materialized infer must score only the evaluated split"
+        else:
+            assert "input_pretrained_model_dir" in predict_line
         assert "flipped" not in end_to_end
     else:
         assert "task_criteria_path" not in model_yaml
