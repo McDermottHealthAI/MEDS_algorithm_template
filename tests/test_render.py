@@ -235,6 +235,9 @@ def test_prediction_keys_are_compared_directly(tmp_path, prediction_rows, error)
 
     frame([(1, "2020-01-01"), (2, "2020-01-02")]).write_parquet(labels / "part.parquet")
     frame(prediction_rows).write_parquet(predictions / "predictions.parquet")
+    # A zero-shot query bundle published alongside the predictions carries its own keyed index.
+    (predictions / "bundle").mkdir()
+    frame([(1, "2020-01-01"), (2, "2020-01-02")]).write_parquet(predictions / "bundle" / "index.parquet")
     if error is None:
         integration.assert_prediction_keys(predictions, labels.parent, ["held_out"])
     else:

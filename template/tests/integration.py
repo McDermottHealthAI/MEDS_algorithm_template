@@ -90,7 +90,13 @@ def assert_prediction_keys(predictions_dir: Path, labels_dir: Path, splits) -> N
             raise AssertionError(f"No parquet files with {key_columns} found under {root}")
         return pl.concat(frames)
 
-    predictions = read_keys(Path(predictions_dir))
+    # The predictions file is the normative output; other keyed parquets in the artifact (e.g. a zero-shot
+    # query bundle's index) are supporting payloads and must not be counted as predictions.
+    predictions_file = Path(predictions_dir) / "predictions.parquet"
+    if predictions_file.is_file():
+        predictions = pl.read_parquet(predictions_file, columns=key_columns)
+    else:
+        predictions = read_keys(Path(predictions_dir))
     expected = read_keys(Path(labels_dir), selected_splits=splits)
     prediction_unique = predictions.unique()
     expected_unique = expected.unique()
