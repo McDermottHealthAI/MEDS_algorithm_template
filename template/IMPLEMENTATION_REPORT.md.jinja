@@ -16,13 +16,20 @@
 |---|---|---|---|
 | TODO | TODO | TODO | TODO |
 
-{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}## Zero-shot task translation
+{% if profile == 'zero_shot_direct' %}## Zero-shot task translation
 
 - Query language of the model: TODO
-- Task -> inference target (`encode`), including use of aces-relaxations: TODO
-- Raw outputs (`infer`) and their decoding into probabilities (`decode`): TODO
+- Task -> model query (`encode`), including use of aces-relaxations: TODO
+- Raw model outputs and their decoding into probabilities (`decode`): TODO
 - Relaxations per evaluated task (attach each `relaxations.yaml`; state which are `exact`): TODO
 - Tasks rejected as not posable (not future-only, degenerate, outside the vocabulary): TODO
+
+{% elif profile == 'zero_shot_materialized' %}## Zero-shot materialization
+
+- What `infer` generates (samples per row, generation horizon, stopping rule): TODO
+- How `predict` evaluates the ACES task on history plus generated futures, and aggregates: TODO
+- Ledger per evaluated task (sampling approximation; horizon or unresolvable-future effects): TODO
+- Tasks that cannot be evaluated on generated data, and why: TODO
 
 {% endif %}## Inputs and predicates
 

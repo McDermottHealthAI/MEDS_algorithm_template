@@ -6,7 +6,7 @@ formats, or checkpointing. Keep ``IS_STUB`` true until the rendered end-to-end t
 Zero-shot: the task-conditioned commands below receive the task itself (``external_task_criteria_file``).
 Read the index only through ``meds_model_contract.read_index`` so no label column is ever loaded, and
 publish a ``relaxations.yaml`` (``meds_model_contract.RelaxationLedger``). See SPEC.md section 3.1 and the
-recommended encode -> infer -> decode shape in docs/IMPLEMENTATION_GUIDE.md.
+recommended shape for this profile in docs/IMPLEMENTATION_GUIDE.md.
 {% endif %}"""
 
 from pathlib import Path
@@ -67,8 +67,7 @@ class Infer(StubCommand):
     name = CommandName.infer
     artifact_type = ArtifactType.inference
     output_argument = "output_inference_subdir"
-{% if profile == 'zero_shot_materialized' %}    # encode + model inference: publishes the encoded target, relaxations.yaml, and raw model outputs.
-    task_conditioned = True
+{% if profile == 'zero_shot_materialized' %}    # Task-independent: materialize futures (e.g. sampled trajectories) at the index's prediction times.
 {% endif %}
     def resolve_output(self, arguments):
         if arguments.get("input_data_dir") and arguments.get(self.output_argument):
@@ -87,9 +86,9 @@ class Predict(StubCommand):
     name = CommandName.predict
     artifact_type = ArtifactType.predictions
     output_argument = "output_predictions_dir"
-{% if profile == 'zero_shot_direct' %}    # encode -> infer -> decode in one command; also publishes the encoded target and relaxations.yaml.
+{% if profile == 'zero_shot_direct' %}    # encode -> model -> decode in one command; also publishes the query and relaxations.yaml.
     task_conditioned = True
-{% elif profile == 'zero_shot_materialized' %}    # decode only; reject an inference artifact whose semantics_digest differs from this task's.
+{% elif profile == 'zero_shot_materialized' %}    # Apply the task to the materialized futures (e.g. ACES over sampled trajectories).
     task_conditioned = True
 {% endif %}
 

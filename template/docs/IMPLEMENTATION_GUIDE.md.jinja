@@ -38,9 +38,31 @@ systems are all allowed.
 
 This profile receives the task itself (SPEC.md sections 2.4 and 3.1). The contract requires only the task
 argument, a label-blind index, the semantics digest, complete predictions, and `relaxations.yaml`. How
-the model gets from the task to predictions is its own. The recommended shape is an `aces-to-<model>`
-adapter built on [`aces-relaxations`](https://github.com/McDermottHealthAI/aces-relaxations), with three
-steps:
+the model gets from the task to predictions is its own.
+{% endif %}{% if profile == 'zero_shot_materialized' %}
+This profile is for models that **generate futures** (for example, autoregressive EHR generators). If the
+model instead answers queries directly (hazards, code-in-window probabilities), it belongs in
+`zero_shot_direct`.
+
+1. **`infer`** (task-independent) generates futures from each index row's history up to its
+   `prediction_time`: for example, N sampled trajectories per row. It does not receive the task, so one
+   `infer` run serves every task over the same index.
+2. **`predict`** (task-conditioned) evaluates the ACES task on each row's real history plus each generated
+   future, for example with ACES or `aces_relaxations.extract_at`. It reports the fraction of futures in
+   which the label is true as `predicted_boolean_probability`.
+
+The task is evaluated, not translated, so no relaxation is needed. The ledger is usually `exact: true`,
+with one step recording the Monte Carlo estimate (number of samples, any truncation of the generation
+horizon). Record as approximations anything that does change the answer: a generation horizon shorter
+than the label window, futures that end before the task can resolve, or criteria that cannot be checked
+on generated data. Do not reject a task only because it is not future-only: its past criteria are
+evaluated on real history.
+{% endif %}{% if profile == 'zero_shot_direct' %}
+This profile is for models that **answer queries directly** (for example, MOTOR's time-to-event hazards or
+EveryQuery's code-in-window probabilities). If the model instead generates futures and evaluates the task
+on them, it belongs in `zero_shot_materialized`. The recommended shape is an `aces-to-<model>` adapter
+built on [`aces-relaxations`](https://github.com/McDermottHealthAI/aces-relaxations), with three steps,
+all inside `predict`:
 
 ```python
 from abc import ABC, abstractmethod
@@ -78,8 +100,7 @@ class ZeroShotTranslator(ABC):
 
    Record each step in the ledger as it is applied; do not hard-code the ledger. aces-relaxations is
    pre-1.0, so pin the exact version or commit in `requirements.txt`.
-2. **`infer`** runs the pretrained model on that query and writes its raw outputs. In
-   `zero_shot_materialized`, `encode` and `infer` together make up the `infer` command.
+2. **`infer`** runs the pretrained model on that query and writes its raw outputs.
 3. **`decode`** turns raw outputs into `predicted_boolean_probability` for every index key. Validate with
    `check_decoded`.
 
@@ -105,6 +126,9 @@ is model-specific and not part of this template. Its fixed pipeline maps onto th
 
 Record the model's whole query language in `IMPLEMENTATION_REPORT.md`, and which MEDS-DEV and benchmark
 tasks it can answer exactly, approximately, or not at all.
+
+Publish the query, the raw outputs, and `relaxations.yaml` inside the predictions artifact (for example in
+a `bundle/` subdirectory), so decode choices stay inspectable.
 
 {% endif %}## 5. Complete operational interfaces
 

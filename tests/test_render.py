@@ -384,15 +384,25 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
         assert "TASK_CRITERIA_FILE" in slurm
         guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
         assert "Zero-shot: task in, probabilities out" in guide
-        assert "class ZeroShotTranslator(ABC)" in guide, "the translator shape is guidance, kept in the guide"
         assert "test_zero_shot_artifacts_name_their_task_and_relaxations" in end_to_end
         predict_line = next(line for line in slurm.splitlines() if line.strip().startswith("predict)"))
+        assert "TASK_CRITERIA_FILE" in predict_line
         if profile == "zero_shot_materialized":
+            # Materialized futures are task-independent: infer never sees the task, predict applies it.
+            assert "generate futures" in guide
+            assert "class ZeroShotTranslator(ABC)" not in guide
             assert "input_inference_subdir=inference/default" in predict_line
             assert "input_pretrained_model_dir" not in predict_line
-            infer = yaml.safe_load(model_yaml)["commands"]["supervised"]["predict"].splitlines()[0]
+            infer_line = next(line for line in slurm.splitlines() if line.strip().startswith("infer)"))
+            assert "TASK_CRITERIA_FILE" not in infer_line
+            infer = predict.splitlines()[0]
+            assert infer.startswith("meds-model infer")
+            assert "task_criteria_path" not in infer, "materialized infer is task-independent"
             assert "splits=[{split}]" in infer, "materialized infer must score only the evaluated split"
         else:
+            assert "class ZeroShotTranslator(ABC)" in guide, (
+                "the translator shape is guidance, kept in the guide"
+            )
             assert "input_pretrained_model_dir" in predict_line
         assert "flipped" not in end_to_end
     else:
@@ -431,6 +441,12 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
     from meds_model_contract import RelaxationLedger, TaskSpec, check_decoded, read_index
 
     assert not hasattr(meds_model_contract, "ZeroShotTranslator"), "the translator is guidance, not contract"
+    assert {
+        name: {c.value for c in cs} for name, cs in meds_model_contract.ZERO_SHOT_TASK_COMMANDS.items()
+    } == {
+        "zero_shot_direct": {"predict"},
+        "zero_shot_materialized": {"predict"},
+    }, "only predict sees the task; materialized infer is task-independent"
 
     criteria = tmp_path / "task.yaml"
     criteria.write_text("trigger: admission\n")

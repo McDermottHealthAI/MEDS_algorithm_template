@@ -67,7 +67,7 @@ section 2.3 when the criteria do not define their own. The pair is the *task spe
 (`meds_model_contract.TaskSpec`).
 
 - Every command of a `zero_shot_*` profile whose output depends on the task (`ZERO_SHOT_TASK_COMMANDS`:
-  `predict`, and `infer` in `zero_shot_materialized`) MUST receive `external_task_criteria_file`, MUST
+  `predict` in both profiles) MUST receive `external_task_criteria_file`, MUST
   validate it before expensive work, and MUST record `TaskSpec.provenance()` under `inputs.task` and
   `TaskSpec.semantics_digest()` as the manifest `semantics_digest`.
 - Those commands receive the task index through `external_labels_dir` for its keys only. They MUST read it
@@ -102,12 +102,20 @@ by producer and checked by consumer.
 ### 3.1 Zero-shot prediction
 
 A zero-shot model maps *(task specification, label-blind index, MEDS dataset)* to *predictions* with no
-task-specific training. How it does so is model-owned; the implementation guide recommends an
-encode -> infer -> decode shape. The profile fixes only the command boundaries: in `zero_shot_direct`,
-`predict` does all the work. In `zero_shot_materialized`, `infer` publishes the task-conditioned model
-outputs, and `predict` turns them into predictions and MUST reject an inference artifact whose
-`semantics_digest` differs from its own task's. Intermediate payloads are implementation-defined, as in
-section 4.
+task-specific training. The two zero-shot profiles differ in **how the model answers**, not in how the
+code is organized:
+
+| Profile | The model... | `infer` | `predict` | Examples |
+|---|---|---|---|---|
+| `zero_shot_direct` | answers a query derived from the task directly (a probability, hazard, or score per query) | none | translates the task into the model's queries, runs the model, decodes probabilities | MOTOR (time-to-event hazards), EveryQuery (code-in-window queries) |
+| `zero_shot_materialized` | generates (*materializes*) possible futures, and the task is evaluated on them | task-independent: futures at the index's prediction times, reusable across tasks | applies the task to the materialized futures (e.g. ACES over each sampled trajectory) and aggregates | autoregressive EHR generators |
+
+In `zero_shot_materialized`, `infer` never receives the task and records `semantics_digest: null`. Its
+output serves every task over the same index. Only `predict` is task-conditioned. A materialized model
+can usually evaluate the task exactly, past criteria included, because ACES runs on the real history plus
+the generated future. Its ledger then lists only the sampling approximation. A direct model reduces the
+task to its query language, and its ledger lists every reduction. Intermediate payloads are
+implementation-defined, as in section 4.
 
 **Relaxations.** Most zero-shot models cannot answer an arbitrary ACES task exactly; they answer a related
 question their query language can express. Every zero-shot run MUST therefore publish `relaxations.yaml`
@@ -125,8 +133,9 @@ steps:                                                                      # fr
 `exact: true` is a claim that the decoded quantity is the requested label's probability under the model;
 an exact model lists no steps. Each entry of `steps` describes one rewrite or assumption; its keys are not
 validated, and the implementation guide recommends a vocabulary for them. A model MUST raise rather than
-answer a task it cannot pose (for example, one whose label is not future-only), and MUST NOT omit a step
-because it is expected to be small.
+answer a task it cannot pose (for example, a direct model given a task whose label is not future-only):
+the command fails and writes no predictions. A model MUST NOT omit a step because it is expected to be
+small.
 
 ## 4. Intermediate artifacts
 
