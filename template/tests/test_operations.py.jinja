@@ -25,7 +25,14 @@ def test_slurm_dry_run_is_non_mutating():
         text=True,
         capture_output=True,
         check=True,
-        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        # Example values: the dry run only prints arguments, so the paths need not exist.
+        env={
+            "MEDS_ROOT": "/example/meds",
+            "LABELS_DIR": "/example/labels",
+            "TASK_CRITERIA_FILE": "/example/task.yaml",
+            **os.environ,
+            "PYTHONDONTWRITEBYTECODE": "1",
+        },
     )
     after = {p.relative_to(ROOT) for p in ROOT.rglob("*")}
     assert before == after

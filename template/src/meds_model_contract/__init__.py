@@ -13,6 +13,7 @@ from .results import write_run_result
 from .task import (
     RelaxationLedger,
     TaskSpec,
+    attach_ground_truth,
     check_decoded,
     read_index,
 )
@@ -26,6 +27,7 @@ __all__ = [
     "ModelRepository",
     "RelaxationLedger",
     "TaskSpec",
+    "attach_ground_truth",
     "check_decoded",
     "measured_artifact",
     "read_index",

@@ -37,6 +37,9 @@ which population rather than leave the scope unstated.
 
 A task input is an index of `(subject_id, prediction_time)` and, for training/evaluation only, a value
 column such as `boolean_value`. Prediction code MUST operate on the index without reading ground truth.
+The one exception: once every probability is final, `predict` MAY join the label column onto the
+predictions by key (`meds_model_contract.attach_ground_truth`), because meds-evaluation reads ground truth
+from the predictions file. Nothing computed from that join may feed back into a prediction.
 
 The cohort is built upstream, not in the model repository. The index and its labels come from one ACES
 extraction run outside every model: MEDS-DEV's `meds-dev-task` for the MIMIC-IV demo, and the shared

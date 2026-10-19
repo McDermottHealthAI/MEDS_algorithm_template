@@ -14,6 +14,9 @@ def _value(text: str):
     try:
         return json.loads(text)
     except json.JSONDecodeError:
+        # MEDS-DEV and Hydra-style commands pass unquoted lists such as splits=[held_out].
+        if text.startswith("[") and text.endswith("]"):
+            return [_value(item.strip()) for item in text[1:-1].split(",") if item.strip()]
         return text
 
 

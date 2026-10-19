@@ -441,7 +441,7 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
     render(dst, "zero_shot_direct")
     monkeypatch.syspath_prepend(str(dst / "src"))
     import meds_model_contract
-    from meds_model_contract import RelaxationLedger, TaskSpec, check_decoded, read_index
+    from meds_model_contract import RelaxationLedger, TaskSpec, attach_ground_truth, check_decoded, read_index
 
     assert not hasattr(meds_model_contract, "ZeroShotTranslator"), "the translator is guidance, not contract"
     assert {
@@ -478,6 +478,10 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
         tmp_path / "labels" / "train.parquet"
     )
     index = read_index(tmp_path / "labels", ["held_out"])
+    with pytest.raises(FileNotFoundError, match="tuning"):
+        read_index(tmp_path / "labels", ["tuning"])  # never silently falls back to every split
+    with pytest.raises(TypeError):
+        read_index(tmp_path / "labels", "held_out")
     assert index.columns == ["subject_id", "prediction_time"]
     assert sorted(index["subject_id"]) == [1, 2]
 
@@ -516,3 +520,22 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
         check_decoded(index, predictions.head(1))
     with pytest.raises(ValueError, match=r"\[0, 1\]"):
         check_decoded(index, predictions.with_columns(pl.lit(1.5).alias("predicted_boolean_probability")))
+
+    final = attach_ground_truth(predictions.reverse(), tmp_path / "labels", ["held_out"])
+    assert dict(zip(final["subject_id"], final["boolean_value"], strict=True)) == {1: True, 2: False}
+    assert final["predicted_boolean_probability"].to_list() == [0.9, 0.2], "probabilities are untouched"
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_predictions_and_cli_lists_follow_meds_dev(tmp_path, profile):
+    dst = tmp_path / profile
+    slug = render(dst, profile)
+    predict = yaml.safe_load((dst / "model.yaml").read_text())["commands"]["supervised"]["predict"]
+    assert "output_predictions_dir={output_dir}/predictions" in predict, "never replace MEDS-DEV's output_dir"
+    probe = (
+        f"import sys; sys.argv = ['x']; from {slug}.__main__ import _value; "
+        "print(_value('[held_out]'), _value('[train, tuning]'), _value('[]'), _value('3'), _value('a'))"
+    )
+    env = {**os.environ, "PYTHONPATH": str(dst / "src")}
+    printed = subprocess.run(["python", "-c", probe], env=env, text=True, capture_output=True, check=True)
+    assert printed.stdout.split("\n")[0] == "['held_out'] ['train', 'tuning'] [] 3 a"

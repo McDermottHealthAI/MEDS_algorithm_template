@@ -98,14 +98,18 @@ def read_index(labels_dir: Path | str, splits: Sequence[str] | None = None) -> p
 
     root = Path(labels_dir)
     files = sorted(root.rglob("*.parquet")) if root.is_dir() else [root]
+    if isinstance(splits, str):
+        raise TypeError(f"splits must be a sequence of split names, got the string {splits!r}")
     if splits and root.is_dir():
         selected = set(splits)
-        matching = [
+        files = [
             path
             for path in files
             if path.stem in selected or any(part in selected for part in path.relative_to(root).parts)
         ]
-        files = matching or files
+        if not files:
+            # Falling back to every split would silently score train rows as evaluation rows.
+            raise FileNotFoundError(f"No parquet files for splits {sorted(selected)} under {root}")
     frames = [
         pl.read_parquet(path, columns=list(INDEX_COLUMNS))
         for path in files
@@ -168,6 +172,36 @@ class RelaxationLedger:
             exact=value["exact"],
             steps=value.get("steps") or (),
         )
+
+
+def attach_ground_truth(
+    predictions: pl.DataFrame, labels_dir: Path | str, splits: Sequence[str] | None = None
+) -> pl.DataFrame:
+    """Join the index's label column onto final predictions, by key, for the evaluation file.
+
+    meds-evaluation reads ground truth from the predictions file. Call this only after every probability
+    is final: it is the one sanctioned label read on the prediction path (SPEC section 5), and nothing
+    computed from its output may feed back into a prediction.
+    """
+    import polars as pl
+
+    root = Path(labels_dir)
+    files = sorted(root.rglob("*.parquet")) if root.is_dir() else [root]
+    if splits and root.is_dir():
+        selected = set(splits)
+        files = [p for p in files if p.stem in selected or any(x in selected for x in p.relative_to(root).parts)]
+    keys = list(INDEX_COLUMNS)
+    frames = [
+        pl.read_parquet(path, columns=[*keys, "boolean_value"])
+        for path in files
+        if all(column in pl.read_parquet_schema(path) for column in [*keys, "boolean_value"])
+    ]
+    if not frames:
+        raise FileNotFoundError(f"No parquet files with {[*keys, 'boolean_value']} under {root}")
+    joined = predictions.drop("boolean_value", strict=False).join(pl.concat(frames), on=keys, how="left")
+    if joined.height != predictions.height or joined["boolean_value"].null_count():
+        raise ValueError("every prediction key must have exactly one ground-truth label")
+    return joined
 
 
 def check_decoded(index: pl.DataFrame, predictions: pl.DataFrame) -> pl.DataFrame:

@@ -1,4 +1,6 @@
 ## MEDS-DEV descriptor for {{ model_name }}. This retains the established command-slot interface.
+## `predict` writes into a subdirectory of {output_dir}: MEDS-DEV keeps its own cmd.sh and .done marker in
+## {output_dir}, and artifacts are published by atomically replacing their destination directory.
 {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}## Zero-shot commands receive the task itself through {task_criteria_path}, which needs the MEDS-DEV
 ## passthrough described in SPEC.md section 2.4 (the analogue of {predicates_path}).
 {% endif %}metadata:
@@ -24,8 +26,8 @@ commands:
 {% endif %}    predict: |-
 {% if profile == 'packaged' %}      meds-model preprocess_data external_meds_dir={dataset_dir}{% if uses_predicates %} external_predicates_file={predicates_path}{% endif %} output_data_dir={output_dir}/data do_overwrite=true
 {% elif profile == 'zero_shot_materialized' %}      meds-model infer input_data_dir={model_initialization_dir}/data input_pretrained_model_dir={model_initialization_dir}/pretrained external_labels_dir={labels_dir} splits=[{split}] output_inference_subdir=inference/materialized do_overwrite=true
-{% endif %}{% if profile in ['supervised', 'finetune', 'probe'] %}      meds-model predict input_supervised_model_dir={model_initialization_dir}/model external_labels_dir={labels_dir} splits=[{split}] output_predictions_dir={output_dir} do_overwrite=true
-{% elif profile == 'zero_shot_materialized' %}      meds-model predict input_data_dir={model_initialization_dir}/data input_inference_subdir=inference/materialized external_labels_dir={labels_dir} external_task_criteria_file={task_criteria_path}{% if uses_predicates %} external_predicates_file={predicates_path}{% endif %} splits=[{split}] output_predictions_dir={output_dir} do_overwrite=true
-{% elif profile == 'zero_shot_direct' %}      meds-model predict input_data_dir={model_initialization_dir}/data input_pretrained_model_dir={model_initialization_dir}/pretrained external_labels_dir={labels_dir} external_task_criteria_file={task_criteria_path}{% if uses_predicates %} external_predicates_file={predicates_path}{% endif %} splits=[{split}] output_predictions_dir={output_dir} do_overwrite=true
-{% else %}      meds-model predict input_data_dir={output_dir}/data external_labels_dir={labels_dir} splits=[{split}] output_predictions_dir={output_dir} do_overwrite=true
+{% endif %}{% if profile in ['supervised', 'finetune', 'probe'] %}      meds-model predict input_supervised_model_dir={model_initialization_dir}/model external_labels_dir={labels_dir} splits=[{split}] output_predictions_dir={output_dir}/predictions do_overwrite=true
+{% elif profile == 'zero_shot_materialized' %}      meds-model predict input_data_dir={model_initialization_dir}/data input_inference_subdir=inference/materialized external_labels_dir={labels_dir} external_task_criteria_file={task_criteria_path}{% if uses_predicates %} external_predicates_file={predicates_path}{% endif %} splits=[{split}] output_predictions_dir={output_dir}/predictions do_overwrite=true
+{% elif profile == 'zero_shot_direct' %}      meds-model predict input_data_dir={model_initialization_dir}/data input_pretrained_model_dir={model_initialization_dir}/pretrained external_labels_dir={labels_dir} external_task_criteria_file={task_criteria_path}{% if uses_predicates %} external_predicates_file={predicates_path}{% endif %} splits=[{split}] output_predictions_dir={output_dir}/predictions do_overwrite=true
+{% else %}      meds-model predict input_data_dir={output_dir}/data external_labels_dir={labels_dir} splits=[{split}] output_predictions_dir={output_dir}/predictions do_overwrite=true
 {% endif %}
