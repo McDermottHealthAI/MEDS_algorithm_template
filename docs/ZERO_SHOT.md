@@ -143,6 +143,9 @@ elif cfg.get("task_name", None) in TASKS:
     format_kwargs["task_criteria_path"] = str(TASKS[cfg.task_name]["criteria_fp"])
 ```
 
-Add `task_criteria_path: null` to `_run_model.yaml`. Until that lands, the zero-shot MEDS-DEV gate needs a
-MEDS-DEV revision that includes it. The MIMIC demo gate and SLURM runs already pass the criteria file
-directly (`tests/e2e.py:mimic_task_criteria`, `TASK_CRITERIA_FILE`).
+This is MEDS-DEV PR #330 (into `dev`), which also adds `task_criteria_path: null` to `_run_model.yaml`.
+MEDS-DEV forwards the *original* task, since only the model knows which relaxations its query language
+needs. `labels_dir` still supplies the index; zero-shot models read only its key columns. Until #330
+merges, `tests/integration.py` pins its head commit, and only zero-shot repositories require the
+capability. The MIMIC demo gate and SLURM runs pass the criteria file directly
+(`tests/e2e.py:mimic_task_criteria`, `TASK_CRITERIA_FILE`).
