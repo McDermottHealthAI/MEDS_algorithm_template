@@ -11,7 +11,9 @@ from pathlib import Path
 import pytest
 
 MEDS_DEV_URL = "https://github.com/Medical-Event-Data-Standard/MEDS-DEV.git"
-MEDS_DEV_PREDICATES_REF = "0c21a2226964181dee7ed28c9aa5aa0abdfe9765"
+# Head of MEDS-DEV PR #330 (task_criteria_path), on top of dev, which contains PR #325 (predicates_path).
+# Repin to the merge commit once #330 merges: a branch commit can become unreachable after a squash merge.
+MEDS_DEV_PINNED_REF = "19a8aa3417fae3586b2e8f0f17aba19ddb0560d4"
 INSTALL_TIMEOUT = 1800
 RUN_TIMEOUT = 5400
 
@@ -48,7 +50,17 @@ def assert_meds_dev_predicates_capability(checkout: Path) -> None:
     ):
         raise AssertionError(
             "MEDS-DEV lacks the predicates_path model-command passthrough. Use MEDS_DEV_REF="
-            f"{MEDS_DEV_PREDICATES_REF} or a revision containing MEDS-DEV PR #325."
+            f"{MEDS_DEV_PINNED_REF} or a revision containing MEDS-DEV PR #325."
+        )
+
+
+def assert_meds_dev_task_criteria_capability(checkout: Path) -> None:
+    """Require the task_criteria_path passthrough proposed in MEDS-DEV PR #330 (zero-shot profiles)."""
+    implementation = checkout / "src" / "MEDS_DEV" / "models" / "__init__.py"
+    if 'format_kwargs["task_criteria_path"]' not in implementation.read_text():
+        raise AssertionError(
+            "MEDS-DEV lacks the task_criteria_path model-command passthrough that zero-shot model.yaml "
+            f"commands use. Use MEDS_DEV_REF={MEDS_DEV_PINNED_REF} or a revision containing MEDS-DEV PR #330."
         )
 
 
@@ -91,7 +103,7 @@ def assert_prediction_keys(predictions_dir: Path, labels_dir: Path, splits) -> N
     )
 
 
-def provision_meds_dev(request, tmp_path_factory) -> Path:
+def provision_meds_dev(request, tmp_path_factory, *, task_criteria: bool = False) -> Path:
     source = os.environ.get("MEDS_DEV_DIR")
     expression = request.config.getoption("markexpr", default="") or ""
     selected = "meds_dev" in expression or "real_data" in expression
@@ -104,9 +116,11 @@ def provision_meds_dev(request, tmp_path_factory) -> Path:
     checkout = tmp_path_factory.mktemp("meds-dev") / "MEDS-DEV"
     run([git, "clone", source or MEDS_DEV_URL, checkout], timeout=INSTALL_TIMEOUT)
     if source is None:
-        ref = os.environ.get("MEDS_DEV_REF", MEDS_DEV_PREDICATES_REF)
+        ref = os.environ.get("MEDS_DEV_REF", MEDS_DEV_PINNED_REF)
         run([git, "-C", checkout, "checkout", "--detach", ref], timeout=INSTALL_TIMEOUT)
     assert_meds_dev_predicates_capability(checkout)
+    if task_criteria:
+        assert_meds_dev_task_criteria_capability(checkout)
     run([uv, "venv", checkout / ".venv"], timeout=INSTALL_TIMEOUT)
     run(
         [uv, "pip", "install", "-e", checkout, "--python", venv_bin(checkout) / "python"],

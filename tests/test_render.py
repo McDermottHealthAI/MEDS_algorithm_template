@@ -258,6 +258,19 @@ def test_meds_dev_predicates_capability_is_explicit(tmp_path):
     with pytest.raises(AssertionError, match="PR #325"):
         integration.assert_meds_dev_predicates_capability(checkout)
 
+    with pytest.raises(AssertionError, match="PR #330"):
+        integration.assert_meds_dev_task_criteria_capability(checkout)
+    implementation.write_text('format_kwargs["task_criteria_path"] = str(task_criteria_path)\n')
+    integration.assert_meds_dev_task_criteria_capability(checkout)
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_only_zero_shot_meds_dev_runs_require_task_criteria(tmp_path, profile):
+    dst = tmp_path / profile
+    render(dst, profile)
+    meds_dev_test = (dst / "tests/test_meds_dev_e2e.py").read_text()
+    assert ("task_criteria=True" in meds_dev_test) == (profile in ZERO_SHOT_PROFILES)
+
 
 def test_meds_dev_ref_is_checked_out_in_clone(tmp_path, monkeypatch):
     dst = tmp_path / "provisioning"

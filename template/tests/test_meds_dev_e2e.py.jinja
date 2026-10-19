@@ -18,7 +18,7 @@ MODEL_NAME = "{{ model_slug }}"
 def meds_dev(request, tmp_path_factory):
     if IS_STUB:
         pytest.skip("model_stub: MEDS-DEV runs only after the real model profile is implemented")
-    return provision_meds_dev(request, tmp_path_factory)
+    return provision_meds_dev(request, tmp_path_factory{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}, task_criteria=True{% endif %})
 
 
 def test_meds_dev_runs_model_yaml(meds_dev, tmp_path):

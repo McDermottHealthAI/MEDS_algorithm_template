@@ -185,10 +185,12 @@ definitions and labels. Selecting another full dataset does not change the provi
 Set `MEDS_DEV_DIR=/path/to/MEDS-DEV` to reuse a checkout and `MEDS_DEMO_DIR=/path/to/demo` to reuse the
 dataset. A bare test run never clones MEDS-DEV or downloads MIMIC data.
 
-Until MEDS-DEV PR #325 is merged, automatic integration provisioning pins commit
-`0c21a2226964181dee7ed28c9aa5aa0abdfe9765`, which supplies the explicit `predicates_path` passthrough.
-Set `MEDS_DEV_REF` to select another revision containing that capability. Reused `MEDS_DEV_DIR` checkouts
-are capability-checked rather than silently using a model-side fallback.
+Until MEDS-DEV PR #330 is merged, automatic integration provisioning pins its head commit
+`19a8aa3417fae3586b2e8f0f17aba19ddb0560d4`. That commit is on top of `dev`, so it supplies both the
+`predicates_path` passthrough (PR #325) and the `task_criteria_path` passthrough that zero-shot profiles
+use. Set `MEDS_DEV_REF` to select another revision containing those capabilities. Reused `MEDS_DEV_DIR`
+checkouts are capability-checked rather than silently using a model-side fallback. Only zero-shot
+repositories require `task_criteria_path`.
 
 ## Cluster and result interfaces
 
