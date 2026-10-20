@@ -56,7 +56,7 @@ trigger, inclusion/exclusion criteria and splits, so every model scores exactly 
 | Run | Who builds the index |
 |---|---|
 | MIMIC-IV demo (smoke test) | MEDS-DEV's `meds-dev-task`, task `mortality/in_icu/first_24h` |
-| Full-data evaluation | a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined in ACES (for example selected with [meds-task-selection](https://github.com/florian6973/meds-task-selection)) or randomly sampled code-by-horizon tasks (for example with [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler)), containing each task's definition and its per-task index and labels |
+| Full-data evaluation | a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined and extracted with [ACES](https://eventstreamaces.readthedocs.io/), or randomly sampled code-by-horizon tasks (generated with [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler) and selected with [meds-task-selection](https://github.com/florian6973/meds-task-selection)), containing each task's definition and its per-task index and labels |
 
 Every model compared on a dataset uses the same bundle. Zero-shot runs additionally need each task's ACES
 criteria file.

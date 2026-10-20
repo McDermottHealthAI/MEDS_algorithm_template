@@ -61,10 +61,10 @@ demo.
 
 - The cluster runs an **immutable commit** from a clean checkout: `slurm/submit.sh` refuses to submit from
   a dirty tree.
-- The tasks come from a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined in ACES (for example selected with [meds-task-selection](https://github.com/florian6973/meds-task-selection)) or randomly sampled code-by-horizon tasks (for example with [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler)), containing each task's definition and its per-task index and labels. Zero-shot runs additionally need each task's ACES criteria.
+- The tasks come from a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined and extracted with [ACES](https://eventstreamaces.readthedocs.io/), or randomly sampled code-by-horizon tasks (generated with [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler) and selected with [meds-task-selection](https://github.com/florian6973/meds-task-selection)), containing each task's definition and its per-task index and labels. Zero-shot runs additionally need each task's ACES criteria.
   Every model compared on a dataset uses the same bundle, and the bundle stays outside Git.
-- Record the dataset name and revision, predicate provenance, bundle location, task-selection commit,
-  `tasks.yaml` SHA-256, model commit, configuration and job IDs.
+- Record the dataset name and revision, predicate provenance, bundle location, the commit of the tool that built the bundle,
+  a digest of its task definitions, model commit, configuration and job IDs.
 
 ## Reporting results
 
