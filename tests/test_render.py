@@ -402,6 +402,11 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
             assert infer.startswith("meds-model infer")
             assert "task_criteria_path" not in infer, "materialized infer is task-independent"
             assert "splits=[{split}]" in infer, "materialized infer must score only the evaluated split"
+            materialized_predict = predict.splitlines()[1]
+            assert "external_meds_dir={dataset_dir}" in materialized_predict, (
+                "the task is evaluated on real history"
+            )
+            assert "external_meds_dir=" in predict_line
         else:
             assert "class ZeroShotTranslator(ABC)" in guide, (
                 "the translator shape is guidance, kept in the guide"

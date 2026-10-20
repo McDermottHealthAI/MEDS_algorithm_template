@@ -18,7 +18,7 @@ stage_args() {
 {% if profile == 'zero_shot_materialized' %}    infer) printf '%s\n' "input_data_dir=$RUN_DIR/data" "input_pretrained_model_dir=$RUN_DIR/pretrained" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_inference_subdir=inference/default" ;;
 {% else %}    infer) printf '%s\n' "input_data_dir=$RUN_DIR/data" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_inference_subdir=inference/default" ;;
 {% endif %}    supervised_train) printf '%s\n' "input_data_dir=$RUN_DIR/data" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_supervised_model_dir=$RUN_DIR/model" ;;
-{% if profile == 'zero_shot_materialized' %}    predict) printf '%s\n' "input_data_dir=$RUN_DIR/data" "input_inference_subdir=inference/default" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "external_task_criteria_file=${TASK_CRITERIA_FILE:?set TASK_CRITERIA_FILE}" "output_predictions_dir=$RUN_DIR/predict" ;;
+{% if profile == 'zero_shot_materialized' %}    predict) printf '%s\n' "input_data_dir=$RUN_DIR/data" "external_meds_dir=${MEDS_ROOT:?set MEDS_ROOT}" "input_inference_subdir=inference/default" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "external_task_criteria_file=${TASK_CRITERIA_FILE:?set TASK_CRITERIA_FILE}" "output_predictions_dir=$RUN_DIR/predict" ;;
 {% elif profile == 'zero_shot_direct' %}    predict) printf '%s\n' "input_data_dir=$RUN_DIR/data" "input_pretrained_model_dir=$RUN_DIR/pretrained" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "external_task_criteria_file=${TASK_CRITERIA_FILE:?set TASK_CRITERIA_FILE}" "output_predictions_dir=$RUN_DIR/predict" ;;
 {% else %}    predict) printf '%s\n' "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_predictions_dir=$RUN_DIR/predict" ;;
 {% endif %}    *) return 2 ;;

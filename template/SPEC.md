@@ -113,7 +113,8 @@ code is organized:
 | `zero_shot_direct` | answers a query derived from the task directly (a probability, hazard, or score per query) | none | translates the task into the model's queries, runs the model, decodes probabilities | MOTOR (time-to-event hazards), EveryQuery (code-in-window queries) |
 | `zero_shot_materialized` | generates (*materializes*) possible futures, and the task is evaluated on them | task-independent: futures at the index's prediction times, reusable across tasks | applies the task to the materialized futures (e.g. ACES over each sampled trajectory) and aggregates | autoregressive EHR generators |
 
-In `zero_shot_materialized`, `infer` never receives the task and records `semantics_digest: null`. Its
+In `zero_shot_materialized`, `infer` never receives the task and records `semantics_digest: null`. Its `predict`
+receives `external_meds_dir`, because the task is evaluated on the real history plus each generated future. Its
 output serves every task over the same index. Only `predict` is task-conditioned. A materialized model
 can usually evaluate the task exactly, past criteria included, because ACES runs on the real history plus
 the generated future. Its ledger then lists only the sampling approximation. A direct model reduces the
