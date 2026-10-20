@@ -83,6 +83,11 @@ section 2.3 when the criteria do not define their own. The pair is the *task spe
   `predict` in both profiles) MUST receive `external_task_criteria_file`, MUST
   validate it before expensive work, and MUST record `TaskSpec.provenance()` under `inputs.task` and
   `TaskSpec.semantics_digest()` as the manifest `semantics_digest`.
+- The predicates bound to the task can define the label itself (a task-suite layer defining, say, `aki`).
+  Such a file MUST reach only task-conditioned commands, never a command that builds model inputs:
+  `preprocess_data` receives dataset-level predicates only. Through SLURM the two are `PREDICATES_FILE` and
+  `TASK_PREDICATES_FILE`. Through MEDS-DEV there is no conflict, because its task YAMLs carry their label
+  predicates and `{predicates_path}` holds dataset facts only.
 - Those commands receive the task index through `external_labels_dir` for its keys only. They MUST read it
   through `meds_model_contract.read_index`, or an equivalent that never selects a label column.
 - Through MEDS-DEV, the criteria path reaches `model.yaml` as `{task_criteria_path}` (MEDS-DEV PR #330):

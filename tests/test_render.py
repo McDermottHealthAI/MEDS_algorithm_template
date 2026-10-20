@@ -652,3 +652,53 @@ def test_label_leakage_check_strips_what_the_profile_may_not_read(tmp_path, prof
         assert '"unlabelled-index",\n        result.splits,' in end_to_end, (
             "only evaluated-split labels are stripped"
         )
+
+
+def _dry_run(dst: Path, slug: str, tmp_path: Path, **env: str) -> subprocess.CompletedProcess:
+    shim = tmp_path / "bin" / "meds-model"
+    shim.parent.mkdir(parents=True, exist_ok=True)
+    shim.write_text(f'#!/bin/sh\nexec {sys.executable} -m {slug} "$@"\n')
+    shim.chmod(0o755)
+    environment = {
+        **os.environ,
+        "PATH": f"{shim.parent}{os.pathsep}{os.environ['PATH']}",
+        "PYTHONPATH": str(dst / "src"),
+        "MEDS_ROOT": "/meds",
+        "LABELS_DIR": "/labels/task",
+        "TASK_CRITERIA_FILE": "/tasks/task.yaml",
+        "PREDICATES_FILE": "/predicates/dataset.yaml",
+        **env,
+    }
+    return subprocess.run(
+        ["bash", "slurm/submit.sh", "--dry-run"], cwd=dst, env=environment, text=True, capture_output=True
+    )
+
+
+def test_submit_stages_reuse_shared_task_independent_artifacts(tmp_path):
+    dst = tmp_path / "materialized"
+    slug = render(dst, "zero_shot_materialized", uses_predicates=True)
+    result = _dry_run(
+        dst,
+        slug,
+        tmp_path,
+        STAGES="predict,infer",
+        RUN_ROOT="/runs",
+        RUN_ID="task-a",
+        SHARED_DIR="/runs/shared/artifacts",
+        TASK_PREDICATES_FILE="/predicates/task-suite.yaml",
+    )
+    assert result.returncode == 0, result.stderr
+    args = [line for line in result.stdout.splitlines() if line.startswith("# ")]
+    assert [line.split(":")[0] for line in args if ": " in line] == ["# infer"] * 4 + ["# predict"] * 7
+    assert "# infer: input_pretrained_model_dir=/runs/shared/artifacts/pretrained" in args
+    assert "# infer: output_inference_dir=/runs/task-a/artifacts/inference" in args
+    assert "# predict: input_data_dir=/runs/shared/artifacts/data" in args
+    assert "# predict: external_predicates_file=/predicates/task-suite.yaml" in args
+    assert not any("preprocess_data" in line or "pretrain:" in line for line in args)
+
+    shared = _dry_run(dst, slug, tmp_path, STAGES="preprocess_data", RUN_ROOT="/runs", RUN_ID="shared")
+    assert "# preprocess_data: external_predicates_file=/predicates/dataset.yaml" in shared.stdout
+    assert "# preprocess_data: output_data_dir=/runs/shared/artifacts/data" in shared.stdout
+
+    typo = _dry_run(dst, slug, tmp_path, STAGES="infer,supervised_train")
+    assert typo.returncode == 2 and "not a command of this profile" in typo.stderr
