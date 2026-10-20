@@ -34,8 +34,11 @@ end-to-end tests skip with an explicit `model_stub` reason until the real model 
 
 ## 2. Implement
 
-Implement every command of the profile, `tests/e2e.py` (the adapters that run the real profile on a small
-fixture and on MEDS-DEV), `model.yaml`, and `slurm/config.sh`. Complete `tests/test_primary_behavior.py`,
+Implement every command of the profile, `tests/e2e.py`, `model.yaml`, and `slurm/config.sh`. In
+`tests/e2e.py`, `run_e2e` runs the real profile on a small fixture to which it applies
+`tests.signal.add_split_canaries`, and returns the artifacts, the evaluated index and splits, the exact
+`predict` arguments and the canaries; `fitted_codes` reports every code the model fitted a population
+statistic for; `prepare_meds_dev_run` configures the MEDS-DEV run. Complete `tests/test_primary_behavior.py`,
 which fails on purpose until it shows the model's claimed behavior on a known signal, with a negative
 control. Record every source element as ported, adapted or omitted in `IMPLEMENTATION_REPORT.md`.
 
@@ -43,7 +46,7 @@ control. Record every source element as ported, adapted or omitted in `IMPLEMENT
 
 | Gate | Proves | Does not prove |
 |---|---|---|
-| **Local** (`pytest -rs`) | the contract holds (command registry, manifests, atomic publication, measurements, key coverage), the real profile runs end to end on a synthetic fixture, and the primary behavior appears | anything about real data |
+| **Local** (`pytest -rs`) | the contract holds (command registry, manifests and `config_digest`, atomic publication, measurements, key coverage, prediction schema), the real profile runs end to end on a synthetic fixture with no label read on the prediction path and no statistic fitted on tuning or held-out subjects, and the primary behavior appears | anything about real data |
 | **MEDS-DEV** (`-m meds_dev`) | the package installs in MEDS-DEV's isolated environment and the `model.yaml` command strings run | scale or real-data behavior |
 | **Pre-demo review** (human) | the port is faithful to the source, predicates are interpreted correctly, the demo plan is sound | — |
 | **MIMIC-IV demo** (`-m real_data`) | the pipeline survives real data: serialization, scale transitions, resources, key coverage on MEDS-DEV's `mortality/in_icu/first_24h` with MEDS-DEV's MIMIC-IV predicates | **model quality**: the demo validates execution only (its held-out split is tiny and may have no positives) |

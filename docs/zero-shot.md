@@ -67,49 +67,48 @@ recommended step vocabulary separates three kinds of difference:
 Rules: a model **must not** omit a step because it is expected to be small, and it **must raise** rather
 than answer a task it cannot pose — the command fails and writes no predictions.
 
-### Ledgers from the three reference ports
+### What ledgers look like for three kinds of model
 
-These come from the private model repositories built on this template; they illustrate what a reader
-should expect, not values to copy.
+Illustrative ledgers for MEDS-DEV's `mortality/in_icu/first_24h` and an abnormal-lab task. They show what a
+reader should expect from each kind of model, not values to copy.
 
-=== "EveryQuery (direct)"
+=== "Code-in-window query model (direct)"
 
-    MEDS-DEV `mortality/in_icu/first_24h` on the MIMIC-IV demo. The model is asked
-    *P(death in (t₀ + 1 day, next ICU discharge) | no ICU discharge, death or ICU admission in the first
-    day)*. `exact: false`.
+    For example EveryQuery. Its windows can start after a delay or at an event and end at a duration or a
+    bound event, so much of the task maps exactly. The model is asked *P(death in (t₀ + 1 day, next ICU
+    discharge) | no ICU discharge, death or ICU admission in the first day)*. `exact: false`.
 
     | Step | Kind | Direction |
     |---|---|---|
     | re-anchor the trigger-rooted `gap` window on the prediction time | label_preserving | exact |
     | normalize | label_preserving | exact |
     | remove death from the window's end event (`discharge_or_death`) | approximation | exact except on timestamp ties (strengthening) |
-    | "no discharge or death in the first day", passed as forced answers | label_preserving | exact |
-    | "at least one discharge or death" dropped (spans two codes) | model_assumption | unknown |
+    | criteria that hold on every cohort row, given to the model as answered conditions | label_preserving | exact |
+    | a criterion spanning several codes, which cannot be given as a condition, dropped | model_assumption | unknown |
 
-    On the demo cohort the translated plan gives the ACES label on 74 of 74 rows.
+=== "Time-to-event model (direct)"
 
-=== "MOTOR+ (direct)"
-
-    aces-to-motor's fixed pipeline. On an abnormal-lab task such as hyponatremia, MOTOR's vocabulary
-    restriction drops the `< 135 mEq/L` threshold and the "measured at least once" criterion is dropped,
-    so the decoded quantity becomes *P(any sodium measurement in the next 24h)*.
+    For example MOTOR. The model has hazards for a fixed vocabulary of codes, so predicates are restricted
+    to that vocabulary and criteria branches are dropped. On an abnormal-lab task such as hyponatremia, the
+    `< 135 mEq/L` threshold cannot be expressed over codes without values and the "measured at least once"
+    criterion is dropped, so the decoded quantity becomes *P(any sodium measurement in the next 24h)*.
 
     | Step | Kind | Direction |
     |---|---|---|
     | require_bounding_events, normalize | label_preserving | exact |
     | vocabulary restriction (value bounds dropped) | model_assumption | weakening |
-    | `label_only`: drop criteria branches | model_assumption | unknown |
-    | `last_link_target` + time-to-event stationarity | approximation / model_assumption | unknown unless exact |
+    | drop criteria branches | model_assumption | unknown |
+    | single label window promoted to the prediction time (time-to-event stationarity) | approximation / model_assumption | unknown unless exact |
     | decode `and`/`or` under independence | model_assumption | unknown |
 
-=== "MEDS-EIC-AR (materialized)"
+=== "Autoregressive generator (materialized)"
 
-    The task is evaluated as written on real history plus each sampled trajectory, so the only intrinsic
-    step is the Monte Carlo estimate. Everything else is recorded when it happens: samples truncated
-    before the task resolves (excluded, since ACES would count them as negatives), generated events that
-    land before the prediction time (dropped and counted), samples that violate a future criterion
-    (rejected, so the estimate is *P(label | criteria hold)*), and rows with no usable sample (fallback,
-    with their keys listed).
+    For example MEDS-EIC-AR. The task is evaluated as written on real history plus each sampled future, so
+    the only intrinsic step is the Monte Carlo estimate. Effects that change the answer are recorded when
+    they happen: samples that end before the task resolves (ACES would count them as negatives), generated
+    events that land before the prediction time, samples that violate a future criterion (rejecting them
+    estimates *P(label | criteria hold)*), and rows with no usable sample (handled by a declared policy that
+    lists their keys).
 
 ## Windows that straddle the prediction time
 
@@ -132,9 +131,9 @@ tasks `normalize` silently drops the similar `no_discharge` window.
 The fix is a **re-anchoring** step: a trigger-rooted window ending at `trigger + L` with `L > Δ` (where the
 prediction time is `trigger + Δ`) becomes `(prediction time, prediction time + (L − Δ)]`; "never"
 constraints are kept (they held over the whole window), others are dropped (the past half may have
-satisfied them). On every cohort row the label is unchanged. EveryQuery's translator applies it, MOTOR+'s
-adapter carries a port of it, and it belongs upstream in aces-relaxations. Materialized models do not need
-it: they evaluate the original task on real history plus generated futures.
+satisfied them). On every cohort row the label is unchanged. Direct adapters currently carry this step
+themselves; it is model-independent and belongs upstream in aces-relaxations. Materialized models do not
+need it: they evaluate the original task on real history plus generated futures.
 
 ## Adapters are model-specific
 
@@ -145,8 +144,8 @@ in the template:
   `degeneracies`) and provides rewrites with known effects (`normalize`, `simplify_constraints`,
   `last_link_target`).
 - **aces-to-&lt;model&gt;** (model-specific): chooses which rewrites and assumptions the query language
-  forces, runs the model, decodes probabilities, and writes the ledger. Examples: aces-to-motor (MOTOR+),
-  `aces_to_eq` (EveryQuery).
+  forces, runs the model, decodes probabilities, and writes the ledger. aces-to-motor (for MOTOR) is one
+  example.
 
 Pin aces-relaxations to an exact version or commit in the model repository; the template does not depend
 on it.

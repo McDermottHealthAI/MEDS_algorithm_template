@@ -86,7 +86,8 @@ why in `IMPLEMENTATION_REPORT.md`. Do not pick a shorter profile to avoid implem
 === "zero_shot_direct"
 
     A pretrained model that **answers a query derived from the task directly**, without any labels:
-    MOTOR+ (time-to-event hazards via aces-to-motor) and EveryQuery (probability that a code occurs in a
+    MOTOR (time-to-event hazards, through an aces-to-motor adapter) and EveryQuery (probability that a
+    code occurs in a
     window). `predict` translates the task into the model's queries, runs the model, and decodes
     probabilities.
 
@@ -101,7 +102,8 @@ why in `IMPLEMENTATION_REPORT.md`. Do not pick a shorter profile to avoid implem
 
     A pretrained **generative** model that samples possible futures (an autoregressive EHR generator such
     as MEDS-EIC-AR). `infer` generates futures at the index's prediction times *without knowing the task*,
-    so one `infer` run serves every task over the same index. `predict` evaluates the ACES task on the
+    so one `infer` run serves every task over the same index. `infer` publishes its own `inference`
+    artifact next to the data artifact, never inside it. `predict` evaluates the ACES task on the
     real history plus each generated future and reports the fraction of futures in which the label is
     true.
 
@@ -132,7 +134,7 @@ The two zero-shot profiles are not two ways of organizing the same code; they ar
 | | `zero_shot_direct` | `zero_shot_materialized` |
 |---|---|---|
 | The model | answers a query: a hazard, a probability, a score | generates (*materializes*) possible futures |
-| Examples | MOTOR+, EveryQuery | MEDS-EIC-AR |
+| Examples | MOTOR, EveryQuery | MEDS-EIC-AR |
 | `infer` | none | task-independent: N futures per index row, reusable across tasks |
 | `predict` | translate the task → run the model → decode probabilities | run ACES on history + each future; probability = fraction of futures with the label |
 | What gets approximated | the *task*: it is reduced to the query language, so the ledger usually lists several steps | the *estimate*: the task is evaluated as written, so it is usually exact up to sampling |

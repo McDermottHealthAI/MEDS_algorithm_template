@@ -14,9 +14,10 @@ transductive leakage: it uses held-out patients' data even though it never touch
 
 ## Why do some models run in two Python environments?
 
-Because their dependencies cannot coexist. MOTOR+ pins femr 0.2.4, which requires `meds==0.3.3`, while the
-ACES tooling it uses for task translation (aces-relaxations, es-aces ≥ 0.7.3) requires `meds ≥ 0.4`. The
-two sides run in separate environments and exchange only files. The contract does not care how a command
+Because their dependencies cannot coexist. A model's training stack may pin an older `meds` (for example
+femr 0.2.4 requires `meds==0.3.3`), while the ACES tooling a zero-shot adapter uses for task translation
+(aces-relaxations, es-aces ≥ 0.7.3) requires `meds ≥ 0.4`. The two sides can run in separate environments
+and exchange only files. The contract does not care how a command
 is executed, so this is allowed; document it in the repository.
 
 ## What does it mean that a task is "refused"?
@@ -38,9 +39,21 @@ comes from the full-data run.
 
 ## My model writes several files next to `predictions.parquet`. Is that allowed?
 
-Yes; the payload is yours (zero-shot models publish their query bundle and `relaxations.yaml` there).
-When `predictions.parquet` exists, only it is counted for key coverage, so a bundle's own index is not
-mistaken for predictions.
+Yes, with one rule: every parquet file in the predictions artifact must be a predictions file. MEDS-DEV
+evaluates every `**/*.parquet` under the predictions directory, and the key check does the same. Store
+supporting tables — a zero-shot query bundle, a coverage table — in another format such as Arrow IPC;
+`relaxations.yaml` and JSON files are fine.
+
+## How do the tests catch label leakage and transductive fitting?
+
+In the same real run as the end-to-end test:
+
+- **Label leakage:** `predict` is run again, with the exact arguments `run_e2e` used, on a copy of the
+  index with every label column removed. It must still cover every key, so any read of a label on the
+  prediction path fails.
+- **Transductive fitting:** `tests.signal.add_split_canaries` gives every tuning and held-out subject a
+  canary code that no training subject has. Your `fitted_codes(artifacts)` hook reports every code the
+  model fitted a statistic for (vocabulary, frequencies, bins); no canary may appear in it.
 
 ## Can a non-zero-shot model use the ACES task?
 

@@ -23,7 +23,7 @@ from meds_model_contract import (
 ## Publishing artifacts
 
 ```python
-from meds_model_contract import measured_artifact, read_manifest
+from meds_model_contract import digest_config, measured_artifact, read_manifest
 
 with measured_artifact(
     output_dir,
@@ -31,6 +31,7 @@ with measured_artifact(
     command="predict",
     producer="my_model.commands.Predict",
     payload_format="my-model-predictions/v1",
+    config_digest=digest_config({**arguments, **resolved_settings}),
     inputs={...},                      # optional extra input identifiers
     semantics_digest=task.semantics_digest(),   # zero-shot task-conditioned artifacts
     external_predicates_file=predicates_path,   # recorded with its digest
@@ -42,8 +43,9 @@ with measured_artifact(
 `measured_artifact` creates a staging directory next to the destination, samples memory while the block
 runs, writes `manifest.yaml` last, and then replaces the destination atomically. If the block raises,
 the staging directory is removed and nothing is published. Without `overwrite`, an existing destination
-is an error. `read_manifest(directory)` loads and validates a manifest (it must declare
-`contract_version: "2"`).
+is an error. `digest_config(config)` hashes canonical JSON (sorted keys, paths as strings), so the same
+configuration always gives the same digest. `read_manifest(directory)` loads and validates a manifest (it
+must declare `contract_version: "2"`).
 
 ## Tasks and predictions
 
@@ -68,3 +70,16 @@ from meds_model_contract import TaskSpec, read_index, RelaxationLedger, check_de
 |---|---|
 | `write_run_result(run_dir, *, repo, artifacts, dataset, task, external_predicates_file=None, status="complete")` | writes `spec.yaml`, `result.yaml` and copies of every manifest for `scripts/github-sync.sh` |
 | `meds_model_contract.meds_dev.register(repo, meds_dev, name)` / `meds-model-add-to-meds-dev` | copies `model.yaml` (and `predicates.yaml` if present) into a MEDS-DEV checkout, rewriting `requirements.txt` to install this repository |
+
+## Test hooks in a generated repository
+
+These live in the generated `tests/` package, not in `meds_model_contract`; the model owns their bodies.
+
+| Name | Use |
+|---|---|
+| `tests.e2e.run_e2e(tmp_path, **inputs)` | runs the real profile and returns `E2EResult(artifacts, labels_dir, splits, inputs, predict_arguments, canaries)` |
+| `tests.e2e.fitted_codes(artifacts)` | every code the model fitted a population statistic for, read from its artifacts |
+| `tests.e2e.prepare_meds_dev_run(meds_dev, tmp_path)` | the MEDS-DEV invocation and the index its predictions must cover |
+| `tests.signal.add_split_canaries(root)` | gives every tuning and held-out subject of a fixture a canary code found in no other split; returns the canaries |
+| `tests.integration.assert_prediction_keys` / `assert_prediction_schema` | compare written keys with the requested index (every parquet in the predictions artifact counts), and validate the meds-evaluation schema |
+

@@ -20,6 +20,10 @@ The dataset comes with three splits: `train`, `tuning` and `held_out`. They are 
     is delegated upstream and the scope is not yours to control, declare which quantity was fitted over
     which population.
 
+The generated end-to-end test checks this: it plants a canary code in every tuning and held-out subject of
+its fixture, and none may appear among the codes the model fitted statistics for (see the
+[FAQ](faq.md#how-do-the-tests-catch-label-leakage-and-transductive-fitting)).
+
 The MIMIC-IV demo in MEDS form is the canonical real-data example used by the tests; it is not a separate
 schema.
 
@@ -111,22 +115,29 @@ Three properties hold for every artifact:
 - **Publication is atomic.** The command works in a staging directory and writes `manifest.yaml` last;
   the staging directory then replaces the destination in one step. A crashed command leaves no
   half-written artifact behind.
-- **Inputs are traceable.** The manifest records stable identifiers or digests of its inputs (including
-  the predicates digest and, for task-conditioned artifacts, the task's provenance and digest), plus the
-  git commit and dirty state of the code that produced it.
+- **Inputs and configuration are traceable.** The manifest records stable identifiers or digests of its
+  inputs (including the predicates digest and, for task-conditioned artifacts, the task's provenance and
+  digest), a `config_digest` over the command's arguments and resolved settings, and the git commit and
+  dirty state of the code that produced it.
+- **Artifacts are never nested.** Each artifact is its own directory; `infer`, for example, writes a
+  sibling of the data artifact rather than a subdirectory of it, so runs over different indexes cannot
+  overwrite each other.
 
 The helper `measured_artifact(...)` does all of this; see the [manifest reference](reference/manifest.md).
 
 ## Final predictions
 
 `predict` writes `predictions.parquet` in the
-[meds-evaluation](https://github.com/kamilest/meds-evaluation) prediction schema:
+[meds-evaluation](https://github.com/kamilest/meds-evaluation) prediction schema of the version MEDS-DEV
+evaluates with (currently `meds-evaluation==0.0.3`, checked with `validate_binary_classification_schema`):
 
 - exactly **one row per requested key**, with **unique keys**;
 - row order means nothing and must never be used to match outputs to keys;
 - conformance tests compare the written keys directly with the requested index — a self-reported count is
   not proof of coverage;
-- rows may be left out only under an explicitly declared exclusion policy that lists the excluded keys.
+- rows may be left out only under an explicitly declared exclusion policy that lists the excluded keys;
+- every parquet file in the predictions artifact is read as predictions (MEDS-DEV evaluates
+  `**/*.parquet`), so supporting tables use another format.
 
 For zero-shot models, predictions are always evaluated against the labels of the *requested* task, and the
 predictions artifact carries or references the `relaxations.yaml` describing what the model actually

@@ -12,7 +12,7 @@ artifact:
   producer: my_model.commands.Predict
 command:
   name: predict
-  config_digest: null
+  config_digest: "sha256:…"
 code:
   git_commit: 3f2a…
   dirty: false
@@ -39,8 +39,8 @@ resources:
 | `artifact.payload_format` | model-defined `name/version` of the payload; consumers reject formats they do not understand |
 | `artifact.producer` | importable or external identifier of the implementation that wrote it |
 | `command.name` | the contract command that produced it |
-| `command.config_digest` | digest of the command's configuration (`sha256:…`), or `null` when not recorded |
-| `code.git_commit`, `code.dirty` | the commit of the model repository and whether its tree had uncommitted changes; `null` outside a checkout |
+| `command.config_digest` | `digest_config` over the command's arguments plus any model-owned settings it resolved (defaults, configuration files); two artifacts made with the same configuration share it |
+| `code.git_commit`, `code.dirty` | recorded automatically: the commit of the model repository and whether its tree had uncommitted changes, so a run from a modified tree is identifiable; `null` outside a checkout |
 | `inputs` | stable identifiers or digests of the inputs. Always includes the predicates file's path and digest when the command consumed one; task-conditioned zero-shot artifacts include `task` (`TaskSpec.provenance()`) |
 | `semantics_digest` | the task's `TaskSpec.semantics_digest()` for task-conditioned artifacts; `null` otherwise |
 | `resources.wall_seconds` | monotonic wall time of the command |

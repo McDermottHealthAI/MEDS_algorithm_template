@@ -36,7 +36,7 @@ them.
 | `external_task_criteria_file` | the ACES criteria file (MEDS-DEV `{task_criteria_path}`) | `predict` in both zero-shot profiles |
 | `output_data_dir` / `input_data_dir` | the `patients` artifact | written by `preprocess_data`; read by later commands |
 | `output_pretrained_model_dir` / `input_pretrained_model_dir` | the `pretrained_model` artifact | written by `pretrain`; read by `infer`, `supervised_train` (finetune) and `predict` (zero_shot_direct) |
-| `output_inference_subdir` / `input_inference_subdir` | the `inference` artifact, **relative to `input_data_dir`** | written by `infer`; read by `supervised_train` (probe) and `predict` (zero_shot_materialized) |
+| `output_inference_dir` / `input_inference_dir` | the `inference` artifact, a directory of its own next to the others | written by `infer`; read by `supervised_train` (probe) and `predict` (zero_shot_materialized) |
 | `output_supervised_model_dir` / `input_supervised_model_dir` | the `supervised_model` artifact | written by `supervised_train`; read by `predict` |
 | `output_predictions_dir` | the `predictions` artifact (`predictions.parquet` + `manifest.yaml`) | written by `predict` |
 | `splits` | which splits of the index to process | `infer` (materialized), `predict` |
@@ -60,9 +60,14 @@ variables:
 | `{predicates_path}` | the dataset's predicates file (`predicates_path` argument; MEDS-DEV PR #325) |
 | `{task_criteria_path}` | the task's ACES criteria: the `task_criteria_path` argument, else the registered criteria file of `task_name` (MEDS-DEV PR #330) |
 
-Predictions are written to `{output_dir}/predictions`, never to `{output_dir}` itself: MEDS-DEV keeps its
-own `cmd.sh` and `.done` marker in `{output_dir}`, and artifacts are published by atomically replacing their
-destination directory.
+Every artifact gets its own subdirectory of the MEDS-DEV run directory: `data/`, `pretrained/`, `model/`,
+`inference/`, `predictions/`. Nothing is written to `{output_dir}` itself, because MEDS-DEV keeps its own
+`cmd.sh` and `.done` marker there and artifacts are published by atomically replacing their destination
+directory. Artifacts are never nested inside one another, so runs over different indexes or splits cannot
+overwrite each other's outputs.
+
+MEDS-DEV evaluates every `**/*.parquet` under the predictions directory with meds-evaluation 0.0.3, so
+every parquet file there must be a predictions file (see the [FAQ](faq.md)).
 
 Register a completed repository with MEDS-DEV by copying its descriptor into a MEDS-DEV checkout:
 
@@ -88,6 +93,7 @@ $EDITOR slurm/config.sh
 ./slurm/submit.sh              # submits the profile as dependent jobs
 ```
 
+- `stage_args` lists only the selected profile's commands.
 - Each command is one job; later commands depend on earlier ones (`afterok`). `preprocess_data` runs on the
   CPU partition, the others on the GPU partition.
 - Submission refuses a dirty working tree, so every cluster run corresponds to a commit. `--dry-run` only
