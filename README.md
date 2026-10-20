@@ -165,8 +165,8 @@ environment, wall time, peak process-tree PSS/RSS, GPU measurements when availab
 Ask for a second human review before launching the selected full dataset through the repository's SLURM
 interface. Review target-dataset compatibility, access, and resources separately from the MIMIC-IV demo.
 Use a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined in
-ACES (for example, selected with https://github.com/florian6973/meds-task-selection) or randomly sampled
-code-by-horizon tasks (for example, from https://github.com/florian6973/meds-random-task-sampler).
+ACES and extracted with the ACES package, or randomly sampled code-by-horizon tasks (generated with
+https://github.com/florian6973/meds-random-task-sampler and selected with https://github.com/florian6973/meds-task-selection).
 It must contain each task's definition and its generated index/labels; zero-shot models also need each
 task's ACES criteria. If a compatible bundle is not yet available, report that blocker before the
 full-data run. Record the dataset name/revision, predicate provenance, bundle location, the commit of the

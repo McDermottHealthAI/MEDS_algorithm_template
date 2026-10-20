@@ -199,10 +199,10 @@ Advance in this order. Each automated stage must pass before the next one starts
    that SHA from a clean checkout. The external task bundle is not committed.
 7. **Full target-dataset run:** run the approved shared task bundle for the selected dataset on the
    authorized full dataset, normally through the SLURM interface. The bundle is built once upstream, for
-   every model alike. Its tasks are either clinical tasks defined in ACES (for example, selected with
-   [meds-task-selection](https://github.com/florian6973/meds-task-selection)) or randomly sampled
-   code-by-horizon tasks (for example, from
-   [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler)). It contains each
+   every model alike. Its tasks are either clinical tasks defined and extracted with
+   [ACES](https://eventstreamaces.readthedocs.io/), or randomly sampled code-by-horizon tasks (generated with
+   [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler) and selected with
+   [meds-task-selection](https://github.com/florian6973/meds-task-selection)). It contains each
    task's definition and its per-task index/labels; zero-shot models also need each task's ACES criteria.
    If a compatible bundle is not available, report that blocker before launching. Pass its path
    explicitly in configuration; do not copy it into the model repository. Record the commit of the tool
