@@ -35,14 +35,20 @@ of column:
 - **keys**: `(subject_id, prediction_time)`, the rows to predict, in every split;
 - **labels**: a value column such as `boolean_value`.
 
-Which command may read which part is fixed:
+### Who reads which labels
 
-| Command | Reads |
+Labels of an **evaluated split** are never read to produce a prediction. Which other labels a command may
+read depends on the profile:
+
+| Reader | Labels it may read |
 |---|---|
-| `supervised_train` | keys **and labels**, of the training (and tuning) split only |
-| `infer` | keys only, for the split it processes |
-| `predict` | keys only, for the evaluated split |
-| any zero-shot command | keys only; never a label, except `attach_ground_truth` after every probability is final |
+| `supervised_train` | training and tuning splits |
+| `predict` in `supervised`, `finetune`, `probe` | none: the task was learned in `supervised_train` |
+| `predict` in `packaged` | training and tuning splits, as in-context examples (e.g. a prior-data fitted network), through `read_context_labels`; none for a fixed model such as a published risk score |
+| every command of a `zero_shot_*` profile | none: reading any label would make it few-shot |
+| `infer` | none (keys only, for the split it processes) |
+
+Every command that predicts reads the keys of the evaluated split.
 
 The index is never built in the model repository. One ACES extraction, run upstream, applies the task's
 trigger, inclusion/exclusion criteria and splits, so every model scores exactly the same rows:
@@ -61,8 +67,8 @@ it is supposed to be blind to.
 
 ### Reading labels: the one rule
 
-Only `supervised_train` reads labels, and only those of the training (and tuning) split. `infer` and
-`predict` work on the keys of the index, never on its labels. There is exactly one sanctioned exception: once every probability is final, `predict` may join the label column onto the predictions by
+The table above is the whole rule: evaluated-split labels are never read, and only `supervised_train`
+and a `packaged` in-context learner read train/tuning labels. There is exactly one sanctioned exception: once every probability is final, `predict` may join the label column onto the predictions by
 key (`attach_ground_truth`), because meds-evaluation reads ground truth from the predictions file. Nothing
 computed from that join may feed back into a prediction.
 

@@ -46,7 +46,7 @@ control. Record every source element as ported, adapted or omitted in `IMPLEMENT
 
 | Gate | Proves | Does not prove |
 |---|---|---|
-| **Local** (`pytest -rs`) | the contract holds (command registry, manifests and `config_digest`, atomic publication, measurements, key coverage, prediction schema), the real profile runs end to end on a synthetic fixture with no label read on the prediction path and no statistic fitted on tuning or held-out subjects, and the primary behavior appears | anything about real data |
+| **Local** (`pytest -rs`) | the contract holds (command registry, manifests and `config_digest`, atomic publication, measurements, key coverage, prediction schema), the real profile runs end to end on a synthetic fixture with no evaluated-split label read on the prediction path (no label at all for zero-shot) and no statistic fitted on tuning or held-out subjects, and the primary behavior appears | anything about real data |
 | **MEDS-DEV** (`-m meds_dev`) | the package installs in MEDS-DEV's isolated environment and the `model.yaml` command strings run | scale or real-data behavior |
 | **Pre-demo review** (human) | the port is faithful to the source, predicates are interpreted correctly, the demo plan is sound | — |
 | **MIMIC-IV demo** (`-m real_data`) | the pipeline survives real data: serialization, scale transitions, resources, key coverage on MEDS-DEV's `mortality/in_icu/first_24h` with MEDS-DEV's MIMIC-IV predicates | **model quality**: the demo validates execution only (its held-out split is tiny and may have no positives) |

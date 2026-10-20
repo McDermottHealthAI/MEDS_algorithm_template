@@ -50,7 +50,9 @@ must declare `contract_version: "2"`).
 ## Tasks and predictions
 
 ```python
-from meds_model_contract import TaskSpec, read_index, RelaxationLedger, check_decoded, attach_ground_truth
+from meds_model_contract import (
+    TaskSpec, read_index, read_context_labels, split_files, RelaxationLedger, check_decoded, attach_ground_truth,
+)
 ```
 
 | Name | Use |
@@ -60,6 +62,8 @@ from meds_model_contract import TaskSpec, read_index, RelaxationLedger, check_de
 | `TaskSpec.semantics_digest()` | `sha256:` over the criteria bytes and the predicates bytes |
 | `TaskSpec.provenance()` | `{name, criteria_file: {path, digest}, predicates_file: {path, digest} or null}` for the manifest's `inputs.task` |
 | `read_index(labels_dir, splits=None)` | the requested keys `(subject_id, prediction_time)` with **no label column**. Raises if a requested split has no files (it never falls back to every split), if `splits` is a bare string, or if keys are duplicated |
+| `split_files(labels_dir, splits=None)` | the index's parquet files that belong to `splits` (a file belongs to a split when its stem or a parent directory is named after it, as MEDS-DEV and ACES write them). Raises if a requested split has no files, or if `splits` is a bare string |
+| `read_context_labels(labels_dir, context_splits, evaluated_splits)` | labelled examples `(subject_id, prediction_time, boolean_value)` for a `packaged` in-context learner. Raises unless `context_splits` is non-empty and disjoint from `evaluated_splits`, so an evaluated split's labels can never be read this way |
 | `RelaxationLedger(query_language, decoded_quantity, exact, steps=())` | the zero-shot ledger. `.write(dir)` writes `relaxations.yaml`; `.read(dir)` validates the three required fields. `steps` are free-form mappings |
 | `check_decoded(index, predictions)` | checks `predicted_boolean_probability` by key: no missing, extra or duplicate keys, and every value a non-null probability in [0, 1] |
 | `attach_ground_truth(predictions, labels_dir, splits=None)` | joins `boolean_value` onto **final** predictions by key, for meds-evaluation; the one sanctioned label read on the prediction path |

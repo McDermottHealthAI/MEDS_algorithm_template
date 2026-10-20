@@ -58,16 +58,18 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
 
 nav:
-  - Overview: index.md
-  - Concepts: concepts.md
-  - Choosing a profile: profiles.md
+  - Getting started:
+      - Overview: index.md
+      - Concepts: concepts.md
+      - Choosing a profile: profiles.md
+  - Building a model:
+      - Workflow: workflow.md
+      - Running a model: running.md
   - Zero-shot models:
       - Zero-shot in practice: zero-shot.md
       - Design notes: ZERO_SHOT.md
-  - Workflow: workflow.md
-  - Running a model: running.md
   - Reference:
       - Specification (normative): reference/spec.md
       - Manifest fields: reference/manifest.md
       - Contract API: reference/api.md
-  - FAQ: faq.md
+      - FAQ: faq.md

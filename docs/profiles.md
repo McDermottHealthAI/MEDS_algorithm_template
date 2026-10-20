@@ -23,7 +23,7 @@ unsupported, not silent no-ops.
 | `probe` | pretrains, freezes, extracts representations at the prediction times, trains a small head on them | MOTOR linear probe and other frozen-representation heads, iCareFM, ORA |
 | `zero_shot_direct` | pretrains, then answers a query derived from the task directly, with no labels | MOTOR used zero-shot (time-to-event hazards), EveryQuery (code-in-window queries) |
 | `zero_shot_materialized` | pretrains a generator, samples future trajectories without the task, then evaluates the task on them | MEDS-EIC-AR used zero-shot (sampled future trajectories + ACES) |
-| `packaged` | arrives ready-made and is not trained here | no example ported yet — e.g. a published risk score, or an externally trained model shipped with its weights |
+| `packaged` | has no training command: learns the task in context inside `predict` from labelled train/tuning examples, or is a fixed model | prior-data fitted networks (TabPFN-style in-context learners); a published risk score or an externally trained model shipped with its weights or coefficients |
 
 The same model can appear under several profiles: the profile describes how it is *used*, not what it is.
 
@@ -31,17 +31,19 @@ The same model can appear under several profiles: the profile describes how it i
 
 ```mermaid
 flowchart TD
-    q1{Does the model learn<br/>from this task's labels?}
-    q1 -- No --> q4{Was it pretrained on the<br/>target dataset by this repo?}
-    q4 -- "No: it ships ready-made<br/>(weights, rules, a service)" --> packaged[packaged]
-    q4 -- Yes --> q5{How does it answer a task?}
-    q5 -- "Answers a task-derived query directly<br/>(hazard, P(code in window), score)" --> zsd[zero_shot_direct]
-    q5 -- "Generates possible futures,<br/>then the task is evaluated on them" --> zsm[zero_shot_materialized]
+    q1{Is the task learned in a<br/>training step on this dataset's labels?}
     q1 -- Yes --> q2{Is there a task-independent<br/>pretraining stage?}
     q2 -- No --> supervised[supervised]
     q2 -- Yes --> q3{How are labels used?}
     q3 -- "Update the pretrained model's weights" --> finetune[finetune]
     q3 -- "Freeze it, extract representations,<br/>train a small head on them" --> probe[probe]
+    q1 -- No --> q6{Does it read any label?}
+    q6 -- "Yes: train/tuning examples as context<br/>inside predict (e.g. a PFN)" --> packaged[packaged]
+    q6 -- No --> q4{Was it pretrained on the<br/>target dataset by this repo?}
+    q4 -- "No: fixed weights or coefficients<br/>(e.g. a published risk score)" --> packaged
+    q4 -- Yes --> q5{How does it answer a task?}
+    q5 -- "Answers a task-derived query directly<br/>(hazard, P(code in window), score)" --> zsd[zero_shot_direct]
+    q5 -- "Generates possible futures,<br/>then the task is evaluated on them" --> zsm[zero_shot_materialized]
 ```
 
 Pick the profile that matches the source model's **actual** training and prediction lifecycle, and record
@@ -49,16 +51,17 @@ why in `IMPLEMENTATION_REPORT.md`. Do not pick a shorter profile to avoid implem
 
 ## Commands at a glance
 
-The task index is one table of keys `(subject_id, prediction_time)` plus a label column. Which part of it a
-command may read is fixed:
+The task index is one table of keys `(subject_id, prediction_time)` plus a label column. Labels of an
+**evaluated split** are never read to produce a prediction; which other labels a command may read is fixed
+(see [who reads which labels](concepts.md#who-reads-which-labels)):
 
 | Command | Publishes | Reads from the index | Receives the task? |
 |---|---|---|---|
 | `preprocess_data` | `patients` | nothing | no |
 | `pretrain` | `pretrained_model` (task-independent) | nothing | no |
 | `infer` | `inference` (task-independent, at the requested timepoints) | **keys only**, for the split it processes | no |
-| `supervised_train` | `supervised_model` | **keys and labels of the training (and tuning) split only** | no (learned from the labels) |
-| `predict` | `predictions` | **keys only**, for the evaluated split; labels only through `attach_ground_truth` once every probability is final ([the one rule](concepts.md#reading-labels-the-one-rule)) | zero-shot only |
+| `supervised_train` | `supervised_model` | **keys and labels of the training and tuning splits** | no (learned from the labels) |
+| `predict` | `predictions` | **keys of the evaluated split**; in `packaged`, also train/tuning labels as in-context examples through `read_context_labels`; in zero-shot, no label at all | zero-shot (required); `packaged` (optional, as provenance) |
 
 ## The profiles one by one
 
@@ -136,15 +139,24 @@ flowchart LR
 
 ### packaged
 
-A model that arrives ready-made and is not trained here: a published risk score, a rule-based score, or an
-externally trained model shipped with its weights. Only data preparation and prediction run in the
-repository. No example has been ported yet.
+A model with **no training command**. Two kinds of model fit here:
+
+- **In-context learners**, such as prior-data fitted networks (TabPFN-style). The network was trained once,
+  elsewhere, on synthetic or prior data; it learns *this* task inside `predict`, in a single forward pass,
+  from labelled examples of the training and tuning splits, which it reads through `read_context_labels`.
+  That function refuses any evaluated split. The labels carry the task, so no ACES task is needed;
+  `predict` may still record `external_task_criteria_file` as provenance.
+- **Fixed models** shipped with their weights or coefficients, such as a published risk score or an
+  externally trained model. They read no label at all.
 
 ```mermaid
 flowchart LR
-    d[(MEDS)] --> pp[preprocess_data] --> pr[predict]
+    d[(MEDS)] --> pp[preprocess_data] --> pr["predict<br/>(one forward pass)"]
+    ctx[(labels<br/>train/tuning)] -- in-context examples --> pr
     keys[(keys<br/>evaluated split)] --> pr
 ```
+
+*(A fixed model has the same diagram without the labels node.)*
 
 ## Direct vs materialized: the distinction that matters
 

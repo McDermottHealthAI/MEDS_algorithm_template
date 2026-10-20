@@ -32,7 +32,7 @@ them.
 |---|---|---|
 | `external_meds_dir` | the split-sharded MEDS dataset | `preprocess_data` (all profiles); `predict` in `zero_shot_materialized` (real history for evaluating the task) |
 | `external_predicates_file` | dataset predicates (MEDS-DEV `{predicates_path}`) | `preprocess_data` when the model uses predicates; zero-shot `predict` (part of the task) |
-| `external_labels_dir` | the task index, built upstream: keys `(subject_id, prediction_time)` plus a label column | `supervised_train`: keys and labels of the training (and tuning) split only; `infer`, `predict`: keys only, for the evaluated split (labels only via `attach_ground_truth` once predictions are final) |
+| `external_labels_dir` | the task index, built upstream: keys `(subject_id, prediction_time)` plus a label column | `supervised_train`: keys and labels of the training and tuning splits; `infer`, `predict`: keys of the evaluated split, plus train/tuning labels as in-context examples in `packaged` (`read_context_labels`); never an evaluated split's labels except via `attach_ground_truth` once predictions are final |
 | `external_task_criteria_file` | the ACES criteria file (MEDS-DEV `{task_criteria_path}`) | `predict` in both zero-shot profiles |
 | `output_data_dir` / `input_data_dir` | the `patients` artifact | written by `preprocess_data`; read by later commands |
 | `output_pretrained_model_dir` / `input_pretrained_model_dir` | the `pretrained_model` artifact | written by `pretrain`; read by `infer`, `supervised_train` (finetune) and `predict` (zero_shot_direct) |
