@@ -72,43 +72,43 @@ than answer a task it cannot pose — the command fails and writes no prediction
 Illustrative ledgers for MEDS-DEV's `mortality/in_icu/first_24h` and an abnormal-lab task. They show what a
 reader should expect from each kind of model, not values to copy.
 
-=== "Code-in-window query model (direct)"
+#### Code-in-window query model (direct)
 
-    For example EveryQuery. Its windows can start after a delay or at an event and end at a duration or a
-    bound event, so much of the task maps exactly. The model is asked *P(death in (t₀ + 1 day, next ICU
-    discharge) | no ICU discharge, death or ICU admission in the first day)*. `exact: false`.
+For example EveryQuery. Its windows can start after a delay or at an event and end at a duration or a
+bound event, so much of the task maps exactly. The model is asked *P(death in (t₀ + 1 day, next ICU
+discharge) | no ICU discharge, death or ICU admission in the first day)*. `exact: false`.
 
-    | Step | Kind | Direction |
-    |---|---|---|
-    | re-anchor the trigger-rooted `gap` window on the prediction time | label_preserving | exact |
-    | normalize | label_preserving | exact |
-    | remove death from the window's end event (`discharge_or_death`) | approximation | exact except on timestamp ties (strengthening) |
-    | criteria that hold on every cohort row, given to the model as answered conditions | label_preserving | exact |
-    | a criterion spanning several codes, which cannot be given as a condition, dropped | model_assumption | unknown |
+| Step | Kind | Direction |
+|---|---|---|
+| re-anchor the trigger-rooted `gap` window on the prediction time | label_preserving | exact |
+| normalize | label_preserving | exact |
+| remove death from the window's end event (`discharge_or_death`) | approximation | exact except on timestamp ties (strengthening) |
+| criteria that hold on every cohort row, given to the model as answered conditions | label_preserving | exact |
+| a criterion spanning several codes, which cannot be given as a condition, dropped | model_assumption | unknown |
 
-=== "Time-to-event model (direct)"
+#### Time-to-event model (direct)
 
-    For example MOTOR. The model has hazards for a fixed vocabulary of codes, so predicates are restricted
-    to that vocabulary and criteria branches are dropped. On an abnormal-lab task such as hyponatremia, the
-    `< 135 mEq/L` threshold cannot be expressed over codes without values and the "measured at least once"
-    criterion is dropped, so the decoded quantity becomes *P(any sodium measurement in the next 24h)*.
+For example MOTOR. The model has hazards for a fixed vocabulary of codes, so predicates are restricted
+to that vocabulary and criteria branches are dropped. On an abnormal-lab task such as hyponatremia, the
+`< 135 mEq/L` threshold cannot be expressed over codes without values and the "measured at least once"
+criterion is dropped, so the decoded quantity becomes *P(any sodium measurement in the next 24h)*.
 
-    | Step | Kind | Direction |
-    |---|---|---|
-    | require_bounding_events, normalize | label_preserving | exact |
-    | vocabulary restriction (value bounds dropped) | model_assumption | weakening |
-    | drop criteria branches | model_assumption | unknown |
-    | single label window promoted to the prediction time (time-to-event stationarity) | approximation / model_assumption | unknown unless exact |
-    | decode `and`/`or` under independence | model_assumption | unknown |
+| Step | Kind | Direction |
+|---|---|---|
+| require_bounding_events, normalize | label_preserving | exact |
+| vocabulary restriction (value bounds dropped) | model_assumption | weakening |
+| drop criteria branches | model_assumption | unknown |
+| single label window promoted to the prediction time (time-to-event stationarity) | approximation / model_assumption | unknown unless exact |
+| decode `and`/`or` under independence | model_assumption | unknown |
 
-=== "Autoregressive generator (materialized)"
+#### Autoregressive generator (materialized)
 
-    For example MEDS-EIC-AR. The task is evaluated as written on real history plus each sampled future, so
-    the only intrinsic step is the Monte Carlo estimate. Effects that change the answer are recorded when
-    they happen: samples that end before the task resolves (ACES would count them as negatives), generated
-    events that land before the prediction time, samples that violate a future criterion (rejecting them
-    estimates *P(label | criteria hold)*), and rows with no usable sample (handled by a declared policy that
-    lists their keys).
+For example MEDS-EIC-AR. The task is evaluated as written on real history plus each sampled future, so
+the only intrinsic step is the Monte Carlo estimate. Effects that change the answer are recorded when
+they happen: samples that end before the task resolves (ACES would count them as negatives), generated
+events that land before the prediction time, samples that violate a future criterion (rejecting them
+estimates *P(label | criteria hold)*), and rows with no usable sample (handled by a declared policy that
+lists their keys).
 
 ## Windows that straddle the prediction time
 

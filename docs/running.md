@@ -32,7 +32,7 @@ them.
 |---|---|---|
 | `external_meds_dir` | the split-sharded MEDS dataset | `preprocess_data` (all profiles); `predict` in `zero_shot_materialized` (real history for evaluating the task) |
 | `external_predicates_file` | dataset predicates (MEDS-DEV `{predicates_path}`) | `preprocess_data` when the model uses predicates; zero-shot `predict` (part of the task) |
-| `external_labels_dir` | the task index, built upstream | `supervised_train` (with labels); `infer`, `predict` (keys only) |
+| `external_labels_dir` | the task index, built upstream: keys `(subject_id, prediction_time)` plus a label column | `supervised_train`: keys and labels of the training (and tuning) split only; `infer`, `predict`: keys only, for the evaluated split (labels only via `attach_ground_truth` once predictions are final) |
 | `external_task_criteria_file` | the ACES criteria file (MEDS-DEV `{task_criteria_path}`) | `predict` in both zero-shot profiles |
 | `output_data_dir` / `input_data_dir` | the `patients` artifact | written by `preprocess_data`; read by later commands |
 | `output_pretrained_model_dir` / `input_pretrained_model_dir` | the `pretrained_model` artifact | written by `pretrain`; read by `infer`, `supervised_train` (finetune) and `predict` (zero_shot_direct) |
@@ -102,13 +102,27 @@ $EDITOR slurm/config.sh
 
 ## Run results and GitHub sync
 
-Each run's evidence is structured: `spec.yaml` (dataset, task, predicates), `result.yaml` (status, git
-commit and dirty state, host, Python, SLURM job id, per-command resources) and copies of every command
-manifest under `runs/<run-id>/`. `write_run_result` assembles them.
+`write_run_result` assembles a run's structured evidence under `runs/<run-id>/`, and
 
 ```bash
 scripts/github-sync.sh <run-id>
 ```
 
-publishes them on an isolated `runs/<slug>/<run-id>` branch and opens a draft PR. Datasets, checkpoints,
-credentials and raw logs are never committed.
+commits exactly these files on a new `runs/<model>/<run-id>` branch, pushes that branch, and opens a draft
+PR for it. It changes nothing else.
+
+| Pushed | Contents |
+|---|---|
+| `runs/<run-id>/spec.yaml` | the dataset (name and counts as given), the task, and the predicates file's path and digest |
+| `runs/<run-id>/result.yaml` | status; git commit and dirty state; environment (host, platform, Python, CPU count, SLURM job id); per-command resource summary |
+| `runs/<run-id>/manifests/*.yaml` | a copy of every command's `manifest.yaml` |
+
+| Never pushed | Why |
+|---|---|
+| predictions | they are artifacts under `runs/<run-id>/artifacts`, not evidence files |
+| labels, datasets | patient data stays where it is |
+| checkpoints and other artifact payloads | large and model-owned |
+| raw logs, credentials | may contain anything |
+| metrics (AUROC, …) | the template computes no metrics; MEDS-DEV's evaluation step (meds-evaluation) does |
+
+If the push fails, the result stays committed locally on the run branch.

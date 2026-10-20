@@ -14,6 +14,19 @@ unsupported, not silent no-ops.
 | `zero_shot_materialized` | `preprocess_data` → `pretrain` → `infer` → `predict` |
 | `packaged` | `preprocess_data` → `predict` |
 
+## Profiles and example models
+
+| Profile | What the model does | Examples |
+|---|---|---|
+| `supervised` | learns the task from its labels, from scratch | MEDS-Tab (logistic regression / XGBoost on tabular features), ICU-XGBoost, RETAIN, TECO, MEDS-EIC-AR trained supervised |
+| `finetune` | pretrains on the dataset without labels, then updates its weights on the task's labels | MOTOR, BEHRT, DuETT, MEDS-EIC-AR (pretrained then fine-tuned) |
+| `probe` | pretrains, freezes, extracts representations at the prediction times, trains a small head on them | MOTOR linear probe and other frozen-representation heads, iCareFM, ORA |
+| `zero_shot_direct` | pretrains, then answers a query derived from the task directly, with no labels | MOTOR used zero-shot (time-to-event hazards), EveryQuery (code-in-window queries) |
+| `zero_shot_materialized` | pretrains a generator, samples future trajectories without the task, then evaluates the task on them | MEDS-EIC-AR used zero-shot (sampled future trajectories + ACES) |
+| `packaged` | arrives ready-made and is not trained here | no example ported yet — e.g. a published risk score, or an externally trained model shipped with its weights |
+
+The same model can appear under several profiles: the profile describes how it is *used*, not what it is.
+
 ## Which profile fits my model?
 
 ```mermaid
@@ -36,96 +49,102 @@ why in `IMPLEMENTATION_REPORT.md`. Do not pick a shorter profile to avoid implem
 
 ## Commands at a glance
 
-| Command | Publishes | Receives labels? | Receives the task? |
+The task index is one table of keys `(subject_id, prediction_time)` plus a label column. Which part of it a
+command may read is fixed:
+
+| Command | Publishes | Reads from the index | Receives the task? |
 |---|---|---|---|
-| `preprocess_data` | `patients` | no | no |
-| `pretrain` | `pretrained_model` (task-independent) | no | no |
-| `infer` | `inference` (task-independent, at requested timepoints) | no (keys only) | no |
-| `supervised_train` | `supervised_model` | yes | no (learned from labels) |
-| `predict` | `predictions` | no (keys only; see [the one rule](concepts.md#reading-labels-the-one-rule)) | zero-shot only |
+| `preprocess_data` | `patients` | nothing | no |
+| `pretrain` | `pretrained_model` (task-independent) | nothing | no |
+| `infer` | `inference` (task-independent, at the requested timepoints) | **keys only**, for the split it processes | no |
+| `supervised_train` | `supervised_model` | **keys and labels of the training (and tuning) split only** | no (learned from the labels) |
+| `predict` | `predictions` | **keys only**, for the evaluated split; labels only through `attach_ground_truth` once every probability is final ([the one rule](concepts.md#reading-labels-the-one-rule)) | zero-shot only |
 
 ## The profiles one by one
 
-=== "supervised"
+In the diagrams, *labels (train/tuning)* is the label column of the training and tuning rows, read only by
+`supervised_train`; *keys (evaluated split)* is the `(subject_id, prediction_time)` columns of the rows to
+predict, read by `infer` and `predict`. Both come from the same upstream index.
 
-    A model trained from scratch on the task's labels: logistic regression on tabular features, XGBoost,
-    a recurrent network trained end to end.
+### supervised
 
-    ```mermaid
-    flowchart LR
-        d[(MEDS)] --> pp[preprocess_data] --> st[supervised_train] --> pr[predict]
-        l[(index + labels)] --> st
-        l -. keys .-> pr
-    ```
+A model trained from scratch on the task's labels. Examples: MEDS-Tab (logistic regression or XGBoost on
+tabular features), ICU-XGBoost, RETAIN, TECO, MEDS-EIC-AR trained supervised.
 
-=== "finetune"
+```mermaid
+flowchart LR
+    d[(MEDS)] --> pp[preprocess_data] --> st[supervised_train] --> pr[predict]
+    lab[(labels<br/>train/tuning)] --> st
+    keys[(keys<br/>evaluated split)] --> pr
+```
 
-    A foundation model pretrained on the dataset without labels, then fine-tuned end to end on the task
-    (MOTOR fine-tuned, CLMBR fine-tuned).
+### finetune
 
-    ```mermaid
-    flowchart LR
-        d[(MEDS)] --> pp[preprocess_data] --> pt[pretrain] --> st[supervised_train] --> pr[predict]
-        l[(index + labels)] --> st
-        l -. keys .-> pr
-    ```
+A foundation model pretrained on the dataset without labels, then fine-tuned end to end on the task.
+Examples: MOTOR, BEHRT, DuETT, MEDS-EIC-AR (pretrained then fine-tuned).
 
-=== "probe"
+```mermaid
+flowchart LR
+    d[(MEDS)] --> pp[preprocess_data] --> pt[pretrain] --> st[supervised_train] --> pr[predict]
+    lab[(labels<br/>train/tuning)] --> st
+    keys[(keys<br/>evaluated split)] --> pr
+```
 
-    A frozen foundation model whose representations at the prediction times are extracted once
-    (`infer`), then a light head is trained on them (linear probing, MOTOR-LP).
+### probe
 
-    ```mermaid
-    flowchart LR
-        d[(MEDS)] --> pp[preprocess_data] --> pt[pretrain] --> inf[infer] --> st[supervised_train] --> pr[predict]
-        l[(index + labels)] -. keys .-> inf
-        l --> st
-        l -. keys .-> pr
-    ```
+A frozen foundation model whose representations at the prediction times are extracted once (`infer`), then
+a light head is trained on them. Examples: a MOTOR linear probe and other frozen-representation heads,
+iCareFM, ORA.
 
-=== "zero_shot_direct"
+```mermaid
+flowchart LR
+    d[(MEDS)] --> pp[preprocess_data] --> pt[pretrain] --> inf[infer] --> st[supervised_train] --> pr[predict]
+    keysall[(keys<br/>every split to embed)] --> inf
+    lab[(labels<br/>train/tuning)] --> st
+    keys[(keys<br/>evaluated split)] --> pr
+```
 
-    A pretrained model that **answers a query derived from the task directly**, without any labels:
-    MOTOR (time-to-event hazards, through an aces-to-motor adapter) and EveryQuery (probability that a
-    code occurs in a
-    window). `predict` translates the task into the model's queries, runs the model, and decodes
-    probabilities.
+### zero_shot_direct
 
-    ```mermaid
-    flowchart LR
-        d[(MEDS)] --> pp[preprocess_data] --> pt[pretrain] --> pr[predict]
-        t[ACES task] --> pr
-        l[(index)] -. keys .-> pr
-    ```
+A pretrained model that **answers a query derived from the task directly**, without any labels. `predict`
+translates the task into the model's queries, runs the model, and decodes probabilities. Examples: MOTOR
+used zero-shot (time-to-event hazards), EveryQuery (code-in-window queries).
 
-=== "zero_shot_materialized"
+```mermaid
+flowchart LR
+    d[(MEDS)] --> pp[preprocess_data] --> pt[pretrain] --> pr[predict]
+    t[ACES task] --> pr
+    keys[(keys<br/>evaluated split)] --> pr
+```
 
-    A pretrained **generative** model that samples possible futures (an autoregressive EHR generator such
-    as MEDS-EIC-AR). `infer` generates futures at the index's prediction times *without knowing the task*,
-    so one `infer` run serves every task over the same index. `infer` publishes its own `inference`
-    artifact next to the data artifact, never inside it. `predict` evaluates the ACES task on the
-    real history plus each generated future and reports the fraction of futures in which the label is
-    true.
+### zero_shot_materialized
 
-    ```mermaid
-    flowchart LR
-        d[(MEDS)] --> pp[preprocess_data] --> pt[pretrain] --> inf["infer<br/>(task-independent)"] --> pr[predict]
-        l[(index)] -. keys .-> inf
-        t[ACES task] --> pr
-        d -- real history --> pr
-        l -. keys .-> pr
-    ```
+A pretrained **generative** model that samples possible futures. `infer` generates futures at the index's
+prediction times *without knowing the task*, so one `infer` run serves every task over the same index.
+`infer` publishes its own `inference` artifact next to the data artifact, never inside it. `predict`
+evaluates the ACES task on the real history plus each generated future and reports the fraction of futures
+in which the label is true. Example: MEDS-EIC-AR used zero-shot (sampled future trajectories + ACES).
 
-=== "packaged"
+```mermaid
+flowchart LR
+    d[(MEDS)] --> pp[preprocess_data] --> pt[pretrain] --> inf["infer<br/>(task-independent)"] --> pr[predict]
+    keys[(keys<br/>evaluated split)] --> inf
+    keys --> pr
+    t[ACES task] --> pr
+    d -- real history --> pr
+```
 
-    A model that arrives ready-made and is not trained here: published weights, a rule-based score, or an
-    external service. Only data preparation and prediction run in the repository.
+### packaged
 
-    ```mermaid
-    flowchart LR
-        d[(MEDS)] --> pp[preprocess_data] --> pr[predict]
-        l[(index)] -. keys .-> pr
-    ```
+A model that arrives ready-made and is not trained here: a published risk score, a rule-based score, or an
+externally trained model shipped with its weights. Only data preparation and prediction run in the
+repository. No example has been ported yet.
+
+```mermaid
+flowchart LR
+    d[(MEDS)] --> pp[preprocess_data] --> pr[predict]
+    keys[(keys<br/>evaluated split)] --> pr
+```
 
 ## Direct vs materialized: the distinction that matters
 

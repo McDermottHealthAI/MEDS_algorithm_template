@@ -29,8 +29,20 @@ schema.
 
 ## The task index (built upstream)
 
-A *task* reaches the model as an **index**: a table of `(subject_id, prediction_time)` rows, plus a label
-column such as `boolean_value` for training and evaluation. It is passed as `external_labels_dir`.
+A *task* reaches the model as an **index**, passed as `external_labels_dir`. The index files hold two kinds
+of column:
+
+- **keys**: `(subject_id, prediction_time)`, the rows to predict, in every split;
+- **labels**: a value column such as `boolean_value`.
+
+Which command may read which part is fixed:
+
+| Command | Reads |
+|---|---|
+| `supervised_train` | keys **and labels**, of the training (and tuning) split only |
+| `infer` | keys only, for the split it processes |
+| `predict` | keys only, for the evaluated split |
+| any zero-shot command | keys only; never a label, except `attach_ground_truth` after every probability is final |
 
 The index is never built in the model repository. One ACES extraction, run upstream, applies the task's
 trigger, inclusion/exclusion criteria and splits, so every model scores exactly the same rows:
@@ -38,7 +50,10 @@ trigger, inclusion/exclusion criteria and splits, so every model scores exactly 
 | Run | Who builds the index |
 |---|---|
 | MIMIC-IV demo (smoke test) | MEDS-DEV's `meds-dev-task`, task `mortality/in_icu/first_24h` |
-| Full-data evaluation | the shared `work/` bundle produced by [meds-task-selection](https://github.com/florian6973/meds-task-selection) |
+| Full-data evaluation | a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined in ACES (for example selected with [meds-task-selection](https://github.com/florian6973/meds-task-selection)) or randomly sampled code-by-horizon tasks (for example with [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler)), containing each task's definition and its per-task index and labels |
+
+Every model compared on a dataset uses the same bundle. Zero-shot runs additionally need each task's ACES
+criteria file.
 
 A model repository must not re-extract, filter or extend the index. If a model rebuilt the cohort itself,
 two models could silently be evaluated on different patients, and a zero-shot model would read the labels
@@ -46,8 +61,8 @@ it is supposed to be blind to.
 
 ### Reading labels: the one rule
 
-Prediction code works on the keys of the index, never on its labels. There is exactly one sanctioned
-exception: once every probability is final, `predict` may join the label column onto the predictions by
+Only `supervised_train` reads labels, and only those of the training (and tuning) split. `infer` and
+`predict` work on the keys of the index, never on its labels. There is exactly one sanctioned exception: once every probability is final, `predict` may join the label column onto the predictions by
 key (`attach_ground_truth`), because meds-evaluation reads ground truth from the predictions file. Nothing
 computed from that join may feed back into a prediction.
 

@@ -3,8 +3,8 @@
 ## Why can't my model build or filter its own cohort?
 
 Because then two models could be evaluated on different patients and nobody would notice. The index and
-its labels come from one ACES extraction run upstream (MEDS-DEV's `meds-dev-task` for the demo, the
-meds-task-selection bundle for full data). A model predicts every requested row; rows can be left out
+its labels come from one extraction run upstream (MEDS-DEV's `meds-dev-task` for the demo, a shared,
+reviewed task bundle for full data). A model predicts every requested row; rows can be left out
 only under a declared exclusion policy that lists them.
 
 ## My model needs a statistic over the whole dataset. Can I compute it on all splits?
@@ -59,6 +59,14 @@ In the same real run as the end-to-end test:
 
 It may accept `external_task_criteria_file`, but it is not required to, and its artifacts record
 `semantics_digest: null`. Supervised, finetune and probe models learn the task from its labels.
+
+## What does `scripts/github-sync.sh` push?
+
+Only `runs/<run-id>/spec.yaml` (dataset name and counts, task, predicates digest), `runs/<run-id>/result.yaml`
+(status, git commit and dirty state, environment, SLURM job id, per-command resource summary) and
+`runs/<run-id>/manifests/*.yaml`, on a `runs/<model>/<run-id>` branch with a draft PR. It never pushes
+predictions, labels, data, checkpoints, raw logs or metrics. The template computes no metrics at all:
+MEDS-DEV's evaluation step (meds-evaluation) does.
 
 ## How do I bring template changes into an existing repository?
 
