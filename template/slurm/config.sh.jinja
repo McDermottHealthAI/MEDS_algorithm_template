@@ -11,7 +11,8 @@ RUN_ROOT="${RUN_ROOT:-runs}"
 
 # Print the implementation-specific key=value arguments for one command of the {{ profile }} profile. Keep
 # secrets out of this file; obtain them from the submit environment. Paths below are examples and must be
-# finalized with tests/e2e.py. Task-independent artifacts (data/, pretrained/) are in $SHARED_DIR; per-run
+# finalized with tests/e2e.py. SPLITS (default held_out) is the evaluated split set for infer and predict.
+# Task-independent artifacts (data/, pretrained/) are in $SHARED_DIR; per-run
 # artifacts (model/, inference/, predictions/) in $RUN_DIR. submit.sh sets both (SHARED_DIR defaults to RUN_DIR).{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}
 # TASK_PREDICATES_FILE (default PREDICATES_FILE) binds the task for predict. When it defines label concepts
 # (e.g. a task-suite layer with `aki`), it must differ from PREDICATES_FILE, which preprocess_data may ingest.{% endif %}
@@ -19,14 +20,14 @@ stage_args() {
   case "$1" in
     preprocess_data) printf '%s\n' "external_meds_dir=${MEDS_ROOT:?set MEDS_ROOT}"{% if uses_predicates %} "external_predicates_file=${PREDICATES_FILE:?set PREDICATES_FILE}"{% endif %} "output_data_dir=${SHARED_DIR:?set SHARED_DIR}/data" ;;
 {% if profile in ['finetune', 'probe', 'zero_shot_direct', 'zero_shot_materialized'] %}    pretrain) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "output_pretrained_model_dir=$SHARED_DIR/pretrained" ;;
-{% endif %}{% if profile in ['probe', 'zero_shot_materialized'] %}    infer) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "input_pretrained_model_dir=$SHARED_DIR/pretrained" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_inference_dir=$RUN_DIR/inference" ;;
+{% endif %}{% if profile in ['probe', 'zero_shot_materialized'] %}    infer) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "input_pretrained_model_dir=$SHARED_DIR/pretrained" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_inference_dir=$RUN_DIR/inference" "splits=[${SPLITS:-held_out}]" ;;
 {% endif %}{% if profile == 'supervised' %}    supervised_train) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_supervised_model_dir=$RUN_DIR/model" ;;
 {% elif profile == 'finetune' %}    supervised_train) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "input_pretrained_model_dir=$SHARED_DIR/pretrained" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_supervised_model_dir=$RUN_DIR/model" ;;
 {% elif profile == 'probe' %}    supervised_train) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "input_inference_dir=$RUN_DIR/inference" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_supervised_model_dir=$RUN_DIR/model" ;;
-{% endif %}{% if profile in ['supervised', 'finetune', 'probe'] %}    predict) printf '%s\n' "input_supervised_model_dir=$RUN_DIR/model" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_predictions_dir=$RUN_DIR/predictions" ;;
-{% elif profile == 'zero_shot_materialized' %}    predict) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "external_meds_dir=${MEDS_ROOT:?set MEDS_ROOT}" "input_inference_dir=$RUN_DIR/inference" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "external_task_criteria_file=${TASK_CRITERIA_FILE:?set TASK_CRITERIA_FILE}"{% if uses_predicates %} "external_predicates_file=${TASK_PREDICATES_FILE:-${PREDICATES_FILE:?set PREDICATES_FILE}}"{% endif %} "output_predictions_dir=$RUN_DIR/predictions" ;;
-{% elif profile == 'zero_shot_direct' %}    predict) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "input_pretrained_model_dir=$SHARED_DIR/pretrained" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "external_task_criteria_file=${TASK_CRITERIA_FILE:?set TASK_CRITERIA_FILE}"{% if uses_predicates %} "external_predicates_file=${TASK_PREDICATES_FILE:-${PREDICATES_FILE:?set PREDICATES_FILE}}"{% endif %} "output_predictions_dir=$RUN_DIR/predictions" ;;
-{% else %}    predict) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_predictions_dir=$RUN_DIR/predictions" ;;
+{% endif %}{% if profile in ['supervised', 'finetune', 'probe'] %}    predict) printf '%s\n' "input_supervised_model_dir=$RUN_DIR/model" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_predictions_dir=$RUN_DIR/predictions" "splits=[${SPLITS:-held_out}]" ;;
+{% elif profile == 'zero_shot_materialized' %}    predict) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "external_meds_dir=${MEDS_ROOT:?set MEDS_ROOT}" "input_inference_dir=$RUN_DIR/inference" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "external_task_criteria_file=${TASK_CRITERIA_FILE:?set TASK_CRITERIA_FILE}"{% if uses_predicates %} "external_predicates_file=${TASK_PREDICATES_FILE:-${PREDICATES_FILE:?set PREDICATES_FILE}}"{% endif %} "output_predictions_dir=$RUN_DIR/predictions" "splits=[${SPLITS:-held_out}]" ;;
+{% elif profile == 'zero_shot_direct' %}    predict) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "input_pretrained_model_dir=$SHARED_DIR/pretrained" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "external_task_criteria_file=${TASK_CRITERIA_FILE:?set TASK_CRITERIA_FILE}"{% if uses_predicates %} "external_predicates_file=${TASK_PREDICATES_FILE:-${PREDICATES_FILE:?set PREDICATES_FILE}}"{% endif %} "output_predictions_dir=$RUN_DIR/predictions" "splits=[${SPLITS:-held_out}]" ;;
+{% else %}    predict) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_predictions_dir=$RUN_DIR/predictions" "splits=[${SPLITS:-held_out}]" ;;
 {% endif %}    *) return 2 ;;
   esac
 }

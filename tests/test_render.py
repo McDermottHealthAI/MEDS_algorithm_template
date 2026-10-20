@@ -689,9 +689,10 @@ def test_submit_stages_reuse_shared_task_independent_artifacts(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     args = [line for line in result.stdout.splitlines() if line.startswith("# ")]
-    assert [line.split(":")[0] for line in args if ": " in line] == ["# infer"] * 4 + ["# predict"] * 7
+    assert [line.split(":")[0] for line in args if ": " in line] == ["# infer"] * 5 + ["# predict"] * 8
     assert "# infer: input_pretrained_model_dir=/runs/shared/artifacts/pretrained" in args
     assert "# infer: output_inference_dir=/runs/task-a/artifacts/inference" in args
+    assert "# infer: splits=[held_out]" in args and "# predict: splits=[held_out]" in args
     assert "# predict: input_data_dir=/runs/shared/artifacts/data" in args
     assert "# predict: external_predicates_file=/predicates/task-suite.yaml" in args
     assert not any("preprocess_data" in line or "pretrain:" in line for line in args)
