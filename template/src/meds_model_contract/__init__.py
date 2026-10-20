@@ -15,7 +15,9 @@ from .task import (
     TaskSpec,
     attach_ground_truth,
     check_decoded,
+    read_context_labels,
     read_index,
+    split_files,
 )
 
 __all__ = [
@@ -31,7 +33,9 @@ __all__ = [
     "check_decoded",
     "digest_config",
     "measured_artifact",
+    "read_context_labels",
     "read_index",
     "read_manifest",
+    "split_files",
     "write_run_result",
 ]

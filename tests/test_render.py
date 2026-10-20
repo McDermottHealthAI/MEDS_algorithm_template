@@ -612,3 +612,43 @@ def test_contract_helpers_for_conformance_checks(tmp_path, monkeypatch):
             assert set(found["code"]) == {canaries[split]}
             assert events.schema == pl.read_parquet(root / "data" / "train" / "0.parquet").schema
     assert "CANARY//tuning" not in set(pl.read_parquet(root / "metadata" / "codes.parquet")["code"])
+
+
+def test_packaged_reads_context_labels_never_evaluated_ones(tmp_path, monkeypatch):
+    import polars as pl
+
+    dst = tmp_path / "packaged"
+    render(dst, "packaged")
+    guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
+    assert "In-context learners" in guide and "read_context_labels" in guide
+    monkeypatch.syspath_prepend(str(dst / "src"))
+    from meds_model_contract import read_context_labels, split_files
+
+    labels = tmp_path / "labels"
+    for split, subject in (("train", 1), ("tuning", 2), ("held_out", 3)):
+        (labels / split).mkdir(parents=True)
+        pl.DataFrame(
+            {"subject_id": [subject], "prediction_time": [datetime(2020, 1, 1)], "boolean_value": [True]}
+        ).write_parquet(labels / split / "0.parquet")
+    assert [p.parent.name for p in split_files(labels, ["held_out"])] == ["held_out"]
+    context = read_context_labels(labels, ["train", "tuning"], ["held_out"])
+    assert sorted(context["subject_id"]) == [1, 2] and "boolean_value" in context.columns
+    with pytest.raises(ValueError, match="disjoint"):
+        read_context_labels(labels, ["train", "held_out"], ["held_out"])
+    with pytest.raises(ValueError, match="non-empty"):
+        read_context_labels(labels, [], ["held_out"])
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_label_leakage_check_strips_what_the_profile_may_not_read(tmp_path, profile):
+    dst = tmp_path / profile
+    render(dst, profile)
+    end_to_end = (dst / "tests/test_end_to_end.py").read_text()
+    if profile in ZERO_SHOT_PROFILES:
+        assert '"unlabelled-index",\n        None,' in end_to_end, (
+            "zero-shot predict may read no label at all"
+        )
+    else:
+        assert '"unlabelled-index",\n        result.splits,' in end_to_end, (
+            "only evaluated-split labels are stripped"
+        )

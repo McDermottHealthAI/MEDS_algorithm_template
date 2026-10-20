@@ -130,6 +130,20 @@ tasks it can answer exactly, approximately, or not at all.
 Publish the query, the raw outputs, and `relaxations.yaml` inside the predictions artifact (for example in
 a `bundle/` subdirectory), so decode choices stay inspectable.
 
+{% endif %}{% if profile == 'packaged' %}### Packaged: no training command
+
+Nothing is trained on this dataset's labels before `predict`. Two kinds of model fit here:
+
+- **In-context learners**, such as prior-data fitted networks (TabPFN-style). `predict` reads labelled
+  examples from the training and tuning splits through `meds_model_contract.read_context_labels`, which
+  refuses the evaluated splits, and predicts the evaluated split's keys in the same forward pass. Record
+  the context splits, the number of context rows, and any subsampling in the predictions manifest.
+- **Fixed models** shipped with their weights or coefficients, such as a published risk score. `predict`
+  reads no label. Record where the weights come from, and check that the score's outcome matches the task.
+
+In both cases, statistics fitted by `preprocess_data` or `predict` (feature bins, normalization) come from
+the training split only (SPEC section 2.1).
+
 {% endif %}## 5. Complete operational interfaces
 
 Finalize `model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`. The local adapter runs the

@@ -36,7 +36,16 @@ which population rather than leave the scope unstated.
 ### 2.2 Task
 
 A task input is an index of `(subject_id, prediction_time)` and, for training/evaluation only, a value
-column such as `boolean_value`. Prediction code MUST operate on the index without reading ground truth.
+column such as `boolean_value`. Labels of an **evaluated split** MUST never be read to produce a
+prediction. Which other labels a command may read depends on the profile:
+
+| Reader | Labels it may read |
+|---|---|
+| `supervised_train` | training and tuning splits |
+| `predict` in `supervised`, `finetune`, `probe` | none: the task was learned in `supervised_train` |
+| `predict` in `packaged` | training and tuning splits, as in-context examples (e.g. a prior-data fitted network), through `read_context_labels`; none for a fixed model such as a published risk score |
+| every command of a `zero_shot_*` profile | none: reading any label would make it few-shot |
+
 The one exception: once every probability is final, `predict` MAY join the label column onto the
 predictions by key (`meds_model_contract.attach_ground_truth`), because meds-evaluation reads ground truth
 from the predictions file. Nothing computed from that join may feed back into a prediction.
@@ -96,6 +105,12 @@ Commands not present in the selected model profile are unsupported, not successf
 | `zero_shot_direct` | `preprocess_data`, `pretrain`, `predict` |
 | `zero_shot_materialized` | `preprocess_data`, `pretrain`, `infer`, `predict` |
 | `packaged` | `preprocess_data`, `predict` |
+
+`packaged` has no training command: anything the model learns from this dataset's labels happens inside
+`predict`, from the training and tuning splits only (in-context learning, as in a prior-data fitted
+network). A fixed model shipped with its weights or coefficients, such as a published risk score, uses the
+same profile and reads no label. A `packaged` `predict` MAY accept `external_task_criteria_file` and record
+it as provenance; it does not require it.
 
 `preprocess_data` produces an implementation-defined patients/data artifact. `pretrain` produces a
 task-independent model artifact. `infer` produces reusable task-independent information at requested
@@ -259,9 +274,9 @@ atomic publication, predicate provenance, prediction key coverage/uniqueness, ab
 leakage and of transductive fitting (section 2.1), resource measurement presence, `model.yaml`, SLURM
 dry-run, and its real end-to-end chain. The rendered `tests/test_end_to_end.py` does so in one real run:
 
-- **Label leakage:** `predict` is run again on a copy of the index with every label column removed, and
-  MUST still cover every key. Any prediction-path label read fails. `attach_ground_truth` returns
-  predictions unchanged on an unlabelled index.
+- **Label leakage:** `predict` is run again on a copy of the index whose evaluated splits have no label
+  column (every split for zero-shot profiles), and MUST still cover every key. Any read of an evaluated
+  split's labels fails. `attach_ground_truth` returns predictions unchanged on an unlabelled index.
 - **Transductive fitting:** every tuning and held-out subject carries a canary code that occurs in no
   training subject. None of the canaries may appear in `fitted_codes`.
 - **Configuration:** every manifest carries a `config_digest`.

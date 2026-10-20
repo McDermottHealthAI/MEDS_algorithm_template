@@ -14,14 +14,20 @@ from meds_model_contract import MODEL_PROFILES, {% if profile in ['zero_shot_dir
 from {{ model_slug }}.commands import IS_STUB
 
 
-def _strip_labels(labels_dir: Path, destination: Path) -> Path:
-    """Copy the index keeping only its keys: what `predict` sees on unlabelled data."""
+def _strip_labels(labels_dir: Path, destination: Path, splits) -> Path:
+    """Copy the index, keeping only the keys of the given splits' files (every file when ``splits`` is None)."""
     import polars as pl
 
+    from meds_model_contract import split_files
+
+    stripped = set(split_files(labels_dir, splits)) if splits else None
     for path in sorted(Path(labels_dir).rglob("*.parquet")):
         target = destination / path.relative_to(labels_dir)
         target.parent.mkdir(parents=True, exist_ok=True)
-        pl.read_parquet(path, columns=["subject_id", "prediction_time"]).write_parquet(target)
+        if stripped is None or path in stripped:
+            pl.read_parquet(path, columns=["subject_id", "prediction_time"]).write_parquet(target)
+        else:
+            pl.read_parquet(path).write_parquet(target)
     return destination
 
 
@@ -47,10 +53,15 @@ def test_end_to_end(tmp_path: Path):
     assert prediction_manifest["artifact"]["type"] == "predictions"
     assert_prediction_keys(artifacts["predict"], result.labels_dir, result.splits)
 
-    # Absence of label leakage (SPEC 2.2): predict runs on an index with no label column at all, so any code
-    # path that reads labels fails here. This needs only one extra predict, and no determinism.
+    # Absence of label leakage (SPEC 2.2): predict runs on an index whose evaluated splits have no label
+    # column{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %} (here: every split, since a zero-shot model reads no label at all){% endif %}, so any code path that
+    # reads them fails here. This needs only one extra predict, and no determinism.
     assert result.predict_arguments, "run_e2e must return the predict_arguments it used"
-    unlabelled = _strip_labels(result.labels_dir, tmp_path / "unlabelled-index")
+    unlabelled = _strip_labels(
+        result.labels_dir,
+        tmp_path / "unlabelled-index",
+        {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}None{% else %}result.splits{% endif %},
+    )
     blind = tmp_path / "unlabelled-predictions"
     REPOSITORY.run(
         "predict",
