@@ -17,7 +17,7 @@ read the labels, which is leakage.
 
 | Product | Built by | Where |
 |---|---|---|
-| Cohort / index `(subject_id, prediction_time)` and labels | one ACES extraction, upstream of every model | MEDS-DEV `meds-dev-task` (demo), `meds-task-selection` `work/` bundle (full data) |
+| Cohort / index `(subject_id, prediction_time)` and labels | one extraction, upstream of every model | MEDS-DEV `meds-dev-task` (demo); a shared task bundle of clinical ACES tasks or sampled code-by-horizon tasks (full data) |
 | Query for the model | the zero-shot model, from the same ACES task | the model repository (`encode`) |
 | Predictions | the model | the model repository (`decode`) |
 

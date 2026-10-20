@@ -183,14 +183,18 @@ Advance in this order. Each automated stage must pass before the next one starts
 6. **Commit and synchronize:** before submitting cluster jobs, commit the implementation, configuration,
    and report-so-far; push the commit to GitHub; and record its immutable commit SHA. The cluster must run
    that SHA from a clean checkout. The external task bundle is not committed.
-7. **Full target-dataset run:** run the approved ten-task registry for the selected dataset from
-   [meds-task-selection](https://github.com/florian6973/meds-task-selection) on the authorized full dataset,
-   normally through the SLURM interface. The cluster receives a shared `work/` task bundle containing
-   `tasks.yaml` and the generated per-task inputs/labels for that dataset. If a compatible bundle is not
-   available, report that blocker before launching. Pass its path explicitly in configuration; do not
-   copy it into the model repository. Record the task-selection commit, `tasks.yaml` SHA-256, task bundle
-   identifier/path, dataset name/revision, predicate provenance, model commit, exact command/configuration,
-   job IDs, and structured run evidence. Every model comparison on the same dataset must use the same
+7. **Full target-dataset run:** run the approved shared task bundle for the selected dataset on the
+   authorized full dataset, normally through the SLURM interface. The bundle is built once upstream, for
+   every model alike. Its tasks are either clinical tasks defined in ACES (for example, selected with
+   [meds-task-selection](https://github.com/florian6973/meds-task-selection)) or randomly sampled
+   code-by-horizon tasks (for example, from
+   [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler)). It contains each
+   task's definition and its per-task index/labels; zero-shot models also need each task's ACES criteria.
+   If a compatible bundle is not available, report that blocker before launching. Pass its path
+   explicitly in configuration; do not copy it into the model repository. Record the commit of the tool
+   that built the bundle, a digest of its task definitions, the bundle identifier/path, dataset
+   name/revision, predicate provenance, model commit, exact command/configuration, job IDs, and structured
+   run evidence. Every model comparison on the same dataset must use the same
    reviewed bundle. Do not treat the demo result as a scientific result.
 8. **Final report and result synchronization:** add per-task and aggregate full-data cohort/output counts,
    measurements, scientific results, deviations, failures, and limitations. Run `scripts/github-sync.sh
@@ -215,5 +219,5 @@ respective `abnormal_lab/.../first_24h` task paths. They are optional task-cover
 gates. Add one only when it is relevant to the model and its task definition resolves cleanly against the
 current MEDS-DEV MIMIC predicates and produces a non-degenerate demo cohort. Record the exact task revision
 rather than copying its dataset knowledge into this repository. These demo tasks are independent of the
-ten-task full-data benchmark: the demo validates execution and scale transition, while the frozen
-full-data task bundle supports consistent model evaluation.
+full-data task bundle: the demo validates execution and scale transition, while the frozen full-data
+bundle supports consistent model evaluation.

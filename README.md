@@ -164,11 +164,13 @@ Update IMPLEMENTATION_REPORT.md with the demo cohort, final-output coverage, pre
 environment, wall time, peak process-tree PSS/RSS, GPU measurements when available, failures, and fixes.
 Ask for a second human review before launching the selected full dataset through the repository's SLURM
 interface. Review target-dataset compatibility, access, and resources separately from the MIMIC-IV demo.
-Use the approved shared `work/` bundle for that dataset produced by
-https://github.com/florian6973/meds-task-selection; it must contain `tasks.yaml` and the generated task
-inputs/labels. If a compatible bundle is not yet available, report that blocker before the full-data run.
-Record the dataset name/revision, predicate provenance, bundle location, task-selection source commit,
-and `tasks.yaml` SHA-256. Keep the bundle external to Git. Commit and push the implementation,
+Use a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined in
+ACES (for example, selected with https://github.com/florian6973/meds-task-selection) or randomly sampled
+code-by-horizon tasks (for example, from https://github.com/florian6973/meds-random-task-sampler).
+It must contain each task's definition and its generated index/labels; zero-shot models also need each
+task's ACES criteria. If a compatible bundle is not yet available, report that blocker before the
+full-data run. Record the dataset name/revision, predicate provenance, bundle location, the commit of the
+tool that built it, and a digest of its task definitions. Keep the bundle external to Git. Commit and push the implementation,
 configuration, and report-so-far; run the cluster job from that exact clean commit. After the authorized
 run, complete the report with full-data evidence, scientific deviations, and known limitations, then
 synchronize structured results through the GitHub workflow. Treat
@@ -192,9 +194,9 @@ The implementation guide defines what follows these commands: a report/review ga
 an explicitly authorized run on the selected full dataset and final report. The demo's required task is
 ICU mortality; additional MEDS-DEV MIMIC-supported tasks are optional coverage checks, not a mandatory
 task benchmark.
-The full-data evaluation instead uses the separately reviewed, shared ten-task `work/` bundle generated
-by `meds-task-selection` for the target dataset so model comparisons on that dataset use the same task
-definitions and labels. Selecting another full dataset does not change the provided MIMIC-IV demo code.
+The full-data evaluation instead uses a separately reviewed, shared task bundle for the target dataset
+(clinical ACES tasks or randomly sampled code-by-horizon tasks), so model comparisons on that dataset use
+the same task definitions and labels. Selecting another full dataset does not change the provided MIMIC-IV demo code.
 
 Set `MEDS_DEV_DIR=/path/to/MEDS-DEV` to reuse a checkout and `MEDS_DEMO_DIR=/path/to/demo` to reuse the
 dataset. A bare test run never clones MEDS-DEV or downloads MIMIC data.

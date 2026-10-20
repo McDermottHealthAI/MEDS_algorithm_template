@@ -41,10 +41,11 @@ The one exception: once every probability is final, `predict` MAY join the label
 predictions by key (`meds_model_contract.attach_ground_truth`), because meds-evaluation reads ground truth
 from the predictions file. Nothing computed from that join may feed back into a prediction.
 
-The cohort is built upstream, not in the model repository. The index and its labels come from one ACES
-extraction run outside every model: MEDS-DEV's `meds-dev-task` for the MIMIC-IV demo, and the shared
-`meds-task-selection` `work/` bundle for full-data runs. That extraction applies the trigger,
-inclusion/exclusion criteria, and splits once, so every model scores the same keys. A model repository
+The cohort is built upstream, not in the model repository. The index and its labels come from one
+extraction run outside every model: MEDS-DEV's `meds-dev-task` for the MIMIC-IV demo, and a shared, reviewed
+task bundle for full-data runs, whose tasks may be clinical tasks defined in ACES or randomly sampled
+code-by-horizon tasks. That extraction applies the trigger, inclusion/exclusion criteria, and splits once,
+so every model scores the same keys. A model repository
 MUST NOT re-extract, filter, or extend the index; it predicts every requested row (section 5). This holds
 for zero-shot profiles too: they receive the ACES task (section 2.4) to build their *query*, never to
 rebuild their cohort.
