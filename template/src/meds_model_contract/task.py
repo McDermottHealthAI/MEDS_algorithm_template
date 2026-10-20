@@ -180,7 +180,7 @@ def attach_ground_truth(
     """Join the index's label column onto final predictions, by key, for the evaluation file.
 
     meds-evaluation reads ground truth from the predictions file. Call this only after every probability
-    is final: it is the one sanctioned label read on the prediction path (SPEC section 5), and nothing
+    is final: it is the one sanctioned label read on the prediction path (SPEC section 2.2), and nothing
     computed from its output may feed back into a prediction.
     """
     import polars as pl
