@@ -1,0 +1,75 @@
+site_name: MEDS model template
+site_description: >-
+  A contract for MEDS model repositories: MEDS data and a task in, MEDS predictions out, with every step
+  measured and reproducible.
+repo_url: https://github.com/florian6973/MEDS_model_template
+repo_name: florian6973/MEDS_model_template
+edit_uri: edit/main/docs/
+docs_dir: docs
+strict: true
+validation:
+  nav:
+    omitted_files: warn
+    not_found: warn
+  links:
+    not_found: warn
+    anchors: warn
+    absolute_links: info
+    unrecognized_links: warn
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - content.code.copy
+    - search.highlight
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.snippets:
+      base_path: ["."]
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+
+nav:
+  - Overview: index.md
+  - Concepts: concepts.md
+  - Choosing a profile: profiles.md
+  - Zero-shot models:
+      - Zero-shot in practice: zero-shot.md
+      - Design notes: ZERO_SHOT.md
+  - Workflow: workflow.md
+  - Running a model: running.md
+  - Reference:
+      - Specification (normative): reference/spec.md
+      - Manifest fields: reference/manifest.md
+      - Contract API: reference/api.md
+  - FAQ: faq.md
