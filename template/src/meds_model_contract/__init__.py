@@ -8,7 +8,7 @@ from .contract import (
     CommandName,
     ModelRepository,
 )
-from .manifest import measured_artifact, read_manifest
+from .manifest import digest_config, measured_artifact, read_manifest
 from .results import write_run_result
 from .task import (
     RelaxationLedger,
@@ -29,6 +29,7 @@ __all__ = [
     "TaskSpec",
     "attach_ground_truth",
     "check_decoded",
+    "digest_config",
     "measured_artifact",
     "read_index",
     "read_manifest",

@@ -7,7 +7,7 @@ import pytest
 from meds_model_contract.meds_dev import register
 from {{ model_slug }}.commands import IS_STUB
 
-from .integration import RUN_TIMEOUT, assert_prediction_keys, provision_meds_dev, run, venv_bin
+from .integration import RUN_TIMEOUT, assert_prediction_keys, assert_prediction_schema, provision_meds_dev, run, venv_bin
 
 pytestmark = [pytest.mark.slow, pytest.mark.meds_dev]
 ROOT = Path(__file__).parents[1]
@@ -24,7 +24,6 @@ def meds_dev(request, tmp_path_factory):
 def test_meds_dev_runs_model_yaml(meds_dev, tmp_path):
     import polars as pl
     import yaml
-    from meds_evaluation.schema import PredictionSchema
 
     from .e2e import prepare_meds_dev_run
 
@@ -35,7 +34,7 @@ def test_meds_dev_runs_model_yaml(meds_dev, tmp_path):
 
     predictions_file = prepared.predictions_dir / "predictions.parquet"
     predictions = pl.read_parquet(predictions_file)
-    PredictionSchema.align(predictions.to_arrow())
+    assert_prediction_schema(predictions)
     assert predictions.height > 0
     assert predictions.select("subject_id", "prediction_time").unique().height == predictions.height
     manifest = yaml.safe_load((prepared.predictions_dir / "manifest.yaml").read_text())

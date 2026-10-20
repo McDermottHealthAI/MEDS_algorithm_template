@@ -154,19 +154,35 @@ artifact:
   producer: importable-or-external-implementation-id
 command:
   name: preprocess_data | pretrain | infer | supervised_train | predict
-  config_digest: sha256:...
+  config_digest: sha256:...  # digest_config(arguments + resolved model-owned settings)
+code:
+  git_commit: <sha> | null   # null outside a git checkout
+  dirty: true | false | null # whether the working tree had uncommitted changes
 inputs: {}
 semantics_digest: null | sha256:...  # TaskSpec digest for task-conditioned artifacts (section 2.4)
 resources: {}
 ```
 
-Inputs MUST include stable identifiers or digests, including an external predicates digest when the
-command consumes one. Consumers MUST reject incompatible artifact type,
-contract version, or payload format before doing expensive work.
+`config_digest` is `meds_model_contract.digest_config` over the command's arguments plus any model-owned
+settings it resolved (defaults, configuration files), so two artifacts made with the same configuration
+share it. `code` is recorded automatically by `measured_artifact`: a run from a modified tree is
+identifiable as such. Inputs MUST include stable identifiers or digests, including an external predicates
+digest when the command consumes one. Consumers MUST reject incompatible artifact type, contract version,
+or payload format before doing expensive work.
+
+Each artifact is its own directory, published by atomically replacing that directory. Artifacts MUST NOT
+be nested inside one another: `infer` writes to `output_inference_dir`, a sibling of the data and
+predictions directories, never to a subdirectory of the shared `patients` artifact, so runs over different
+indexes or splits cannot overwrite each other. In a MEDS-DEV run directory the layout is `data/`,
+`pretrained/`, `model/`, `inference/`, `predictions/`, next to MEDS-DEV's own files.
 
 ## 5. Final predictions
 
-Predictions MUST conform to the current MEDS evaluation prediction schema. They MUST contain exactly one
+Predictions MUST conform to the prediction schema of the meds-evaluation version MEDS-DEV evaluates with
+(currently `meds-evaluation==0.0.3`, `validate_binary_classification_schema`). MEDS-DEV evaluates every
+`**/*.parquet` under the predictions directory, so every parquet file in the predictions artifact MUST be a
+predictions file; supporting tables (for example a zero-shot query bundle) use another format, such as
+Arrow IPC. Predictions MUST contain exactly one
 row for every requested `(subject_id, prediction_time)` unless an explicitly declared exclusion policy
 permits otherwise. Keys MUST be unique. Row order is not meaningful and MUST never be used to associate
 outputs with keys. Extra output columns are permitted only when documented by the selected task/output
@@ -214,7 +230,14 @@ portable pass/fail thresholds.
   prediction keys, schema, manifests, and resource blocks. A stub MAY skip explicitly during initial
   implementation; a completed port MUST have zero stub skips.
 - The model-owned end-to-end adapters MUST identify the labels/evaluation index and evaluated splits so
-  generic tests can compare requested and written prediction keys directly.
+  generic tests can compare requested and written prediction keys directly. `run_e2e` MUST also return the
+  exact `predict` arguments it used, and MUST apply `tests.signal.add_split_canaries` to its fixture and
+  return the canaries. `fitted_codes` MUST report every code the model fitted a population statistic for,
+  read from its artifacts.
+- `meds-model-add-to-meds-dev` (`meds_model_contract.meds_dev.register`) installs `model.yaml` and
+  `requirements.txt`, with the repository as an editable requirement, into a MEDS-DEV checkout. A
+  top-level `predicates.yaml` is copied as well when the repository has one. MEDS-DEV's own dataset
+  predicates remain the default (section 2.3).
 - `slurm/submit.sh --dry-run` MUST print the model-profile submission without mutation. `slurm/submit.sh`
   MUST submit the selected model profile with dependencies, per-stage resources, durable results, and no interactive-shell
   dependency.
@@ -233,7 +256,16 @@ portable pass/fail thresholds.
 The generated repository MUST test command discovery, selected-model-profile consistency, artifact compatibility,
 atomic publication, predicate provenance, prediction key coverage/uniqueness, absence of label
 leakage and of transductive fitting (section 2.1), resource measurement presence, `model.yaml`, SLURM
-dry-run, and its real end-to-end chain. A zero-shot repository additionally tests that task-conditioned
-manifests carry the task's semantics digest and that a valid `relaxations.yaml` is published.
+dry-run, and its real end-to-end chain. The rendered `tests/test_end_to_end.py` does so in one real run:
+
+- **Label leakage:** `predict` is run again on a copy of the index with every label column removed, and
+  MUST still cover every key. Any prediction-path label read fails. `attach_ground_truth` returns
+  predictions unchanged on an unlabelled index.
+- **Transductive fitting:** every tuning and held-out subject carries a canary code that occurs in no
+  training subject. None of the canaries may appear in `fitted_codes`.
+- **Configuration:** every manifest carries a `config_digest`.
+
+A zero-shot repository additionally tests that task-conditioned manifests carry the task's semantics
+digest and that a valid `relaxations.yaml` is published.
 MIMIC-IV demo conformance is opt-in through a `real_data` pytest marker; a normal test run MUST NOT
 download it.

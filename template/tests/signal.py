@@ -106,3 +106,37 @@ def build_signal_dataset(
         json.dumps({"dataset_name": "synthetic_signal", "meds_version": "0.4"})
     )
     return root
+
+
+CANARY_CODES = {"tuning": "CANARY//tuning", "held_out": "CANARY//held_out"}
+
+
+def add_split_canaries(root: Path) -> dict[str, str]:
+    """Give every tuning and held-out subject one event with a code that occurs in no other split.
+
+    Statistics fitted on the training split alone (vocabularies, code frequencies, bins) can never contain
+    these codes; a model that fits over every split will. The codes are not added to
+    ``metadata/codes.parquet``, so a vocabulary read from metadata does not pick them up either. Each canary
+    is placed at the subject's first event time, so it falls in history before any prediction time.
+    Returns the canary code of each split.
+    """
+    root = Path(root)
+    for split, code in CANARY_CODES.items():
+        for shard in sorted((root / "data" / split).glob("*.parquet")):
+            events = pl.read_parquet(shard)
+            first = (
+                events.filter(pl.col("time").is_not_null())
+                .group_by("subject_id")
+                .agg(pl.col("time").min())
+                .with_columns(pl.lit(code).alias("code"))
+            )
+            # Every other column (numeric_value, text_value, ...) is null on the canary events.
+            canaries = first.with_columns(
+                pl.lit(None, dtype=dtype).alias(column)
+                for column, dtype in events.schema.items()
+                if column not in first.columns
+            )
+            canaries = canaries.select(events.columns).cast(events.schema)
+            pl.concat([events, canaries]).sort("subject_id", "time", nulls_last=False).write_parquet(shard)
+    return dict(CANARY_CODES)
+

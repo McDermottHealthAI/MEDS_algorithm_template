@@ -90,13 +90,17 @@ def assert_prediction_keys(predictions_dir: Path, labels_dir: Path, splits) -> N
             raise AssertionError(f"No parquet files with {key_columns} found under {root}")
         return pl.concat(frames)
 
-    # The predictions file is the normative output; other keyed parquets in the artifact (e.g. a zero-shot
-    # query bundle's index) are supporting payloads and must not be counted as predictions.
-    predictions_file = Path(predictions_dir) / "predictions.parquet"
-    if predictions_file.is_file():
-        predictions = pl.read_parquet(predictions_file, columns=key_columns)
-    else:
-        predictions = read_keys(Path(predictions_dir))
+    # MEDS-DEV evaluates every `{predictions_dir}/**/*.parquet` (configs/_evaluate_predictions.yaml), so
+    # every parquet under the predictions artifact must be a predictions file. Publish supporting tables
+    # (e.g. a zero-shot query bundle) in another format, such as Arrow IPC.
+    for path in sorted(Path(predictions_dir).rglob("*.parquet")):
+        schema = pl.read_parquet_schema(path)
+        if "predicted_boolean_probability" not in schema and "predicted_boolean_value" not in schema:
+            raise AssertionError(
+                f"{path} is not a predictions file, but MEDS-DEV evaluates every parquet under the predictions "
+                "directory; store supporting tables in another format (e.g. Arrow IPC)"
+            )
+    predictions = read_keys(Path(predictions_dir))
     expected = read_keys(Path(labels_dir), selected_splits=splits)
     prediction_unique = predictions.unique()
     expected_unique = expected.unique()
@@ -107,6 +111,13 @@ def assert_prediction_keys(predictions_dir: Path, labels_dir: Path, splits) -> N
     assert missing.is_empty() and extra.is_empty(), (
         f"prediction key mismatch: {missing.height} missing and {extra.height} extra keys"
     )
+
+
+def assert_prediction_schema(predictions) -> None:
+    """Validate predictions exactly as MEDS-DEV's pinned meds-evaluation (0.0.3) will."""
+    from meds_evaluation.schema import validate_binary_classification_schema
+
+    validate_binary_classification_schema(predictions)
 
 
 def provision_meds_dev(request, tmp_path_factory, *, task_criteria: bool = False) -> Path:

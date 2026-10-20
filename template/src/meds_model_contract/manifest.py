@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import subprocess
 import os
 import resource
@@ -104,6 +105,16 @@ def read_manifest(directory: Path | str) -> dict[str, Any]:
 def digest_file(path: Path | str) -> str:
     digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
     return f"sha256:{digest}"
+
+
+def digest_config(config: Any) -> str:
+    """Digest a command's configuration: its arguments plus any model-owned settings it resolved.
+
+    The value is canonical JSON (sorted keys; paths and other objects as strings), so the same arguments
+    always give the same digest regardless of order.
+    """
+    canonical = json.dumps(config, sort_keys=True, default=str, separators=(",", ":"))
+    return f"sha256:{hashlib.sha256(canonical.encode()).hexdigest()}"
 
 
 def _repo_root() -> Path:

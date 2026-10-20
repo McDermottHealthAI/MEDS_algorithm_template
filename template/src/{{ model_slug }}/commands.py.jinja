@@ -11,7 +11,7 @@ recommended shape for this profile in docs/IMPLEMENTATION_GUIDE.md.
 
 from pathlib import Path
 
-from meds_model_contract import ArtifactType, Command, CommandName, {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}TaskSpec, {% endif %}measured_artifact
+from meds_model_contract import ArtifactType, Command, CommandName, digest_config, {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}TaskSpec, {% endif %}measured_artifact
 
 IS_STUB = True
 
@@ -38,6 +38,8 @@ class StubCommand(Command):
             command=self.name.value,
             producer=f"{{ model_slug }}.commands.{type(self).__name__}",
             payload_format="stub/v1",
+            # Extend with any model-owned settings the command resolves (defaults, config files).
+            config_digest=digest_config(dict(arguments)),
             external_predicates_file=arguments.get("external_predicates_file"),
             inputs=None if task is None else {"task": task.provenance()},
             semantics_digest=None if task is None else task.semantics_digest(),
@@ -66,14 +68,11 @@ class Pretrain(StubCommand):
 class Infer(StubCommand):
     name = CommandName.infer
     artifact_type = ArtifactType.inference
-    output_argument = "output_inference_subdir"
+    # Its own artifact directory, a sibling of data/ and predictions/ in the run directory: never nested
+    # inside the shared data artifact, so runs over different indexes cannot overwrite each other.
+    output_argument = "output_inference_dir"
 {% if profile == 'zero_shot_materialized' %}    # Task-independent: materialize futures (e.g. sampled trajectories) at the index's prediction times.
-{% endif %}
-    def resolve_output(self, arguments):
-        if arguments.get("input_data_dir") and arguments.get(self.output_argument):
-            return Path(arguments["input_data_dir"]) / arguments[self.output_argument]
-        return None
-{% endif %}
+{% endif %}{% endif %}
 {% if profile in ['supervised', 'finetune', 'probe'] %}
 
 class SupervisedTrain(StubCommand):

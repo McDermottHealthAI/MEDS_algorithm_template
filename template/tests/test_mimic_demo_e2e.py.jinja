@@ -6,7 +6,7 @@ import pytest
 
 from {{ model_slug }}.commands import IS_STUB
 
-from .integration import assert_prediction_keys, provision_meds_dev
+from .integration import assert_prediction_keys, assert_prediction_schema, provision_meds_dev
 
 pytestmark = [pytest.mark.slow, pytest.mark.real_data]
 
@@ -20,7 +20,6 @@ def meds_dev(request, tmp_path_factory):
 
 def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path):
     import polars as pl
-    from meds_evaluation.schema import PredictionSchema
 
     from .e2e import {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}mimic_task_criteria, {% endif %}prepare_mimic_demo, run_e2e
 
@@ -39,7 +38,7 @@ def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path):
     artifacts = result.artifacts
     predictions_dir = artifacts["predict"]
     predictions = pl.read_parquet(predictions_dir / "predictions.parquet")
-    PredictionSchema.align(predictions.to_arrow())
+    assert_prediction_schema(predictions)
     assert predictions.height > 0
     assert predictions.select("subject_id", "prediction_time").unique().height == predictions.height
     assert_prediction_keys(predictions_dir, labels_dir, ["held_out"])

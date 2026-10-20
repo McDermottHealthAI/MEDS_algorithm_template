@@ -30,6 +30,7 @@ def test_slurm_dry_run_is_non_mutating():
             "MEDS_ROOT": "/example/meds",
             "LABELS_DIR": "/example/labels",
             "TASK_CRITERIA_FILE": "/example/task.yaml",
+            "PREDICATES_FILE": "/example/predicates.yaml",
             **os.environ,
             "PYTHONDONTWRITEBYTECODE": "1",
         },

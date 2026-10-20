@@ -179,8 +179,9 @@ def attach_ground_truth(
 ) -> pl.DataFrame:
     """Join the index's label column onto final predictions, by key, for the evaluation file.
 
-    meds-evaluation reads ground truth from the predictions file. Call this only after every probability
-    is final: it is the one sanctioned label read on the prediction path (SPEC section 2.2), and nothing
+    meds-evaluation reads ground truth from the predictions file. On an index without a label column the
+    predictions are returned unchanged, so `predict` works on unlabelled data. Call this only after every
+    probability is final: it is the one sanctioned label read on the prediction path (SPEC section 2.2), and nothing
     computed from its output may feed back into a prediction.
     """
     import polars as pl
@@ -197,7 +198,8 @@ def attach_ground_truth(
         if all(column in pl.read_parquet_schema(path) for column in [*keys, "boolean_value"])
     ]
     if not frames:
-        raise FileNotFoundError(f"No parquet files with {[*keys, 'boolean_value']} under {root}")
+        # An unlabelled index (e.g. real deployment, or the label-blindness check): nothing to attach.
+        return predictions
     joined = predictions.drop("boolean_value", strict=False).join(pl.concat(frames), on=keys, how="left")
     if joined.height != predictions.height or joined["boolean_value"].null_count():
         raise ValueError("every prediction key must have exactly one ground-truth label")

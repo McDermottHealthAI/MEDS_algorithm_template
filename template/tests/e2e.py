@@ -17,6 +17,11 @@ class E2EResult:
     # The external inputs passed to the commands. Zero-shot profiles MUST include external_task_criteria_file
     # (and external_predicates_file when used) so tests can check which task each artifact answers.
     inputs: Mapping[str, Any] = field(default_factory=dict)
+    # The exact arguments the run passed to `predict`. The label-blindness check reruns `predict` with them
+    # on an index whose label columns are removed.
+    predict_arguments: Mapping[str, Any] | None = None
+    # The codes `tests.signal.add_split_canaries` placed in tuning and held-out subjects of the fixture.
+    canaries: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -33,8 +38,19 @@ def run_e2e(tmp_path, **inputs):
     """Run the selected profile; any ``external_*`` input given here overrides the local fixture's."""
     raise NotImplementedError(
         "Prepare a small MEDS input/task, execute the selected model profile's real commands, and return "
-        "E2EResult(artifacts, labels_dir, evaluated splits, external inputs used)."
+        "E2EResult(artifacts, labels_dir, evaluated splits, external inputs used, predict_arguments, "
+        "canaries from tests.signal.add_split_canaries applied to the fixture)."
     )
+
+
+def fitted_codes(artifacts: Mapping[str, Path]) -> set[str]:
+    """Return every code the model fitted a population statistic for: its vocabulary, frequency tables,
+    selected features, or bins.
+
+    The transductive-fitting check requires the split canaries to be absent from this set (SPEC section
+    2.1). Read it from the model's own artifacts; the payload formats are model-owned.
+    """
+    raise NotImplementedError("Report the codes the model fitted, read from its artifacts")
 
 
 def prepare_meds_dev_run(meds_dev, tmp_path):

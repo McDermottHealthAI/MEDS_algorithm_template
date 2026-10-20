@@ -234,10 +234,12 @@ def test_prediction_keys_are_compared_directly(tmp_path, prediction_rows, error)
         ).with_columns(pl.col("prediction_time").str.to_datetime())
 
     frame([(1, "2020-01-01"), (2, "2020-01-02")]).write_parquet(labels / "part.parquet")
-    frame(prediction_rows).write_parquet(predictions / "predictions.parquet")
-    # A zero-shot query bundle published alongside the predictions carries its own keyed index.
+    frame(prediction_rows).with_columns(pl.lit(0.5).alias("predicted_boolean_probability")).write_parquet(
+        predictions / "predictions.parquet"
+    )
+    # A zero-shot query bundle next to the predictions is fine in a non-parquet format.
     (predictions / "bundle").mkdir()
-    frame([(1, "2020-01-01"), (2, "2020-01-02")]).write_parquet(predictions / "bundle" / "index.parquet")
+    frame([(1, "2020-01-01"), (2, "2020-01-02")]).write_ipc(predictions / "bundle" / "index.arrow")
     if error is None:
         integration.assert_prediction_keys(predictions, labels.parent, ["held_out"])
     else:
@@ -387,14 +389,14 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
         assert "TASK_CRITERIA_FILE" in slurm
         guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
         assert "Zero-shot: task in, probabilities out" in guide
-        assert "test_zero_shot_artifacts_name_their_task_and_relaxations" in end_to_end
+        assert "ZERO_SHOT_TASK_COMMANDS" in end_to_end and "RelaxationLedger.read" in end_to_end
         predict_line = next(line for line in slurm.splitlines() if line.strip().startswith("predict)"))
         assert "TASK_CRITERIA_FILE" in predict_line
         if profile == "zero_shot_materialized":
             # Materialized futures are task-independent: infer never sees the task, predict applies it.
             assert "generate futures" in guide
             assert "class ZeroShotTranslator(ABC)" not in guide
-            assert "input_inference_subdir=inference/default" in predict_line
+            assert "input_inference_dir=$RUN_DIR/inference" in predict_line
             assert "input_pretrained_model_dir" not in predict_line
             infer_line = next(line for line in slurm.splitlines() if line.strip().startswith("infer)"))
             assert "TASK_CRITERIA_FILE" not in infer_line
@@ -544,3 +546,69 @@ def test_predictions_and_cli_lists_follow_meds_dev(tmp_path, profile):
     env = {**os.environ, "PYTHONPATH": str(dst / "src")}
     printed = subprocess.run(["python", "-c", probe], env=env, text=True, capture_output=True, check=True)
     assert printed.stdout.split("\n")[0] == "['held_out'] ['train', 'tuning'] [] 3 a"
+
+
+def test_meds_dev_evaluates_every_parquet_under_predictions(tmp_path):
+    import polars as pl
+
+    dst = tmp_path / "glob"
+    render(dst, "zero_shot_direct")
+    integration = load_integration_module(dst)
+    labels, predictions = tmp_path / "labels" / "held_out", tmp_path / "predictions"
+    labels.mkdir(parents=True)
+    (predictions / "bundle").mkdir(parents=True)
+    keys = pl.DataFrame({"subject_id": [1], "prediction_time": [datetime(2020, 1, 1)]})
+    keys.write_parquet(labels / "0.parquet")
+    keys.with_columns(pl.lit(0.5).alias("predicted_boolean_probability")).write_parquet(
+        predictions / "predictions.parquet"
+    )
+    keys.write_parquet(predictions / "bundle" / "index.parquet")
+    with pytest.raises(AssertionError, match="MEDS-DEV evaluates every parquet"):
+        integration.assert_prediction_keys(predictions, labels.parent, ["held_out"])
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_artifacts_are_siblings_and_slurm_lists_only_profile_commands(tmp_path, profile):
+    dst = tmp_path / profile
+    render(dst, profile)
+    model_yaml = (dst / "model.yaml").read_text()
+    assert "output_inference_subdir" not in model_yaml and "input_inference_subdir" not in model_yaml
+    if profile in ("probe", "zero_shot_materialized"):
+        assert "output_inference_dir={output_dir}/inference" in model_yaml, "inference is a sibling artifact"
+    slurm = (dst / "slurm/config.sh").read_text()
+    cases = {line.strip().split(")")[0] for line in slurm.splitlines() if line.strip().endswith(";;")} - {"*"}
+    assert cases == set(MODEL_PROFILES[profile]), "the SLURM config lists exactly the profile's commands"
+    commands = (dst / f"src/v2_{profile}/commands.py").read_text()
+    assert "config_digest=digest_config(" in commands
+
+
+def test_contract_helpers_for_conformance_checks(tmp_path, monkeypatch):
+    import polars as pl
+
+    dst = tmp_path / "helpers"
+    render(dst, "supervised")
+    monkeypatch.syspath_prepend(str(dst / "src"))
+    monkeypatch.syspath_prepend(str(dst))
+    from meds_model_contract import attach_ground_truth, digest_config
+    from tests.signal import add_split_canaries, build_signal_dataset
+
+    assert digest_config({"a": 1, "b": Path("/x")}) == digest_config({"b": "/x", "a": 1})
+    assert digest_config({"a": 1}) != digest_config({"a": 2})
+
+    unlabelled = tmp_path / "index"
+    unlabelled.mkdir()
+    keys = pl.DataFrame({"subject_id": [1], "prediction_time": [datetime(2020, 1, 1)]})
+    keys.write_parquet(unlabelled / "held_out.parquet")
+    predictions = keys.with_columns(pl.lit(0.5).alias("predicted_boolean_probability"))
+    assert attach_ground_truth(predictions, unlabelled).equals(predictions), "unlabelled index: unchanged"
+
+    root = build_signal_dataset(tmp_path / "meds", n_train=4, n_tuning=3, n_held_out=2)
+    canaries = add_split_canaries(root)
+    for split, rows in (("train", 0), ("tuning", 3), ("held_out", 2)):
+        events = pl.read_parquet(root / "data" / split / "0.parquet")
+        found = events.filter(pl.col("code").str.starts_with("CANARY//"))
+        assert found.height == rows and found["subject_id"].n_unique() == rows
+        if rows:
+            assert set(found["code"]) == {canaries[split]}
+            assert events.schema == pl.read_parquet(root / "data" / "train" / "0.parquet").schema
+    assert "CANARY//tuning" not in set(pl.read_parquet(root / "metadata" / "codes.parquet")["code"])

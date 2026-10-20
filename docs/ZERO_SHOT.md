@@ -1,8 +1,9 @@
 # Zero-shot models: design notes
 
-This note explains the zero-shot interface added to the contract (rendered `SPEC.md` sections 2.4 and 3.1,
-`meds_model_contract/task.py`), how the existing ACES-to-MOTOR tooling plugs into it, and what remains to
-be done outside this repository.
+This note explains the zero-shot interface of the contract (rendered `SPEC.md` sections 2.4 and 3.1,
+`meds_model_contract/task.py`): why it exists, how it divides work between the template and model-specific
+code, and what remains open outside this repository. Model-specific implementation notes belong in each
+model's own repository, not here.
 
 ## The problem
 
@@ -31,10 +32,18 @@ Zero-shot prediction mirrors the supervised `predict`, with the task as an extra
 
 | | Supervised `predict` | Zero-shot `predict` |
 |---|---|---|
-| Task | learned from labels in `supervised_train` | **`external_task_criteria_file`** (ACES) + `external_predicates_file` |
+| Task | learned from labels in `supervised_train` | the task specification: `external_task_criteria_file` + `external_predicates_file` |
 | Index | `external_labels_dir` | `external_labels_dir`, read label-blind via `read_index` |
 | Data | MEDS dataset (via `preprocess_data`) | MEDS dataset (via `preprocess_data`) + pretrained model |
 | Output | `predictions.parquet` | `predictions.parquet` + `relaxations.yaml` |
+
+**Why the task is two files.** MEDS-DEV task definitions are written once for every dataset, so they leave
+dataset-specific codes open. `mortality/in_icu/first_24h`, for example, declares `icu_admission: ???`. The
+dataset's `predicates.yaml` fills them in (on MIMIC-IV, the ICU admission event code). The task a model
+must answer is therefore the pair *(criteria, predicates)*: the same pair `meds-dev-task` passes to ACES to
+build the cohort. `external_predicates_file` already existed for models that use predicates as features;
+zero-shot reuses it, and the task's semantics digest covers both files. The same criteria bound to another
+dataset's predicates is a different task, with a different digest.
 
 ### Direct vs materialized: how the model answers
 
@@ -114,47 +123,31 @@ The rules that follow from this:
   `aces_relaxations.extract_at` on the same index and report AUROC against both label sets. This works for
   the task-rewrite steps, but not for model assumptions such as independence.
 
-Two structural cases from `aces-to-motor`'s `docs/relaxation_examples.md` should be flagged on every
-benchmark task, because they are wrong for every data distribution rather than only some:
+Two structural cases should be flagged on every benchmark task, because they are wrong for every data
+distribution rather than only some:
 
 - A criterion that shares codes with the label (a gap window that forbids the label code, or an inclusion
   criterion that requires it) cannot be independent of the label. Dropping it is always wrong.
 - A same-timestamp `and` over codes that never co-occur has a true prevalence of about 0, but the decoded
   probability can be large.
 
-## Mapping MOTOR onto the template
+## How kinds of model map onto the profiles
 
-Use `zero_shot_direct`. MOTOR answers time-to-event queries directly; it does not generate futures.
-Implemented in `florian6973/meds-model-motor-plus` (private), with preprocessing and pretraining from
-femr_runner.
+Three kinds of model illustrate the profiles. Implementation details belong in each model's repository.
 
-| Template | aces-to-motor / femr_runner | Status |
-|---|---|---|
-| `preprocess_data` | `femr_runner/scripts/meds_reader_convert.sh` (MEDS to `meds_reader` DB) | exists, uses hard-coded cluster paths |
-| `pretrain` | `femr_runner/scripts/train.py` (tokenizer, motor task, batches, train) | exists; must write `metadata.json` with `vocabulary` (task-head codes) and `inference_command_template` |
-| `predict` (encode) | `aces_to_motor.encode(TaskExtractorConfig.load(criteria, predicates), ModelSpec.from_dir(...), read_index(...))` | exists |
-| `predict` (model) | bundle (`index.parquet` + `query.json`) to `hazards.npz` | **missing.** `femr_runner/scripts/eval.py` already computes `time_dependent_logits` per row (`run_inference`, `match_logits_to_rows`), but only for per-(code, horizon) AUROC. It needs a small `infer_bundle.py` that reads `query.json["codes"]`, maps them to head indices, writes `rates = 2**logits` with `bin_edges_s` from the motor task's time bins, computes `marginal_mean_F` over the full vocabulary when `needs_marginal`, and writes `inference_stats.json` |
-| `predict` (decode) | `aces_to_motor.decode(bundle, index)` | exists; the result must pass `check_decoded` |
-| ledger | `relaxation_report.md` (prose) | write the fixed pipeline's steps as `relaxations.yaml` `steps` (table in the rendered implementation guide) |
+- **A time-to-event model** (for example MOTOR) is `zero_shot_direct`. Its adapter restricts predicates to
+  the codes the model has hazards for, keeps the label branch, and decodes a probability from per-code
+  hazards. Dropping the criteria branches and treating codes as independent are model assumptions.
+- **A code-in-window query model** (for example EveryQuery) is `zero_shot_direct`. Its query windows can
+  start after a delay or at an event and end at a duration or a bound event, so more of the task maps
+  exactly. Criteria known to hold on every cohort row can be given to the model as answered conditions.
+  Value thresholds map onto the model's value bins.
+- **An autoregressive generator** (for example MEDS-EIC-AR) is `zero_shot_materialized`. `infer` samples
+  futures without the task. `predict` evaluates the original ACES task on history plus each future, so
+  non-future-only tasks are fine and the ledger records only sampling and generation effects.
 
-Multi-task: `aces_to_motor.encode_tasks` shares one inference pass across many tasks. The current
-contract runs one task per `predict`, which is correct but repeats inference. Sharing it would need a
-multi-task `predict`, which is a later extension. Also note that FEMR's
-batch builder makes a row's representation depend on *which* other rows a subject carries (median |dp| = 0,
-6-10% of rows move by more than 0.01 when tasks are batched together). This is not label leakage, but it
-means a task's probabilities can differ slightly between a standalone and a batched run.
-
-Suggested MOTOR test plan, in order:
-
-1. Render `zero_shot_direct` and wrap `aces-to-motor` (encode, hazards runner, decode) in `Predict`.
-2. Write the missing `bundle -> hazards.npz` runner in `femr_runner`, and check it against `eval.py` on a
-   single-code fixed-horizon task, where both must agree because that relaxation is exact.
-3. Run a MIMIC-IV demo task. `mortality/in_icu/first_24h` is currently not posable for direct models:
-   aces-relaxations rejects it as not future-only, because its `gap` window is rooted at the trigger and
-   straddles the prediction time. The `abnormal_lab/*/first_24h` tasks are posable, but `normalize` drops
-   the future half of their `no_discharge` window without a message. Both have the same root cause; see the
-   open issue below.
-4. Run the shared ten-task `meds-task-selection` bundle, with the ledgers attached to each result.
+Both direct adapters can share inference across tasks only through a multi-task `predict`, which is a later
+extension: the contract runs one task per `predict`.
 
 ## Outside this repository: MEDS-DEV
 
@@ -191,7 +184,9 @@ past, which has two effects:
 - **Abnormal-lab tasks:** `normalize` drops the window, and with it the future condition, without a
   message.
 
-The fix belongs in aces-relaxations: split the window at the prediction time, drop the past part, and keep
-the future part as a criteria branch. Materialized models are unaffected, because they evaluate the
-original task on history plus generated futures.
+A label-preserving pre-pass fixes both. It re-anchors such a window at the prediction time, keeps its
+"never" constraints over the future part, and drops constraints the past part may already satisfy. Direct
+adapters currently carry this pre-pass themselves. It is model-independent and belongs in
+aces-relaxations. Materialized models are unaffected, because they evaluate the original task on history
+plus generated futures.
 

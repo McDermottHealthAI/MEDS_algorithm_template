@@ -136,6 +136,17 @@ Finalize `model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`
 real model profile. The MEDS-DEV adapter supplies its isolated invocation. The MIMIC adapter locates/builds the demo
 and the pinned `mortality/in_icu/first_24h` task through MEDS-DEV and reuses its predicates.
 
+`tests/test_end_to_end.py` also checks label leakage and transductive fitting on the same run, so the
+local adapter must:
+
+- return the exact `predict` arguments it used (`E2EResult.predict_arguments`). `predict` is rerun on an
+  index with no label column and must still cover every key, so make `predict` work on unlabelled data.
+  `attach_ground_truth` already does.
+- apply `tests.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
+  canaries (`E2EResult.canaries`).
+- implement `fitted_codes`: every code the model fitted a population statistic for (vocabulary, frequency
+  table, selected features, bins), read from its artifacts. No canary may appear there.
+
 Complete `tests/test_primary_behavior.py`; its initial failure is intentional. The template provides the
 small `tests.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
 history length and signal position do not leak the label. Use it unchanged, adapt its codes, or replace it
