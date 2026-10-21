@@ -2,21 +2,29 @@
 
 {{ model_description }}
 
-This repository implements the **`{{ profile }}`** model profile under version 2 of the minimal MEDS model
+This repository declares the **`{{ profiles | join(', ') }}`** profiles under version 3 of the minimal MEDS model
 contract. The contract standardizes MEDS input, command meanings and arguments, artifact envelopes,
 final predictions, measurements, MEDS-DEV packaging, and operational interfaces. The model owns every
 computational choice and every intermediate payload.
 
 ## Model profile commands
 
-```text
-{% if profile == 'supervised' %}preprocess_data -> supervised_train -> predict{% elif profile == 'finetune' %}preprocess_data -> pretrain -> supervised_train -> predict{% elif profile == 'probe' %}preprocess_data -> pretrain -> infer -> supervised_train -> predict{% elif profile == 'zero_shot_direct' %}preprocess_data -> pretrain -> predict{% elif profile == 'zero_shot_materialized' %}preprocess_data -> pretrain -> infer -> predict{% else %}preprocess_data -> predict{% endif %}
+{% if 'supervised' in profiles %}- `supervised`: `preprocess_data → train_supervised → predict_supervised`
+{% endif %}{% if 'finetune' in profiles %}- `finetune`: `preprocess_data → pretrain → train_finetune → predict_finetune`
+{% endif %}{% if 'probe' in profiles %}- `probe`: `preprocess_data → pretrain → infer_embeddings → train_probe → predict_probe`
+{% endif %}{% if 'zero_shot_direct' in profiles %}- `zero_shot_direct`: `preprocess_data → pretrain → predict_zero_shot_direct`
+{% endif %}{% if 'zero_shot_materialized' in profiles %}- `zero_shot_materialized`: `preprocess_data → pretrain → infer_trajectories → predict_zero_shot_materialized`
+{% endif %}{% if 'predict_only' in profiles %}- `predict_only`: `preprocess_data → predict_only`
+{% endif %}
+```bash
+meds-model profiles
+meds-model commands --profile {{ profiles[0] }}
+meds-model <step> --profile <profile> key=value ...
 ```
 
-```bash
-meds-model commands
-meds-model <command> key=value ...
-```
+Each profile has `models/<profile>/model.yaml`. Multiple profiles share one Python package and one
+registry; select one explicitly for each run. `STUB_PROFILES` tracks implementation status separately.
+Read [Software contract](SPEC.md) for exact class responsibilities and step inputs.
 
 Intermediate artifacts may be tensors, files, databases, external-system references, or any other
 implementation-owned representation. Generic tests inspect only their `manifest.yaml` envelopes. They
@@ -25,7 +33,9 @@ must not assume batches, Lightning, PyTorch, Parquet intermediate data, or itera
 ## Inputs and predicates
 
 - `external_meds_dir` is the standard MEDS dataset boundary.
-- `external_labels_dir` supplies task prediction times and training labels where the model profile needs them.
+- `external_index_dir` supplies only `(subject_id, prediction_time)` to inference and scoring.
+- `external_labels_dir` supplies permitted training targets or explicit in-context examples.
+- `external_evaluation_labels_dir`, when supplied, is used only to attach truth after scores are fixed.
 - `external_predicates_file` supplies dataset-specific predicates when useful. For MIMIC-IV, reuse the
   predicates from MEDS-DEV. This repository decides whether and how to interpret them.
 
@@ -42,10 +52,9 @@ files. The implementation source recorded when this repository was generated is:
 {{ implementation_source if implementation_source else 'Not supplied during generation.' }}
 ```
 
-The model-owned surface is `src/{{ model_slug }}/commands.py`, command configuration, `model.yaml`, and
+The model-owned surface is `src/{{ model_slug }}/commands.py`, command configuration, `models/<profile>/model.yaml`, and
 `tests/e2e.py`. Implement every registered command, define exact intermediate compatibility checks,
-finalize MEDS-DEV command strings, and complete the report. Keep `IS_STUB = True` until the actual model profile
-runs end to end.
+finalize MEDS-DEV command strings, and complete the report. Remove a profile from `STUB_PROFILES` only after it runs end to end. Complete every declared profile.
 
 ## Verification
 
@@ -56,14 +65,14 @@ uv run pytest -m real_data -rs
 ```
 
 - The default suite runs the local end-to-end adapter and contract tests.
-- `meds_dev` registers `model.yaml`, installs this repository from `requirements.txt` in an isolated
+- `meds_dev` registers `models/<profile>/model.yaml`, installs this repository from `requirements.txt` in an isolated
   environment, and executes MEDS-DEV's real command slots.
 - `real_data` runs the full selected model profile on the MEDS-DEV MIMIC-IV demo, the pinned
   `mortality/in_icu/first_24h` task, and MEDS-DEV's
   MIMIC predicates. Set `MEDS_DEMO_DIR` to reuse an existing demo and `MEDS_DEV_DIR` to reuse a checkout.
 
 Automatic provisioning pins MEDS-DEV PR #330's tested commit, which has the `{predicates_path}`
-passthrough (PR #325){% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %} and the
+passthrough (PR #325){% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %} and the
 `{task_criteria_path}` passthrough this zero-shot model needs{% endif %}. Set `MEDS_DEV_REF` to use another
 revision containing those capabilities. A checkout supplied through `MEDS_DEV_DIR` is checked and fails
 clearly if it cannot populate them.
@@ -94,8 +103,8 @@ Time and memory are evidence, not portable test thresholds.
 
 ```bash
 $EDITOR slurm/config.sh
-./slurm/submit.sh --dry-run
-./slurm/submit.sh
+PROFILE={{ profiles[0] }} ./slurm/submit.sh --dry-run
+PROFILE={{ profiles[0] }} ./slurm/submit.sh
 scripts/github-sync.sh <run-id>
 ```
 

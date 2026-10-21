@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
+from meds_model_core.data.index import read_index, split_files
+
 if TYPE_CHECKING:
     import polars as pl
 
@@ -88,35 +90,12 @@ class TaskSpec:
         }
 
 
-def split_files(labels_dir: Path | str, splits: Sequence[str] | None = None) -> list[Path]:
-    """The index's parquet files that belong to ``splits`` (all files when ``splits`` is empty).
-
-    A file belongs to a split when its stem or one of its directories is named after it, as MEDS-DEV and
-    ACES write them (``held_out.parquet``, ``held_out/0.parquet``).
-    """
-    root = Path(labels_dir)
-    files = sorted(root.rglob("*.parquet")) if root.is_dir() else [root]
-    if isinstance(splits, str):
-        raise TypeError(f"splits must be a sequence of split names, got the string {splits!r}")
-    if splits and root.is_dir():
-        selected = set(splits)
-        files = [
-            path
-            for path in files
-            if path.stem in selected or any(part in selected for part in path.relative_to(root).parts)
-        ]
-        if not files:
-            # Falling back to every split would silently score train rows as evaluation rows.
-            raise FileNotFoundError(f"No parquet files for splits {sorted(selected)} under {root}")
-    return files
-
-
 def read_context_labels(
     labels_dir: Path | str, context_splits: Sequence[str], evaluated_splits: Sequence[str]
 ) -> pl.DataFrame:
     """Read labelled examples for in-context learning, never from an evaluated split.
 
-    A `packaged` model that learns inside `predict` (e.g. a prior-data fitted network) reads its labelled
+    A `predict_only` model using in-context learning (e.g. a prior-data fitted network) reads its labelled
     context through this function (SPEC section 2.2). It refuses any overlap between the context splits and
     the splits being predicted.
     """
@@ -137,29 +116,6 @@ def read_context_labels(
     if not frames:
         raise FileNotFoundError(f"No labelled parquet files for splits {sorted(context_splits)} under {labels_dir}")
     return pl.concat(frames)
-
-
-def read_index(labels_dir: Path | str, splits: Sequence[str] | None = None) -> pl.DataFrame:
-    """Read the requested evaluation index with every label column removed.
-
-    Zero-shot code MUST obtain its rows through this function (or an equivalent that never selects a label
-    column), so label blindness is a property of the boundary rather than of reviewer attention.
-    """
-    import polars as pl
-
-    root = Path(labels_dir)
-    files = split_files(root, splits)
-    frames = [
-        pl.read_parquet(path, columns=list(INDEX_COLUMNS))
-        for path in files
-        if all(column in pl.read_parquet_schema(path) for column in INDEX_COLUMNS)
-    ]
-    if not frames:
-        raise FileNotFoundError(f"No parquet files with {list(INDEX_COLUMNS)} under {root}")
-    index = pl.concat(frames)
-    if index.unique().height != index.height:
-        raise ValueError("the requested evaluation index contains duplicate (subject_id, prediction_time)")
-    return index
 
 
 @dataclass(frozen=True)

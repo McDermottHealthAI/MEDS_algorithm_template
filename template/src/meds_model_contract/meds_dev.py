@@ -3,17 +3,27 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 from pathlib import Path
 
 
-def register(repo: Path, meds_dev: Path, name: str) -> Path:
+def register(repo: Path, meds_dev: Path, name: str, profile: str | None = None) -> Path:
     source = repo.resolve()
-    target = meds_dev.resolve() / "src" / "MEDS_DEV" / "models" / name
+    descriptors = {p.parent.name: p for p in (source / "models").glob("*/model.yaml")}
+    if profile is None:
+        if len(descriptors) != 1:
+            raise ValueError("Select --profile when the repository has several descriptors")
+        profile = next(iter(descriptors))
+    if profile not in descriptors:
+        raise ValueError(f"No descriptor for {profile!r}; available: {sorted(descriptors)}")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]*", name):
+        raise ValueError("name must be a single alphanumeric, underscore or hyphen identifier")
+    target = meds_dev.resolve() / "src" / "MEDS_DEV" / "models" / f"{name}__{profile}"
     if not target.parent.is_dir():
         raise FileNotFoundError(f"{meds_dev} has no src/MEDS_DEV/models directory")
     target.mkdir()
-    shutil.copy2(source / "model.yaml", target / "model.yaml")
+    shutil.copy2(descriptors[profile], target / "model.yaml")
     requirements = (source / "requirements.txt").read_text().replace("-e .", f"-e {source}")
     (target / "requirements.txt").write_text(requirements)
     predicates = source / "predicates.yaml"
@@ -27,5 +37,6 @@ def main() -> None:
     parser.add_argument("--meds-dev", type=Path, required=True)
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument("--name", required=True)
+    parser.add_argument("--profile")
     args = parser.parse_args()
-    print(register(args.repo, args.meds_dev, args.name))
+    print(register(args.repo, args.meds_dev, args.name, args.profile))

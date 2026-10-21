@@ -18,12 +18,17 @@ REPO = Path(__file__).resolve().parents[1]
 TEMPLATE_REPO = REPO
 
 MODEL_PROFILES = {
-    "supervised": ["preprocess_data", "supervised_train", "predict"],
-    "finetune": ["preprocess_data", "pretrain", "supervised_train", "predict"],
-    "probe": ["preprocess_data", "pretrain", "infer", "supervised_train", "predict"],
-    "zero_shot_direct": ["preprocess_data", "pretrain", "predict"],
-    "zero_shot_materialized": ["preprocess_data", "pretrain", "infer", "predict"],
-    "packaged": ["preprocess_data", "predict"],
+    "supervised": ["preprocess_data", "train_supervised", "predict_supervised"],
+    "finetune": ["preprocess_data", "pretrain", "train_finetune", "predict_finetune"],
+    "probe": ["preprocess_data", "pretrain", "infer_embeddings", "train_probe", "predict_probe"],
+    "zero_shot_direct": ["preprocess_data", "pretrain", "predict_zero_shot_direct"],
+    "zero_shot_materialized": [
+        "preprocess_data",
+        "pretrain",
+        "infer_trajectories",
+        "predict_zero_shot_materialized",
+    ],
+    "predict_only": ["preprocess_data", "predict_only"],
 }
 
 
@@ -37,7 +42,7 @@ def render(dst: Path, profile: str, *, uses_predicates: bool = False) -> str:
         data={
             "model_name": f"V2 {profile}",
             "model_slug": slug,
-            "profile": profile,
+            "profiles": [profile],
             "uses_predicates": uses_predicates,
         },
         defaults=True,
@@ -61,7 +66,7 @@ def test_renders_six_model_profiles(tmp_path, profile):
     dst = tmp_path / profile
     slug = render(dst, profile, uses_predicates=True)
     required = [
-        "model.yaml",
+        f"models/{profile}/model.yaml",
         ".copier-answers.yml",
         "AGENTS.md",
         "SPEC.md",
@@ -84,8 +89,10 @@ def test_renders_six_model_profiles(tmp_path, profile):
     ]
     assert all((dst / path).is_file() for path in required)
     assert compileall.compile_dir(dst, quiet=1, force=True)
-    assert yaml.safe_load((dst / "model.yaml").read_text())["commands"]["supervised"]["predict"]
-    assert "{predicates_path}" in (dst / "model.yaml").read_text()
+    assert yaml.safe_load((dst / "models" / profile / "model.yaml").read_text())["commands"]["supervised"][
+        "predict"
+    ]
+    assert "{predicates_path}" in (dst / "models" / profile / "model.yaml").read_text()
 
     env = {**os.environ, "PYTHONPATH": str(dst / "src")}
     command_list = subprocess.run(
@@ -108,7 +115,7 @@ def test_copier_answers_record_portable_update_metadata(tmp_path):
     answers = yaml.safe_load((dst / ".copier-answers.yml").read_text())
     assert answers["_src_path"]
     assert answers["model_slug"] == "v2_supervised"
-    assert answers["profile"] == "supervised"
+    assert answers["profiles"] == ["supervised"]
 
 
 def test_mimic_task_prepends_pinned_meds_dev_venv_only_for_task(tmp_path, monkeypatch):
@@ -186,7 +193,7 @@ def test_predicates_are_external_not_a_rendered_semantic_format(tmp_path):
     dst = tmp_path / "without-predicates"
     render(dst, "supervised", uses_predicates=False)
     assert not (dst / "semantics.yaml").exists()
-    assert "external_predicates_file" not in (dst / "model.yaml").read_text()
+    assert "external_predicates_file" not in (dst / "models/supervised/model.yaml").read_text()
 
 
 def test_implementation_prompt_belongs_to_template_readme_not_rendered_repo(tmp_path):
@@ -329,7 +336,7 @@ def test_meds_dev_ref_is_checked_out_in_clone(tmp_path, monkeypatch):
 
 def test_measurement_manifest_is_plausible(tmp_path, monkeypatch):
     dst = tmp_path / "measurement"
-    render(dst, "packaged")
+    render(dst, "predict_only")
     monkeypatch.syspath_prepend(str(dst / "src"))
     from meds_model_contract import measured_artifact, read_manifest, write_run_result
     from meds_model_contract.meds_dev import register
@@ -358,6 +365,7 @@ def test_measurement_manifest_is_plausible(tmp_path, monkeypatch):
     result = write_run_result(
         run_dir,
         repo=dst,
+        profile="predict_only",
         artifacts={"preprocess_data": artifact},
         dataset={"name": "synthetic", "subjects": 1, "events": 1},
         task={"name": "smoke", "timepoints": 1},
@@ -380,7 +388,7 @@ ZERO_SHOT_PROFILES = ["zero_shot_direct", "zero_shot_materialized"]
 def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
     dst = tmp_path / profile
     render(dst, profile)
-    model_yaml = (dst / "model.yaml").read_text()
+    model_yaml = (dst / "models" / profile / "model.yaml").read_text()
     predict = yaml.safe_load(model_yaml)["commands"]["supervised"]["predict"]
     slurm = (dst / "slurm/config.sh").read_text()
     end_to_end = (dst / "tests/test_end_to_end.py").read_text()
@@ -390,18 +398,22 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
         guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
         assert "Zero-shot: task in, probabilities out" in guide
         assert "ZERO_SHOT_TASK_COMMANDS" in end_to_end and "RelaxationLedger.read" in end_to_end
-        predict_line = next(line for line in slurm.splitlines() if line.strip().startswith("predict)"))
+        predict_line = next(
+            line for line in slurm.splitlines() if line.strip().startswith(MODEL_PROFILES[profile][-1] + ")")
+        )
         assert "TASK_CRITERIA_FILE" in predict_line
         if profile == "zero_shot_materialized":
             # Materialized futures are task-independent: infer never sees the task, predict applies it.
             assert "generate futures" in guide
             assert "class ZeroShotTranslator(ABC)" not in guide
-            assert "input_inference_dir=$RUN_DIR/inference" in predict_line
+            assert "input_trajectories_dir=$RUN_DIR/trajectories" in predict_line
             assert "input_pretrained_model_dir" not in predict_line
-            infer_line = next(line for line in slurm.splitlines() if line.strip().startswith("infer)"))
+            infer_line = next(
+                line for line in slurm.splitlines() if line.strip().startswith("infer_trajectories)")
+            )
             assert "TASK_CRITERIA_FILE" not in infer_line
             infer = predict.splitlines()[0]
-            assert infer.startswith("meds-model infer")
+            assert infer.startswith("meds-model infer_trajectories --profile zero_shot_materialized")
             assert "task_criteria_path" not in infer, "materialized infer is task-independent"
             assert "splits=[{split}]" in infer, "materialized infer must score only the evaluated split"
             materialized_predict = predict.splitlines()[1]
@@ -418,7 +430,7 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
     else:
         assert "task_criteria_path" not in model_yaml
         assert "TASK_CRITERIA_FILE" not in slurm
-        assert "zero_shot" not in end_to_end
+        assert "RelaxationLedger.read" not in end_to_end
 
 
 @pytest.mark.parametrize("profile", ZERO_SHOT_PROFILES)
@@ -427,7 +439,19 @@ def test_zero_shot_stub_rejects_a_missing_task_before_work(tmp_path, profile):
     slug = render(dst, profile)
     env = {**os.environ, "PYTHONPATH": str(dst / "src")}
     output = tmp_path / "predictions"
-    command = ["python", "-m", slug, "predict", f"output_predictions_dir={output}"]
+    command = [
+        "python",
+        "-m",
+        slug,
+        MODEL_PROFILES[profile][-1],
+        f"output_predictions_dir={output}",
+        "input_data_dir=/data",
+        "input_pretrained_model_dir=/model",
+        "input_trajectories_dir=/futures",
+        "external_meds_dir=/meds",
+        "external_index_dir=/labels",
+        "splits=[held_out]",
+    ]
     missing = subprocess.run(command, env=env, text=True, capture_output=True)
     assert missing.returncode != 0
     assert "external_task_criteria_file" in missing.stderr
@@ -454,8 +478,8 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
     assert {
         name: {c.value for c in cs} for name, cs in meds_model_contract.ZERO_SHOT_TASK_COMMANDS.items()
     } == {
-        "zero_shot_direct": {"predict"},
-        "zero_shot_materialized": {"predict"},
+        "zero_shot_direct": {"predict_zero_shot_direct"},
+        "zero_shot_materialized": {"predict_zero_shot_materialized"},
     }, "only predict sees the task; materialized infer is task-independent"
 
     criteria = tmp_path / "task.yaml"
@@ -537,7 +561,9 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
 def test_predictions_and_cli_lists_follow_meds_dev(tmp_path, profile):
     dst = tmp_path / profile
     slug = render(dst, profile)
-    predict = yaml.safe_load((dst / "model.yaml").read_text())["commands"]["supervised"]["predict"]
+    predict = yaml.safe_load((dst / "models" / profile / "model.yaml").read_text())["commands"]["supervised"][
+        "predict"
+    ]
     assert "output_predictions_dir={output_dir}/predictions" in predict, "never replace MEDS-DEV's output_dir"
     probe = (
         f"import sys; sys.argv = ['x']; from {slug}.__main__ import _value; "
@@ -571,10 +597,11 @@ def test_meds_dev_evaluates_every_parquet_under_predictions(tmp_path):
 def test_artifacts_are_siblings_and_slurm_lists_only_profile_commands(tmp_path, profile):
     dst = tmp_path / profile
     render(dst, profile)
-    model_yaml = (dst / "model.yaml").read_text()
+    model_yaml = (dst / "models" / profile / "model.yaml").read_text()
     assert "output_inference_subdir" not in model_yaml and "input_inference_subdir" not in model_yaml
     if profile in ("probe", "zero_shot_materialized"):
-        assert "output_inference_dir={output_dir}/inference" in model_yaml, "inference is a sibling artifact"
+        kind = "embeddings" if profile == "probe" else "trajectories"
+        assert f"output_{kind}_dir={{output_dir}}/{kind}" in model_yaml
     slurm = (dst / "slurm/config.sh").read_text()
     cases = {line.strip().split(")")[0] for line in slurm.splitlines() if line.strip().endswith(";;")} - {"*"}
     assert cases == set(MODEL_PROFILES[profile]), "the SLURM config lists exactly the profile's commands"
@@ -614,11 +641,11 @@ def test_contract_helpers_for_conformance_checks(tmp_path, monkeypatch):
     assert "CANARY//tuning" not in set(pl.read_parquet(root / "metadata" / "codes.parquet")["code"])
 
 
-def test_packaged_reads_context_labels_never_evaluated_ones(tmp_path, monkeypatch):
+def test_predict_only_reads_context_labels_never_evaluated_ones(tmp_path, monkeypatch):
     import polars as pl
 
-    dst = tmp_path / "packaged"
-    render(dst, "packaged")
+    dst = tmp_path / "predict_only"
+    render(dst, "predict_only")
     guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
     assert "In-context learners" in guide and "read_context_labels" in guide
     monkeypatch.syspath_prepend(str(dst / "src"))
@@ -644,14 +671,7 @@ def test_label_leakage_check_strips_what_the_profile_may_not_read(tmp_path, prof
     dst = tmp_path / profile
     render(dst, profile)
     end_to_end = (dst / "tests/test_end_to_end.py").read_text()
-    if profile in ZERO_SHOT_PROFILES:
-        assert '"unlabelled-index",\n        None,' in end_to_end, (
-            "zero-shot predict may read no label at all"
-        )
-    else:
-        assert '"unlabelled-index",\n        result.splits,' in end_to_end, (
-            "only evaluated-split labels are stripped"
-        )
+    assert 'None if profile.startswith("zero_shot_") else result.splits' in end_to_end
 
 
 def _dry_run(dst: Path, slug: str, tmp_path: Path, **env: str) -> subprocess.CompletedProcess:
@@ -665,6 +685,7 @@ def _dry_run(dst: Path, slug: str, tmp_path: Path, **env: str) -> subprocess.Com
         "PYTHONPATH": str(dst / "src"),
         "MEDS_ROOT": "/meds",
         "LABELS_DIR": "/labels/task",
+        "INDEX_DIR": "/index/task",
         "TASK_CRITERIA_FILE": "/tasks/task.yaml",
         "PREDICATES_FILE": "/predicates/dataset.yaml",
         **env,
@@ -681,7 +702,7 @@ def test_submit_stages_reuse_shared_task_independent_artifacts(tmp_path):
         dst,
         slug,
         tmp_path,
-        STAGES="predict,infer",
+        STAGES="predict_zero_shot_materialized,infer_trajectories",
         RUN_ROOT="/runs",
         RUN_ID="task-a",
         SHARED_DIR="/runs/shared/artifacts",
@@ -689,17 +710,28 @@ def test_submit_stages_reuse_shared_task_independent_artifacts(tmp_path):
     )
     assert result.returncode == 0, result.stderr
     args = [line for line in result.stdout.splitlines() if line.startswith("# ")]
-    assert [line.split(":")[0] for line in args if ": " in line] == ["# infer"] * 5 + ["# predict"] * 8
-    assert "# infer: input_pretrained_model_dir=/runs/shared/artifacts/pretrained" in args
-    assert "# infer: output_inference_dir=/runs/task-a/artifacts/inference" in args
-    assert "# infer: splits=[held_out]" in args and "# predict: splits=[held_out]" in args
-    assert "# predict: input_data_dir=/runs/shared/artifacts/data" in args
-    assert "# predict: external_predicates_file=/predicates/task-suite.yaml" in args
+    assert [line.split(":")[0] for line in args if ": " in line] == ["# infer_trajectories"] * 5 + [
+        "# predict_zero_shot_materialized"
+    ] * 8
+    assert "# infer_trajectories: input_pretrained_model_dir=/runs/shared/artifacts/pretrained" in args
+    assert (
+        "# infer_trajectories: output_trajectories_dir="
+        "/runs/task-a/zero_shot_materialized/artifacts/trajectories" in args
+    )
+    assert (
+        "# infer_trajectories: splits=[held_out]" in args
+        and "# predict_zero_shot_materialized: splits=[held_out]" in args
+    )
+    assert "# predict_zero_shot_materialized: input_data_dir=/runs/shared/artifacts/data" in args
+    assert "# predict_zero_shot_materialized: external_predicates_file=/predicates/task-suite.yaml" in args
     assert not any("preprocess_data" in line or "pretrain:" in line for line in args)
 
     shared = _dry_run(dst, slug, tmp_path, STAGES="preprocess_data", RUN_ROOT="/runs", RUN_ID="shared")
     assert "# preprocess_data: external_predicates_file=/predicates/dataset.yaml" in shared.stdout
-    assert "# preprocess_data: output_data_dir=/runs/shared/artifacts/data" in shared.stdout
+    assert (
+        "# preprocess_data: output_data_dir=/runs/shared/zero_shot_materialized/artifacts/data"
+        in shared.stdout
+    )
 
     typo = _dry_run(dst, slug, tmp_path, STAGES="infer,supervised_train")
     assert typo.returncode == 2 and "not a command of this profile" in typo.stderr

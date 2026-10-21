@@ -3,6 +3,11 @@
 This repository is a self-contained [Copier](https://copier.readthedocs.io) template for minimal,
 contract-first MEDS model repositories.
 
+Shared contracts and the canonical specification live in
+[`meds-model-core`](https://github.com/florian6973/meds-model-core). This template and generated projects pin commit
+`bfa347d13270bd29899671974d819e3c6c6f7ba8` directly from Git, so no PyPI release is required.
+The core README documents implemented modules and planned extractions.
+
 The template fixes the external contract—MEDS input, six model profiles and standard arguments, typed
 artifact manifests, final MEDS predictions, measurements, MEDS-DEV, SLURM, and GitHub result exchange—while
 leaving preprocessing, featurization, intermediate formats, frameworks, batching, and model execution to
@@ -39,13 +44,14 @@ copier update --trust
 For portable updates across machines, copy from the Git repository URL rather than from a local checkout;
 Copier records that source in the answers file.
 
-For a reproducible non-interactive render:
+For a reproducible non-interactive render, first create `profiles.yml` containing
+`profiles: [probe]` (or several profile names), then run:
 
 ```bash
 copier copy --defaults --trust \
   --data model_name="My MEDS Model" \
   --data model_slug=my_meds_model \
-  --data profile=probe \
+  --data-file profiles.yml \
   --data uses_predicates=true \
   --data implementation_source=https://github.com/example/source-model \
   . ../my-meds-model
@@ -60,21 +66,21 @@ so the command remains usable if formatting/bootstrap tasks are added later.
 |---|---|
 | `model_name` | Human-readable model name. |
 | `model_slug` | Importable Python package and MEDS-DEV model identifier. |
-| `profile` | One of the six supported model profiles. |
-| `model_description` | Short description rendered into README and `model.yaml`. |
+| `profiles` | Nonempty list of supported profiles; each gets its own MEDS-DEV YAML. |
+| `model_description` | Short description rendered into README and `models/<profile>/model.yaml`. |
 | `author_name`, `author_email` | MEDS-DEV contact metadata. |
 | `uses_predicates` | Whether generated MEDS-DEV commands pass `external_predicates_file`. The model still owns interpretation. |
 | `implementation_source` | Paper path/URL, source repository path/URL, or both; prefilled into generated guidance and the report. |
 
 Profiles are `supervised`, `finetune`, `probe`, `zero_shot_direct`, `zero_shot_materialized`, and
-`packaged`. A model profile selects required commands, not an architecture or execution backend.
+`predict_only`. A model profile selects required commands, not an architecture or execution backend.
 
 The two zero-shot profiles also receive the task itself: an ACES criteria file passed as
-`external_task_criteria_file` (`{task_criteria_path}` in `model.yaml`). They must publish a
+`external_task_criteria_file` (`{task_criteria_path}` in `models/<profile>/model.yaml`). They must publish a
 `relaxations.yaml` ledger stating how the answered task differs from the requested one. They differ in how
 the model answers. `zero_shot_direct` models answer task-derived queries directly (MOTOR, EveryQuery),
 recommended as an `aces-to-<model>` adapter on aces-relaxations. `zero_shot_materialized` models generate
-futures in a task-independent `infer`, and `predict` evaluates the task on them. See [`docs/ZERO_SHOT.md`](docs/ZERO_SHOT.md) for the design, the MOTOR mapping, and the MEDS-DEV
+futures in a task-independent `infer_trajectories`, and `predict_zero_shot_materialized` evaluates the task on them. See [`docs/ZERO_SHOT.md`](docs/ZERO_SHOT.md) for the design, the MOTOR mapping, and the MEDS-DEV
 passthrough this needs.
 
 ## Work in the generated repository
@@ -97,7 +103,7 @@ end-to-end tests report explicit `model_stub` skips. Start with these rendered f
 6. `tests/e2e.py`
 7. `IMPLEMENTATION_REPORT.md`
 
-A completed implementation sets `IS_STUB = False` only after its actual model profile works.
+A completed implementation removes each profile from `STUB_PROFILES` only after that profile works.
 
 ## Copyable model-implementation prompt
 
@@ -145,7 +151,7 @@ For a zero_shot_direct model (answers queries directly, e.g. MOTOR, EveryQuery) 
 model (generates futures and evaluates the task on them; infer is task-independent and only predict
 receives the task): the model receives the original ACES task through
 external_task_criteria_file (with the dataset predicates) and the upstream-built index through
-external_labels_dir. Never build, filter, or extend the cohort, and read the index only through
+external_index_dir. Never build, filter, or extend the cohort, and read the index only through
 meds_model_contract.read_index. Reuse an existing aces-to-<model> adapter for this model if one exists;
 otherwise write one on aces-relaxations, pinned to an exact version: reject tasks that are not future-only
 or are degenerate, normalize, then apply only the approximations and assumptions the model's query
@@ -157,7 +163,7 @@ instead.
 
 Record every material source element as ported, adapted, or omitted, with evidence and justification, in
 IMPLEMENTATION_REPORT.md. Implement every registered command, finalize the implementation-specific
-command strings in model.yaml, and implement tests/e2e.py. Keep IS_STUB = True until the actual selected
+command strings in model.yaml, and implement tests/e2e.py. Keep STUB_PROFILES = set(PROFILES) until the actual selected
 model profile completes and produces standards-conformant predictions.
 
 Then run:
@@ -197,7 +203,7 @@ uv run pytest -m real_data -rs
 ```
 
 - The default suite checks the contract and model-owned local end-to-end adapter.
-- `meds_dev` registers `model.yaml` and runs it in MEDS-DEV's isolated environment.
+- `meds_dev` registers `models/<profile>/model.yaml` and runs it in MEDS-DEV's isolated environment.
 - `real_data` builds or reuses the MEDS MIMIC-IV demo, extracts MEDS-DEV task
   `mortality/in_icu/first_24h`, reuses MEDS-DEV's MIMIC predicates, and runs the full selected model profile.
 
@@ -255,3 +261,7 @@ uv run --project /tmp/my-render --extra test pytest /tmp/my-render/tests -q -rs
 The authority is [`template/SPEC.md`](template/SPEC.md), which Copier renders as `SPEC.md` in generated
 repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a model implementation.
+
+Profile selection and the distinct version 3 step names are described in [profiles](docs/profiles.md).
+See the [software contract](https://github.com/florian6973/meds-model-core/blob/bfa347d13270bd29899671974d819e3c6c6f7ba8/src/meds_model_core/CONTRACT.md), [migration guide](docs/migration-v3.md),
+and [shared-package assessment](docs/shared-package-assessment.md).

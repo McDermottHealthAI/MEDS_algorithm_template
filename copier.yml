@@ -10,16 +10,18 @@ model_slug:
   type: str
   default: "{{ model_name | lower | replace(' ', '_') | replace('-', '_') }}"
 
-profile:
+profiles:
   type: str
+  multiselect: true
   choices:
     - supervised
     - finetune
     - probe
     - zero_shot_direct
     - zero_shot_materialized
-    - packaged
-  default: supervised
+    - predict_only
+  default: [supervised]
+  validator: "{% if not profiles %}Select at least one profile.{% endif %}"
 
 model_description:
   type: str

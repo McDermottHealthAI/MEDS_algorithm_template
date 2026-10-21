@@ -1,15 +1,16 @@
 # Agent instructions
 
 Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` completely.
+`SPEC.md` points to the pinned core contract: run `meds-model-core-spec` and read that specification too.
 
-- `src/meds_model_contract/` is the backend-neutral contract. Do not add framework, batching,
+- `src/meds_model_contract/` is the compatibility layer during extraction into `meds-model-core`. Do not add framework, batching,
   preprocessing-format, or model assumptions there.
-- `src/{{ model_slug }}/`, `model.yaml`, command configuration, and `tests/e2e.py` are model-owned.
-- Preserve the `{{ profile }}` model profile and established command argument names.
+- `src/{{ model_slug }}/`, `models/<profile>/model.yaml`, command configuration, and `tests/e2e.py` are model-owned.
+- Preserve the `{{ profiles | join(', ') }}` model profile and established command argument names.
 - Intermediate payloads are opaque. Generic tests validate their envelopes, not their contents.
 - MEDS-DEV owns dataset-specific predicates; the model owns their interpretation.
 - Never associate outputs with prediction keys by row order.
-- Keep `IS_STUB = True` until every registered command and the real end-to-end adapter work.
+- Keep `STUB_PROFILES = set(PROFILES)` until every registered command and the real end-to-end adapter work.
 - Replace the intentional failure in `tests/test_primary_behavior.py`. Prove that a known signal reaches
   the model's real selected codes/features and produces the expected behavior, with a shuffled-label
   negative control; adapt the example signal dataset rather than forcing an incompatible representation.

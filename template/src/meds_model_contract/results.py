@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml
 
+from .contract import MODEL_PROFILES
 from .manifest import digest_file, read_manifest
 
 
@@ -27,6 +28,7 @@ def write_run_result(
     run_dir: Path | str,
     *,
     repo: Path | str,
+    profile: str,
     artifacts: dict[str, Path | str],
     dataset: dict[str, Any],
     task: dict[str, Any],
@@ -34,6 +36,8 @@ def write_run_result(
     status: str = "complete",
 ) -> Path:
     """Write `spec.yaml`, copied manifests, and a run-level `result.yaml`."""
+    if profile not in MODEL_PROFILES or set(artifacts) - set(MODEL_PROFILES[profile]):
+        raise ValueError("Run artifacts must belong to a declared contract profile")
     run_dir = Path(run_dir)
     repo = Path(repo).resolve()
     manifests_dir = run_dir / "manifests"
@@ -57,8 +61,9 @@ def write_run_result(
         }
     commit = _git(repo, "rev-parse", "HEAD")
     dirty = bool(_git(repo, "status", "--porcelain"))
-    spec = {"dataset": dataset, "task": task, "external_predicates_file": predicates}
+    spec = {"profile": profile, "dataset": dataset, "task": task, "external_predicates_file": predicates}
     result = {
+        "profile": profile,
         "status": status,
         "source": {"repository": str(repo), "git_commit": commit, "dirty": dirty},
         "environment": {

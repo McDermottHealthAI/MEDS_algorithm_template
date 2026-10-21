@@ -34,7 +34,7 @@ class MEDSDevRun:
     splits: Sequence[str]
 
 
-def run_e2e(tmp_path, **inputs):
+def run_e2e(tmp_path, *, profile: str, **inputs):
     """Run the selected profile; any ``external_*`` input given here overrides the local fixture's."""
     raise NotImplementedError(
         "Prepare a small MEDS input/task, execute the selected model profile's real commands, and return "
@@ -53,7 +53,7 @@ def fitted_codes(artifacts: Mapping[str, Path]) -> set[str]:
     raise NotImplementedError("Report the codes the model fitted, read from its artifacts")
 
 
-def prepare_meds_dev_run(meds_dev, tmp_path):
+def prepare_meds_dev_run(meds_dev, tmp_path, *, profile: str):
     """Return ``MEDSDevRun(args, predictions_dir, labels_dir, splits)`` for this implementation."""
     raise NotImplementedError("Configure the selected model profile's real MEDS-DEV run")
 

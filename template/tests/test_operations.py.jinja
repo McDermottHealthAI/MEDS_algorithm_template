@@ -3,6 +3,9 @@ import subprocess
 from pathlib import Path
 
 import yaml
+import pytest
+
+from {{ model_slug }}.commands import PROFILES
 
 from meds_model_contract import MODEL_PROFILES
 
@@ -10,14 +13,16 @@ from meds_model_contract import MODEL_PROFILES
 ROOT = Path(__file__).parents[1]
 
 
-def test_model_yaml_is_a_meds_dev_descriptor():
-    descriptor = yaml.safe_load((ROOT / "model.yaml").read_text())
+@pytest.mark.parametrize("profile", PROFILES)
+def test_model_yaml_is_a_meds_dev_descriptor(profile):
+    descriptor = yaml.safe_load((ROOT / "models" / profile / "model.yaml").read_text())
     assert set(descriptor) == {"metadata", "commands"}
     assert "supervised" in descriptor["commands"]
     assert descriptor["commands"]["supervised"]["predict"]
 
 
-def test_slurm_dry_run_is_non_mutating():
+@pytest.mark.parametrize("profile", PROFILES)
+def test_slurm_dry_run_is_non_mutating(profile):
     before = {p.relative_to(ROOT) for p in ROOT.rglob("*")}
     result = subprocess.run(
         ["bash", "slurm/submit.sh", "--dry-run"],
@@ -29,14 +34,16 @@ def test_slurm_dry_run_is_non_mutating():
         env={
             "MEDS_ROOT": "/example/meds",
             "LABELS_DIR": "/example/labels",
+            "INDEX_DIR": "/example/index",
             "TASK_CRITERIA_FILE": "/example/task.yaml",
             "PREDICATES_FILE": "/example/predicates.yaml",
             **os.environ,
             "PYTHONDONTWRITEBYTECODE": "1",
+            "PROFILE": profile,
         },
     )
     after = {p.relative_to(ROOT) for p in ROOT.rglob("*")}
     assert before == after
-    for command in MODEL_PROFILES["{{ profile }}"]:
+    for command in MODEL_PROFILES[profile]:
         assert command.value in result.stdout
     assert "sbatch" in result.stdout

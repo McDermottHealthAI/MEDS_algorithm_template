@@ -17,6 +17,8 @@ from typing import Any
 
 import yaml
 
+from meds_model_core import CONTRACT_VERSION
+
 
 def _rss_bytes(value: int) -> int:
     # Linux reports KiB; macOS reports bytes. sys.platform is deliberately avoided so unusual Unix
@@ -97,8 +99,8 @@ def read_manifest(directory: Path | str) -> dict[str, Any]:
     if not path.is_file():
         raise FileNotFoundError(f"Artifact {directory} has no manifest.yaml")
     value = yaml.safe_load(path.read_text())
-    if not isinstance(value, dict) or value.get("contract_version") != "2":
-        raise ValueError(f"{path} is not a version 2 MEDS model artifact manifest")
+    if not isinstance(value, dict) or value.get("contract_version") != CONTRACT_VERSION:
+        raise ValueError(f"{path} is not a version 3 MEDS model artifact manifest")
     return value
 
 
@@ -189,7 +191,7 @@ def measured_artifact(
         if predicates is not None:
             recorded_inputs["external_predicates_file"] = predicates
         manifest = {
-            "contract_version": "2",
+            "contract_version": CONTRACT_VERSION,
             "artifact": {
                 "type": artifact_type,
                 "payload_format": payload_format,

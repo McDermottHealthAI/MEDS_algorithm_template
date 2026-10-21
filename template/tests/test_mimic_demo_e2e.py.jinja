@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from {{ model_slug }}.commands import IS_STUB
+from meds_model_contract import MODEL_PROFILES
+from {{ model_slug }}.commands import STUB_PROFILES, PROFILES
 
 from .integration import assert_prediction_keys, assert_prediction_schema, provision_meds_dev
 
@@ -13,15 +14,18 @@ pytestmark = [pytest.mark.slow, pytest.mark.real_data]
 
 @pytest.fixture(scope="session")
 def meds_dev(request, tmp_path_factory):
-    if IS_STUB:
+    if set(PROFILES) <= STUB_PROFILES:
         pytest.skip("model_stub: MIMIC-IV demo runs only after the real model profile is implemented")
     return provision_meds_dev(request, tmp_path_factory)
 
 
-def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path):
+@pytest.mark.parametrize("profile", PROFILES)
+def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path, profile):
+    if profile in STUB_PROFILES:
+        pytest.skip("model_stub: implement this profile")
     import polars as pl
 
-    from .e2e import {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}mimic_task_criteria, {% endif %}prepare_mimic_demo, run_e2e
+    from .e2e import {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}mimic_task_criteria, {% endif %}prepare_mimic_demo, run_e2e
 
     dataset_dir, labels_dir, predicates_file = prepare_mimic_demo(meds_dev, tmp_path)
     assert dataset_dir.is_dir() and labels_dir.exists()
@@ -29,14 +33,15 @@ def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path):
 
     result = run_e2e(
         tmp_path / "mimic-run",
+        profile=profile,
         external_meds_dir=dataset_dir,
         external_labels_dir=labels_dir,
         external_predicates_file=predicates_file,
-{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}        external_task_criteria_file=mimic_task_criteria(meds_dev),
+{% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}        **({"external_task_criteria_file": mimic_task_criteria(meds_dev)} if profile.startswith("zero_shot_") else {}),
 {% endif %}        splits=["held_out"],
     )
     artifacts = result.artifacts
-    predictions_dir = artifacts["predict"]
+    predictions_dir = artifacts[MODEL_PROFILES[profile][-1].value]
     predictions = pl.read_parquet(predictions_dir / "predictions.parquet")
     assert_prediction_schema(predictions)
     assert predictions.height > 0

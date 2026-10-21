@@ -1,7 +1,7 @@
 # Zero-shot in practice
 
 A zero-shot model predicts a task it was never trained on. The template supports it through two profiles
-(see [direct vs materialized](profiles.md#direct-vs-materialized-the-distinction-that-matters)). This page
+(see [direct vs materialized](profiles.md)). This page
 explains what such a model receives, what it must publish, and how to read its results. The
 [design notes](ZERO_SHOT.md) go deeper into the reasoning and the MOTOR mapping.
 
@@ -11,9 +11,9 @@ explains what such a model receives, what it must publish, and how to read its r
 flowchart LR
     crit[ACES criteria<br/>external_task_criteria_file] --> pr
     pred[Dataset predicates<br/>external_predicates_file] --> pr
-    idx[(Index<br/>external_labels_dir)] -- keys only --> pr
+    idx[(Index<br/>external_index_dir)] -- keys only --> pr
     data[(MEDS data /<br/>model's own artifacts)] --> pr
-    pr[predict] --> out[(predictions.parquet)]
+    pr[zero-shot prediction command] --> out[(predictions.parquet)]
     pr --> led[relaxations.yaml]
 ```
 
@@ -30,13 +30,13 @@ what the model can answer is the model's job.
 
 | Enforced by the contract and its tests | Guidance only |
 |---|---|
-| `predict` receives `external_task_criteria_file` and validates it before expensive work | building the translation on [aces-relaxations](https://github.com/McDermottHealthAI/aces-relaxations) |
+| `predict_zero_shot_direct` and `predict_zero_shot_materialized` receive `external_task_criteria_file` and validate it before expensive work | building the translation on [aces-relaxations](https://github.com/McDermottHealthAI/aces-relaxations) |
 | task provenance and `semantics_digest` in the task-conditioned manifest | the encode → model → decode shape (the `ZeroShotTranslator` sketch in the generated guide) |
 | the index is read without label columns | the `kind` / `direction` vocabulary for ledger steps |
 | complete, unique prediction keys | |
 | a `relaxations.yaml` with `query_language`, `decoded_quantity` and `exact` | |
 
-Only `predict` is task-conditioned, in both profiles. In `zero_shot_materialized`, `infer` never receives
+Only the prediction command is task-conditioned. In `zero_shot_materialized`, `infer_trajectories` never receives
 the task and records `semantics_digest: null`, so its output can be reused for any task over the same index.
 
 ## Relaxations: what the model actually answered

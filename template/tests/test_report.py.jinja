@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from {{ model_slug }}.commands import IS_STUB
+from {{ model_slug }}.commands import STUB_PROFILES
 
 
 def test_completed_model_has_a_completed_report():
-    if IS_STUB:
+    if STUB_PROFILES:
         return
     report = (Path(__file__).parents[1] / "IMPLEMENTATION_REPORT.md").read_text()
     assert "TODO" not in report

@@ -2,6 +2,9 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.egg-info/
-runs/*/logs/
-runs/*/artifacts/
-runs/*/checkpoints/
+runs/**/logs/
+runs/**/artifacts/
+runs/**/checkpoints/
+
+# Arguments and scheduler outputs are local run products.
+runs/**/command-args/

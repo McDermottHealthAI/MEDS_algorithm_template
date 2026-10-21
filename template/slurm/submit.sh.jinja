@@ -27,7 +27,8 @@ if [[ -n "$tree_status" ]]; then
   fi
 fi
 
-mapfile -t declared < <(meds-model commands)
+declared_text="$(meds-model commands --profile "$PROFILE")"
+mapfile -t declared <<< "$declared_text"
 if [[ -z "${declared[0]:-}" ]]; then
   echo "No commands declared" >&2
   exit 1
@@ -35,7 +36,7 @@ fi
 
 # STAGES submits a subset of the profile's commands (comma- or space-separated), in profile order. A task
 # bundle shares one preprocess_data and one pretrain across many tasks: run those once with SHARED_DIR set,
-# then submit only the per-task commands (e.g. STAGES=infer,predict) for each task with the same SHARED_DIR.
+# then submit only the per-task commands (e.g. STAGES=infer_trajectories,predict_zero_shot_materialized) for each task with the same SHARED_DIR.
 # Names are validated against the declared commands, so a typo fails instead of submitting nothing.
 commands=("${declared[@]}")
 if [[ -n "${STAGES:-}" ]]; then
@@ -55,14 +56,14 @@ if [[ -n "${STAGES:-}" ]]; then
 fi
 
 run_id="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:-local}}"
-RUN_DIR="${RUN_DIR:-$RUN_ROOT/$run_id/artifacts}"
+RUN_DIR="${RUN_DIR:-$RUN_ROOT/$run_id/$PROFILE/artifacts}"
 # Task-independent artifacts (data/, pretrained/) live in SHARED_DIR; per-run artifacts (model/, inference/,
 # predictions/) in RUN_DIR. Unset, both are the same directory, which is what a single-task run wants.
 SHARED_DIR="${SHARED_DIR:-$RUN_DIR}"
 export RUN_DIR SHARED_DIR
 dependency=""
 for command in "${commands[@]}"; do
-  args_dir="$RUN_ROOT/$run_id/command-args"
+  args_dir="$RUN_ROOT/$run_id/$PROFILE/command-args"
   args_file="$args_dir/$command.args"
   if ! $dry_run; then
     mkdir -p "$args_dir"
@@ -80,7 +81,7 @@ for command in "${commands[@]}"; do
   if [[ -n "$dependency" ]]; then
     submit+=(--dependency="afterok:$dependency")
   fi
-  submit+=("${gres[@]}" --export="ALL,MEDS_MODEL_COMMAND=$command,MEDS_MODEL_ARGS_FILE=$args_file,RUN_ID=$run_id" "$SCRIPT_DIR/job.sbatch")
+  submit+=("${gres[@]}" --export="ALL,PROFILE=$PROFILE,MEDS_MODEL_COMMAND=$command,MEDS_MODEL_ARGS_FILE=$args_file,RUN_ID=$run_id" "$SCRIPT_DIR/job.sbatch")
   if $dry_run; then
     # Print what the model will be told to do, not only the sbatch wrapper. Without this
     # a --dry-run review cannot show the model's arguments at all, so grepping it for a

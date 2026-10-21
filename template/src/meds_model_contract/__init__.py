@@ -2,6 +2,9 @@
 
 from .contract import (
     MODEL_PROFILES,
+    STEP_SPECS,
+    ArtifactInput,
+    StepSpec,
     ZERO_SHOT_TASK_COMMANDS,
     ArtifactType,
     Command,
@@ -22,6 +25,9 @@ from .task import (
 
 __all__ = [
     "MODEL_PROFILES",
+    "STEP_SPECS",
+    "ArtifactInput",
+    "StepSpec",
     "ZERO_SHOT_TASK_COMMANDS",
     "ArtifactType",
     "Command",

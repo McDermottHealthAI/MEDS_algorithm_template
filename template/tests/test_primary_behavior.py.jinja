@@ -2,8 +2,11 @@
 
 import pytest
 
+from {{ model_slug }}.commands import PROFILES
 
-def test_primary_behavior():
+
+@pytest.mark.parametrize("profile", PROFILES)
+def test_primary_behavior(profile):
     """Replace this failure with positive-signal and shuffled-label control executions.
 
     ``tests.signal.build_signal_dataset`` is a small example fixture. Use it unchanged, adapt its codes,

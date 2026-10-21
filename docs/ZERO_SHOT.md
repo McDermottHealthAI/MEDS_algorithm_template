@@ -8,7 +8,7 @@ model's own repository, not here.
 ## The problem
 
 Before this change, the two `zero_shot_*` profiles had the right command lifecycle but no way to state
-*what* to predict. Their `predict` received only `external_labels_dir` (the index) and optionally the
+*what* to predict. Their `predict` received only `external_index_dir` (the index) and optionally the
 dataset predicates, and every manifest recorded `semantics_digest: null`. A supervised model learns the task
 from labels; a zero-shot model never sees labels, so it could only predict a task hard-coded into it, or
 read the labels, which is leakage.
@@ -32,8 +32,8 @@ Zero-shot prediction mirrors the supervised `predict`, with the task as an extra
 
 | | Supervised `predict` | Zero-shot `predict` |
 |---|---|---|
-| Task | learned from labels in `supervised_train` | the task specification: `external_task_criteria_file` + `external_predicates_file` |
-| Index | `external_labels_dir` | `external_labels_dir`, read label-blind via `read_index` |
+| Task | learned from labels in `train_supervised` / `train_finetune` / `train_probe` | the task specification: `external_task_criteria_file` + `external_predicates_file` |
+| Index | `external_index_dir` | `external_index_dir`, read label-blind via `read_index` |
 | Data | MEDS dataset (via `preprocess_data`) | MEDS dataset (via `preprocess_data`) + pretrained model |
 | Output | `predictions.parquet` | `predictions.parquet` + `relaxations.yaml` |
 
@@ -153,7 +153,7 @@ extension: the contract runs one task per `predict`.
 
 MEDS-DEV formats model commands with `dataset_dir`, `labels_dir`, `output_dir`, `split`,
 `model_initialization_dir` and, since PR #325, `predicates_path`. It never passes the task definition, even
-though it knows `task_name` and `TASKS[task_name]["criteria_fp"]`. Zero-shot `model.yaml` therefore uses
+though it knows `task_name` and `TASKS[task_name]["criteria_fp"]`. Zero-shot `models/<profile>/model.yaml` therefore uses
 `{task_criteria_path}`, which needs a passthrough analogous to #325 in `MEDS_DEV/models/__init__.py`:
 
 ```python

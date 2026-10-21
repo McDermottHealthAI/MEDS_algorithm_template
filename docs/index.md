@@ -50,7 +50,7 @@ what makes results comparable.
 | A `manifest.yaml` envelope on every artifact, written last and published atomically | How the payload inside an artifact is laid out |
 | Wall time and memory measurements on every command | How fast the model is |
 | Final predictions in the meds-evaluation schema, keyed and complete | How probabilities are computed |
-| `model.yaml` for MEDS-DEV, SLURM scripts, GitHub result sync | The command strings inside them, once finalized |
+| `models/<profile>/model.yaml` for MEDS-DEV, SLURM scripts, GitHub result sync | The command strings inside them, once finalized |
 
 The contract fixes **boundaries**, not methods. A model can be a PyTorch transformer, a gradient-boosted
 tree, an external executable or a call to a service; the template only cares that each command consumes
