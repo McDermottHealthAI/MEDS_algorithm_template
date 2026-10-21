@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
 # Model-owned cluster settings. This file is the only SLURM file expected to need routine edits.
-PARTITION_CPU="cpu"
-PARTITION_GPU="gpu"
-TIME_CPU="01:00:00"
-TIME_GPU="04:00:00"
-CPUS="4"
-MEMORY="16G"
-GPUS="1"
+# Defaults; each can be overridden from the submit environment (e.g. MEMORY=96G STAGES=pretrain submit.sh), so a
+# resource change does not need a commit. Size them per stage by submitting stages separately with STAGES.
+PARTITION_CPU="${PARTITION_CPU:-cpu}"
+PARTITION_GPU="${PARTITION_GPU:-gpu}"
+TIME_CPU="${TIME_CPU:-01:00:00}"
+TIME_GPU="${TIME_GPU:-04:00:00}"
+CPUS="${CPUS:-4}"
+MEMORY="${MEMORY:-16G}"
+GPUS="${GPUS:-1}"
 RUN_ROOT="${RUN_ROOT:-runs}"
 
 # Print the implementation-specific key=value arguments for one command of the {{ profile }} profile. Keep
