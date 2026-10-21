@@ -751,7 +751,8 @@ def test_submit_overrides_resources_args_and_sbatch_flags_from_the_environment(t
         SBATCH_EXTRA="--exclude=c0103,c0607",
     )
     assert result.returncode == 0, result.stderr
-    assert "# infer_trajectories: n_trajectories=8" in result.stdout and "# infer_trajectories: max_new_tokens=4096" in result.stdout
+    assert "# infer_trajectories: n_trajectories=8" in result.stdout
+    assert "# infer_trajectories: max_new_tokens=4096" in result.stdout
     sbatch = next(line for line in result.stdout.splitlines() if line.startswith("sbatch "))
     assert (
         "--mem=96G" in sbatch

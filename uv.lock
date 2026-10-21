@@ -394,20 +394,12 @@ wheels = [
 [[package]]
 name = "meds-model-core"
 version = "0.3.0a1"
-source = { editable = "packages/meds-model-core" }
+source = { git = "https://github.com/florian6973/meds-model-core.git?rev=bfa347d13270bd29899671974d819e3c6c6f7ba8#bfa347d13270bd29899671974d819e3c6c6f7ba8" }
 
 [package.optional-dependencies]
 data = [
     { name = "polars" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "polars", marker = "extra == 'data'", specifier = ">=1" },
-    { name = "polars", marker = "extra == 'test'", specifier = ">=1" },
-    { name = "pytest", marker = "extra == 'test'", specifier = ">=8" },
-]
-provides-extras = ["data", "test"]
 
 [[package]]
 name = "meds-model-template"
@@ -436,7 +428,7 @@ requires-dist = [{ name = "copier", specifier = ">=9.17.1" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-model-core", extras = ["data"], editable = "packages/meds-model-core" },
+    { name = "meds-model-core", extras = ["data"], git = "https://github.com/florian6973/meds-model-core.git?rev=bfa347d13270bd29899671974d819e3c6c6f7ba8" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },
