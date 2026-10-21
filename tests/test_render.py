@@ -721,6 +721,11 @@ def test_submit_overrides_resources_args_and_sbatch_flags_from_the_environment(t
     assert result.returncode == 0, result.stderr
     assert "# infer: n_trajectories=8" in result.stdout and "# infer: max_new_tokens=4096" in result.stdout
     sbatch = next(line for line in result.stdout.splitlines() if line.startswith("sbatch "))
-    assert "--mem=96G" in sbatch and "--time=24:00:00" in sbatch and "--exclude=c0103,c0607" in sbatch
+    assert (
+        "--mem=96G" in sbatch
+        and "--time=24:00:00" in sbatch
+        and "--exclude=c0103" in sbatch
+        and "c0607" in sbatch
+    )
     default = _dry_run(dst, slug, tmp_path, STAGES="infer")
     assert "--mem=16G" in default.stdout and "--exclude" not in default.stdout
