@@ -735,3 +735,29 @@ def test_submit_stages_reuse_shared_task_independent_artifacts(tmp_path):
 
     typo = _dry_run(dst, slug, tmp_path, STAGES="infer,supervised_train")
     assert typo.returncode == 2 and "not a command of this profile" in typo.stderr
+
+
+def test_submit_overrides_resources_args_and_sbatch_flags_from_the_environment(tmp_path):
+    dst = tmp_path / "overrides"
+    slug = render(dst, "zero_shot_materialized", uses_predicates=True)
+    result = _dry_run(
+        dst,
+        slug,
+        tmp_path,
+        STAGES="infer_trajectories",
+        MEMORY="96G",
+        TIME_GPU="24:00:00",
+        ARGS_infer_trajectories="n_trajectories=8 max_new_tokens=4096",
+        SBATCH_EXTRA="--exclude=c0103,c0607",
+    )
+    assert result.returncode == 0, result.stderr
+    assert "# infer_trajectories: n_trajectories=8" in result.stdout and "# infer_trajectories: max_new_tokens=4096" in result.stdout
+    sbatch = next(line for line in result.stdout.splitlines() if line.startswith("sbatch "))
+    assert (
+        "--mem=96G" in sbatch
+        and "--time=24:00:00" in sbatch
+        and "--exclude=c0103" in sbatch
+        and "c0607" in sbatch
+    )
+    default = _dry_run(dst, slug, tmp_path, STAGES="infer_trajectories")
+    assert "--mem=16G" in default.stdout and "--exclude" not in default.stdout
