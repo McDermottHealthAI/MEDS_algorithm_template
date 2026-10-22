@@ -7,22 +7,20 @@ name = "{{ model_slug | replace('_', '-') }}"
 version = "0.1.0"
 description = "{{ model_description }}"
 requires-python = ">=3.11"
-dependencies = ["pyyaml>=6", "meds-model-core @ git+https://github.com/florian6973/meds-model-core.git@5599c0925f9361057b2ef396c57eb8a194928c1a"]
+dependencies = ["pyyaml>=6", "meds-model-core @ git+https://github.com/florian6973/meds-model-core.git@a86a72c89098d648ed9a605ba46dbd00d2aefca4"]
 
 [project.optional-dependencies]
 # meds-evaluation is pinned to the version MEDS-DEV evaluates predictions with.
-test = ["pytest>=8", "polars>=1", "pyarrow>=15", "meds-evaluation==0.0.3"]
+test = ["meds-model-core[conformance]"]
 
 [project.scripts]
 meds-model = "{{ model_slug }}.__main__:main"
-meds-model-resolve-input = "meds_model_contract.artifact_inputs:main"
-meds-model-add-to-meds-dev = "meds_model_contract.meds_dev:main"
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/{{ model_slug }}", "src/meds_model_contract"]
+packages = ["src/{{ model_slug }}"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

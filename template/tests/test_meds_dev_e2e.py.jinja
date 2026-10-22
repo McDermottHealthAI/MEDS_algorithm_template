@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from meds_model_contract.meds_dev import register
+from meds_model_core.integrations.meds_dev import register
 from {{ model_slug }}.commands import STUB_PROFILES, PROFILES
 
-from .integration import RUN_TIMEOUT, assert_prediction_keys, assert_prediction_schema, provision_meds_dev, run, venv_bin
+from meds_model_core.conformance.meds_dev import RUN_TIMEOUT, assert_prediction_keys, assert_prediction_schema, provision_meds_dev, run, venv_bin
 
 pytestmark = [pytest.mark.slow, pytest.mark.meds_dev]
 ROOT = Path(__file__).parents[1]

@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from meds_model_contract import Command, CommandName, STEP_SPECS, TaskSpec, digest_config, measured_artifact
+from meds_model_core import Command, CommandName, STEP_SPECS, TaskSpec, digest_config, measured_artifact
 
 PROFILES = {{ profiles | tojson }}
 # Mark profiles complete independently; one implementation must not hide another profile's stub.
@@ -17,6 +17,7 @@ class StubCommand(Command):
             Path(arguments[spec.output_argument]),
             artifact_type=spec.artifact_type.value,
             command=self.name.value,
+            repo=Path(__file__).resolve().parents[2],
             producer=f"{{ model_slug }}.commands.{type(self).__name__}",
             payload_format="stub/v1",
             config_digest=digest_config(dict(arguments)),

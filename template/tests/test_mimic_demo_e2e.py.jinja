@@ -4,10 +4,10 @@ from pathlib import Path
 
 import pytest
 
-from meds_model_contract import MODEL_PROFILES
+from meds_model_core import MODEL_PROFILES
 from {{ model_slug }}.commands import STUB_PROFILES, PROFILES
 
-from .integration import assert_prediction_keys, assert_prediction_schema, provision_meds_dev
+from meds_model_core.conformance.meds_dev import assert_prediction_keys, assert_prediction_schema, provision_meds_dev
 
 pytestmark = [pytest.mark.slow, pytest.mark.real_data]
 
@@ -25,7 +25,8 @@ def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path, profile):
         pytest.skip("model_stub: implement this profile")
     import polars as pl
 
-    from .e2e import {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}mimic_task_criteria, {% endif %}prepare_mimic_demo, run_e2e
+    from meds_model_core.conformance.meds_dev import {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}mimic_task_criteria, {% endif %}prepare_mimic_demo
+    from .e2e import run_e2e
 
     dataset_dir, labels_dir, predicates_file = prepare_mimic_demo(meds_dev, tmp_path)
     assert dataset_dir.is_dir() and labels_dir.exists()

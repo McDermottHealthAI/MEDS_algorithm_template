@@ -46,7 +46,7 @@ variables:
 
 Every artifact gets its own subdirectory of the MEDS-DEV run directory: `data/`, `pretrained/`, `model/`,
 `embeddings/` or `trajectories/`, `predictions/`. Nothing is written to `{output_dir}` itself, because MEDS-DEV keeps its own
-`cmd.sh` and `.done` marker there and artifacts are published by atomically replacing their destination
+`cmd.sh` and `.done` marker there and artifacts are published by publishing their destination
 directory. Artifacts are never nested inside one another, so runs over different indexes or splits cannot
 overwrite each other's outputs.
 

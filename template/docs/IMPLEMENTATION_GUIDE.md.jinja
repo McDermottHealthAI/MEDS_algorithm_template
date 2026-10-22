@@ -32,7 +32,7 @@ establish compatibility with another dataset; keep the provided demo code and pr
 Read [installed core contract](../SPEC.md), then implement every class registered in `COMMANDS`.
 Keep shared preprocessing/pretraining task-independent. Prediction must receive its prepared data or embeddings explicitly and check compatibility with
 the fitted model. Probe prediction applies the head; it does not rerun the encoder. Preserve standard external arguments. Choose and version
-intermediate payload formats, reject incompatible inputs before expensive work, publish atomically, and
+intermediate payload formats, reject incompatible inputs before expensive work, publish with rollback, and
 record input digests and measurements. Frameworks, subprocesses, services, batching, and non-batched
 systems are all allowed.
 
@@ -72,7 +72,7 @@ from pathlib import Path
 
 import polars as pl
 
-from meds_model_contract import RelaxationLedger, TaskSpec
+from meds_model_core import RelaxationLedger, TaskSpec
 
 
 class ZeroShotTranslator(ABC):
@@ -137,7 +137,7 @@ a `bundle/` subdirectory), so decode choices stay inspectable.
 Nothing is trained on this dataset's labels before `predict_only`. Two kinds of model fit here:
 
 - **In-context learners**, such as prior-data fitted networks (TabPFN-style). `predict_only` reads labelled
-  examples from the training and tuning splits through `meds_model_contract.read_context_labels`, which
+  examples from the training and tuning splits through `meds_model_core.read_context_labels`, which
   refuses the evaluated splits, and predicts the evaluated split's keys in the same forward pass. Record
   the context splits, the number of context rows, and any subsampling in the predictions manifest.
 - **Fixed models** shipped with their weights or coefficients, such as a published risk score. `predict_only`
@@ -155,16 +155,17 @@ and the pinned `mortality/in_icu/first_24h` task through MEDS-DEV and reuses its
 `tests/test_end_to_end.py` also checks label leakage and transductive fitting on the same run, so the
 local adapter must:
 
-- return the exact `predict` arguments it used (`E2EResult.predict_arguments`). `predict` is rerun on an
-  index with no label column and must still cover every key, so make `predict` work on unlabelled data.
-  `attach_ground_truth` already does.
-- apply `tests.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
+- return `E2EResult` from `meds_model_core.conformance.types`, recording `external_meds_dir` and all task
+  inputs in `inputs`. The shared checker reruns the full lifecycle with forbidden labels removed and
+  fresh output paths. Honor every external input override; preserve permitted training/context labels.
+  `attach_ground_truth(predictions, labels_dir, splits)` supports an entirely unlabelled index.
+- apply `meds_model_core.conformance.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
   canaries (`E2EResult.canaries`).
 - implement `fitted_codes`: every code the model fitted a population statistic for (vocabulary, frequency
   table, selected features, bins), read from its artifacts. No canary may appear there.
 
 Complete `tests/test_primary_behavior.py`; its initial failure is intentional. The template provides the
-small `tests.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
+small `meds_model_core.conformance.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
 history length and signal position do not leak the label. Use it unchanged, adapt its codes, or replace it
 when the model requires a fixed vocabulary, selected codes, predicates, derived features, numeric values,
 or another valid MEDS construction. The test must explicitly show that the signal survives the model's

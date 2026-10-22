@@ -6,7 +6,7 @@
 ## MEDS-DEV descriptor for {{ model_name }}. This retains the established command-slot interface.
 ## Each MEDS-DEV run directory {output_dir} holds this run's artifacts as sibling subdirectories (data/,
 ## pretrained/, model/, embeddings/ or trajectories/, predictions/): MEDS-DEV keeps its own cmd.sh and .done marker in
-## {output_dir}, and artifacts are published by atomically replacing their own destination directory.
+## {output_dir}, and artifacts are published by publishing their own destination directory.
 {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}## Zero-shot commands receive the task itself through {task_criteria_path}, which needs the MEDS-DEV
 ## passthrough described in SPEC.md section 2.4 (the analogue of {predicates_path}).
 {% endif %}metadata:

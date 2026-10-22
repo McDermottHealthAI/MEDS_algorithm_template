@@ -5,8 +5,8 @@ contract-first MEDS model repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-model-core`](https://github.com/florian6973/meds-model-core). This template and generated projects pin commit
-`5599c0925f9361057b2ef396c57eb8a194928c1a` directly from Git, so no PyPI release is required.
-The core README documents implemented modules and planned extractions.
+`a86a72c89098d648ed9a605ba46dbd00d2aefca4` directly from Git, so no PyPI release is required.
+The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six model profiles and standard arguments, typed
 artifact manifests, final MEDS predictions, measurements, MEDS-DEV, SLURM, and GitHub result exchange—while
@@ -152,7 +152,7 @@ model (generates futures and evaluates the task on them; infer is task-independe
 receives the task): the model receives the original ACES task through
 external_task_criteria_file (with the dataset predicates) and the upstream-built index through
 external_index_dir. Never build, filter, or extend the cohort, and read the index only through
-meds_model_contract.read_index. Reuse an existing aces-to-<model> adapter for this model if one exists;
+meds_model_core.read_index. Reuse an existing aces-to-<model> adapter for this model if one exists;
 otherwise write one on aces-relaxations, pinned to an exact version: reject tasks that are not future-only
 or are degenerate, normalize, then apply only the approximations and assumptions the model's query
 language forces. Publish relaxations.yaml with every step, and report per task whether the answer is exact.
@@ -263,5 +263,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a model implementation.
 
 Profile selection and the distinct version 3 step names are described in [profiles](docs/profiles.md).
-See the [software contract](https://github.com/florian6973/meds-model-core/blob/5599c0925f9361057b2ef396c57eb8a194928c1a/src/meds_model_core/CONTRACT.md), [migration guide](docs/migration-v3.md),
+See the [software contract](https://github.com/florian6973/meds-model-core/blob/a86a72c89098d648ed9a605ba46dbd00d2aefca4/src/meds_model_core/CONTRACT.md), [migration guide](docs/migration-v3.md),
 and [shared-package assessment](docs/shared-package-assessment.md).

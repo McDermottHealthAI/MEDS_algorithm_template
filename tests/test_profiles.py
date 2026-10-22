@@ -52,8 +52,8 @@ def test_all_profiles_coexist_and_selection_is_required(multi):
 
 
 def test_descriptors_dispatch_only_their_profile_with_complete_arguments(multi):
-    from meds_model_contract import MODEL_PROFILES as profiles
-    from meds_model_contract import STEP_SPECS, CommandName
+    from meds_model_core import MODEL_PROFILES as profiles
+    from meds_model_core import STEP_SPECS, CommandName
 
     main = importlib.import_module("multi_model.__main__")
     for profile in profiles:
@@ -83,7 +83,7 @@ def test_descriptors_dispatch_only_their_profile_with_complete_arguments(multi):
 
 
 def test_registration_keeps_profile_descriptors_separate(multi, tmp_path):
-    from meds_model_contract.meds_dev import register
+    from meds_model_core.integrations.meds_dev import register
 
     dev = tmp_path / "MEDS-DEV"
     (dev / "src/MEDS_DEV/models").mkdir(parents=True)
@@ -101,7 +101,7 @@ def test_registration_keeps_profile_descriptors_separate(multi, tmp_path):
 
 
 def test_registry_and_request_validation_reject_ambiguous_or_malformed_inputs(multi):
-    from meds_model_contract import Command, CommandName, ModelRepository
+    from meds_model_core import Command, CommandName, ModelRepository
 
     calls = []
 
@@ -185,8 +185,8 @@ def test_generated_acceptance_tests_cover_every_profile(multi):
 
 
 def test_recorded_upstream_inputs_become_explicit_arguments(multi, tmp_path):
-    from meds_model_contract import measured_artifact
-    from meds_model_contract.artifact_inputs import resolve_input
+    from meds_model_core import measured_artifact
+    from meds_model_core.artifacts.inputs import resolve_input
 
     data = tmp_path / "data"
     with measured_artifact(
@@ -209,9 +209,11 @@ def test_recorded_upstream_inputs_become_explicit_arguments(multi, tmp_path):
 
 
 def test_rendered_spec_points_to_core_and_contract_is_not_copied(multi):
-    from meds_model_contract import CommandName
+    from meds_model_core import CommandName
     from meds_model_core.contracts.commands import CommandName as CoreCommandName
 
     assert CommandName is CoreCommandName
+    assert not (multi / "src/meds_model_contract").exists()
+    assert not (multi / "src/meds_model_core").exists()
     assert "meds-model-core-spec" in (multi / "SPEC.md").read_text()
     assert not (multi / "docs/SOFTWARE_CONTRACT.md").exists()

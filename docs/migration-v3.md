@@ -42,3 +42,11 @@ implementations or publish a shared runtime package. See the [package assessment
 The core package now owns the single normative `CONTRACT.md`. Generated `SPEC.md` is a pointer to the
 installed package version, readable with `meds-model-core-spec`. The template and generated projects
 install the alpha from an immutable Git commit in the separate core repository; no PyPI release is required.
+
+Replace imports from `meds_model_contract` with `meds_model_core` and remove the generated compatibility
+package. Core supplies the registration/input-resolution CLI entry points; keep only the model's own
+CLI in its project configuration. Import shared fixtures and checks from `meds_model_core.conformance`.
+Pass model provenance explicitly to `measured_artifact(..., repo=model_root)` and pass `splits` explicitly
+to `attach_ground_truth`. Return `E2EResult` from core's `conformance.types`, recording all external inputs;
+the lifecycle checker now reruns every step with forbidden outcomes absent and fresh output paths.
+Existing model repositories are not migrated by this template change.

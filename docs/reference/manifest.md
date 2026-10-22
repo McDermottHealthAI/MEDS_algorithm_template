@@ -12,6 +12,8 @@ does not identify the dataset or weights. A copied path is provenance, not proof
 memory and scheduler peak memory measure different things. Coverage counts are diagnostics; compare
 actual prediction keys with the requested index.
 
-The template's `measured_artifact` implementation remains pending extraction into the core's
-`artifacts` and `runtime` modules. The [package status](../core-package.md) distinguishes implemented
-modules from planned work.
+Core's `measured_artifact` implements publication and measurements. Pass `repo=model_root` explicitly
+to identify the model checkout. Overwrite preserves a backup until publication succeeds; a failed
+replacement restores it, or reports its recovery path if restoration also fails. New outputs use one
+rename; overwrite uses two and can briefly hide the destination. Prefer immutable artifact paths for
+concurrent readers. See the [core package](../core-package.md) for implementation ownership and limits.

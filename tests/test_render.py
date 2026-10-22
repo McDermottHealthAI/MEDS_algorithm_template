@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import compileall
-import importlib.util
 import os
 import subprocess
 import sys
-import types
 from datetime import datetime
 from pathlib import Path
 
@@ -53,12 +51,9 @@ def render(dst: Path, profile: str, *, uses_predicates: bool = False) -> str:
 
 
 def load_integration_module(rendered: Path):
-    path = rendered / "tests" / "integration.py"
-    spec = importlib.util.spec_from_file_location(f"rendered_integration_{id(rendered)}", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-    return module
+    from meds_model_core.conformance import meds_dev
+
+    return meds_dev
 
 
 @pytest.mark.parametrize("profile", MODEL_PROFILES)
@@ -79,15 +74,14 @@ def test_renders_six_model_profiles(tmp_path, profile):
         "scripts/github-sync.sh",
         "tests/test_end_to_end.py",
         "tests/test_primary_behavior.py",
-        "tests/signal.py",
         "tests/test_meds_dev_e2e.py",
         "tests/test_mimic_demo_e2e.py",
         "tests/e2e.py",
-        "src/meds_model_contract/contract.py",
-        "src/meds_model_contract/manifest.py",
         f"src/{slug}/commands.py",
     ]
     assert all((dst / path).is_file() for path in required)
+    assert not (dst / "src/meds_model_contract").exists()
+    assert not (dst / "src/meds_model_core").exists()
     assert compileall.compile_dir(dst, quiet=1, force=True)
     assert yaml.safe_load((dst / "models" / profile / "model.yaml").read_text())["commands"]["supervised"][
         "predict"
@@ -123,21 +117,12 @@ def test_mimic_task_prepends_pinned_meds_dev_venv_only_for_task(tmp_path, monkey
     render(dst, "supervised")
     calls = []
 
-    integration = types.ModuleType("rendered_tests.integration")
-    integration.RUN_TIMEOUT = 123
-    integration.venv_bin = lambda checkout: checkout / ".venv" / "bin"
-    integration.run = lambda command, **kwargs: calls.append(([str(value) for value in command], kwargs))
-    package = types.ModuleType("rendered_tests")
-    package.__path__ = [str(dst / "tests")]
-    monkeypatch.setitem(sys.modules, "rendered_tests", package)
-    monkeypatch.setitem(sys.modules, "rendered_tests.integration", integration)
+    from meds_model_core.conformance import meds_dev as module
 
-    path = dst / "tests" / "e2e.py"
-    spec = importlib.util.spec_from_file_location("rendered_tests.e2e", path)
-    module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(module)
-
+    monkeypatch.setattr(module, "venv_bin", lambda checkout: checkout / ".venv" / "bin")
+    monkeypatch.setattr(
+        module, "run", lambda command, **kwargs: calls.append(([str(v) for v in command], kwargs))
+    )
     meds_dev = tmp_path / "MEDS-DEV"
     monkeypatch.delenv("MEDS_DEMO_DIR", raising=False)
     monkeypatch.setenv("PATH", "/ambient/bin")
@@ -157,11 +142,7 @@ def test_example_signal_dataset_has_no_length_or_position_leak(tmp_path):
 
     dst = tmp_path / "signal-example"
     render(dst, "supervised")
-    path = dst / "tests" / "signal.py"
-    spec = importlib.util.spec_from_file_location("rendered_signal", path)
-    signal = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(signal)
+    from meds_model_core.conformance import signal
 
     root = signal.build_signal_dataset(tmp_path / "cohort", n_train=40, n_tuning=10, n_held_out=10)
     events = pl.scan_parquet(root / "data" / "*" / "*.parquet").collect()
@@ -338,8 +319,8 @@ def test_measurement_manifest_is_plausible(tmp_path, monkeypatch):
     dst = tmp_path / "measurement"
     render(dst, "predict_only")
     monkeypatch.syspath_prepend(str(dst / "src"))
-    from meds_model_contract import measured_artifact, read_manifest, write_run_result
-    from meds_model_contract.meds_dev import register
+    from meds_model_core import measured_artifact, read_manifest, write_run_result
+    from meds_model_core.integrations.meds_dev import register
 
     artifact = tmp_path / "artifact"
     with measured_artifact(
@@ -391,7 +372,9 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
     model_yaml = (dst / "models" / profile / "model.yaml").read_text()
     predict = yaml.safe_load(model_yaml)["commands"]["supervised"]["predict"]
     slurm = (dst / "slurm/config.sh").read_text()
-    end_to_end = (dst / "tests/test_end_to_end.py").read_text()
+    end_to_end = (
+        Path(__import__("meds_model_core.conformance.end_to_end", fromlist=["__file__"]).__file__)
+    ).read_text()
     if profile in ZERO_SHOT_PROFILES:
         assert "external_task_criteria_file={task_criteria_path}" in predict
         assert "TASK_CRITERIA_FILE" in slurm
@@ -430,7 +413,7 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
     else:
         assert "task_criteria_path" not in model_yaml
         assert "TASK_CRITERIA_FILE" not in slurm
-        assert "RelaxationLedger.read" not in end_to_end
+        assert 'if not profile.startswith("zero_shot_"):' in end_to_end
 
 
 @pytest.mark.parametrize("profile", ZERO_SHOT_PROFILES)
@@ -471,13 +454,11 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
     dst = tmp_path / "task-contract"
     render(dst, "zero_shot_direct")
     monkeypatch.syspath_prepend(str(dst / "src"))
-    import meds_model_contract
-    from meds_model_contract import RelaxationLedger, TaskSpec, attach_ground_truth, check_decoded, read_index
+    import meds_model_core
+    from meds_model_core import RelaxationLedger, TaskSpec, attach_ground_truth, check_decoded, read_index
 
-    assert not hasattr(meds_model_contract, "ZeroShotTranslator"), "the translator is guidance, not contract"
-    assert {
-        name: {c.value for c in cs} for name, cs in meds_model_contract.ZERO_SHOT_TASK_COMMANDS.items()
-    } == {
+    assert not hasattr(meds_model_core, "ZeroShotTranslator"), "the translator is guidance, not contract"
+    assert {name: {c.value for c in cs} for name, cs in meds_model_core.ZERO_SHOT_TASK_COMMANDS.items()} == {
         "zero_shot_direct": {"predict_zero_shot_direct"},
         "zero_shot_materialized": {"predict_zero_shot_materialized"},
     }, "only predict sees the task; materialized infer is task-independent"
@@ -616,8 +597,8 @@ def test_contract_helpers_for_conformance_checks(tmp_path, monkeypatch):
     render(dst, "supervised")
     monkeypatch.syspath_prepend(str(dst / "src"))
     monkeypatch.syspath_prepend(str(dst))
-    from meds_model_contract import attach_ground_truth, digest_config
-    from tests.signal import add_split_canaries, build_signal_dataset
+    from meds_model_core import attach_ground_truth, digest_config
+    from meds_model_core.conformance.signal import add_split_canaries, build_signal_dataset
 
     assert digest_config({"a": 1, "b": Path("/x")}) == digest_config({"b": "/x", "a": 1})
     assert digest_config({"a": 1}) != digest_config({"a": 2})
@@ -627,7 +608,9 @@ def test_contract_helpers_for_conformance_checks(tmp_path, monkeypatch):
     keys = pl.DataFrame({"subject_id": [1], "prediction_time": [datetime(2020, 1, 1)]})
     keys.write_parquet(unlabelled / "held_out.parquet")
     predictions = keys.with_columns(pl.lit(0.5).alias("predicted_boolean_probability"))
-    assert attach_ground_truth(predictions, unlabelled).equals(predictions), "unlabelled index: unchanged"
+    assert attach_ground_truth(predictions, unlabelled, ["held_out"]).equals(predictions), (
+        "unlabelled index: unchanged"
+    )
 
     root = build_signal_dataset(tmp_path / "meds", n_train=4, n_tuning=3, n_held_out=2)
     canaries = add_split_canaries(root)
@@ -649,7 +632,7 @@ def test_predict_only_reads_context_labels_never_evaluated_ones(tmp_path, monkey
     guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
     assert "In-context learners" in guide and "read_context_labels" in guide
     monkeypatch.syspath_prepend(str(dst / "src"))
-    from meds_model_contract import read_context_labels, split_files
+    from meds_model_core import read_context_labels, split_files
 
     labels = tmp_path / "labels"
     for split, subject in (("train", 1), ("tuning", 2), ("held_out", 3)):
@@ -662,7 +645,7 @@ def test_predict_only_reads_context_labels_never_evaluated_ones(tmp_path, monkey
     assert sorted(context["subject_id"]) == [1, 2] and "boolean_value" in context.columns
     with pytest.raises(ValueError, match="disjoint"):
         read_context_labels(labels, ["train", "held_out"], ["held_out"])
-    with pytest.raises(ValueError, match="non-empty"):
+    with pytest.raises(ValueError, match="nonempty"):
         read_context_labels(labels, [], ["held_out"])
 
 
@@ -670,7 +653,9 @@ def test_predict_only_reads_context_labels_never_evaluated_ones(tmp_path, monkey
 def test_label_leakage_check_strips_what_the_profile_may_not_read(tmp_path, profile):
     dst = tmp_path / profile
     render(dst, profile)
-    end_to_end = (dst / "tests/test_end_to_end.py").read_text()
+    end_to_end = (
+        Path(__import__("meds_model_core.conformance.end_to_end", fromlist=["__file__"]).__file__)
+    ).read_text()
     assert 'None if profile.startswith("zero_shot_") else result.splits' in end_to_end
 
 

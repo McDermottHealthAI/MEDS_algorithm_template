@@ -2,9 +2,9 @@
 
 The template should generate repository structure, model command stubs, profile descriptors, test
 adapters, CI and cluster configuration. Executable infrastructure that needs coordinated bug fixes
-belongs in the versioned `meds-model-core` dependency. The [local alpha scaffold](core-package.md) now
-contains command contracts, key-only index reading and the canonical specification; the remaining
-modules await audited extraction. It has not been published.
+belongs in the versioned `meds-model-core` dependency. The [shared core package](core-package.md) now
+contains the reusable template infrastructure and conformance helpers, and owns the canonical
+specification. It is available from its public Git repository; downstream migrations remain separate.
 
 An inspection of 12 local model-repository snapshots found 5,087 lines across their copied contract
 modules. Four modules are byte-identical in all 12: `contract.py` (86 lines), `results.py` (76),
@@ -15,8 +15,8 @@ local `origin/main` snapshots, not verified current remote heads.
 
 | Destination | Candidates | Qualification |
 |---|---|---|
-| Core runtime | Profile registry/dispatch, manifest schema and compatibility checks, provenance, artifact publication, wall-time and process-tree measurements, structured results, MEDS-DEV registration | Reconcile manifest variants and repair known edge cases before consolidating. Keep GPU/framework integrations optional. |
-| Optional conformance package | Prediction schema/key checks, integration provisioning, train-only canaries, generic synthetic signal fixture | `tests/integration.py` and `tests/signal.py` are identical in 11 repositories. Keep model execution and feature inspection as adapters. |
+| Core runtime | Profile registry/dispatch, manifest schema and compatibility checks, provenance, artifact publication, wall-time and process-tree measurements, structured results, MEDS-DEV registration | Core now owns the template implementation, including replacement rollback and worker-thread child discovery; downstream manifest variants still need migration. Keep GPU/framework integrations optional. |
+| Optional conformance package | Prediction schema/key checks, integration provisioning, train-only canaries, generic synthetic signal fixture | `meds_model_core.conformance.meds_dev` and `meds_model_core.conformance.signal` are identical in 11 repositories. Keep model execution and feature inspection as adapters. |
 | Shared data-boundary helpers | Explicit split selection, label-blind index reading, uniqueness/conflict validation, keyed prediction writing | Existing helpers disagree on duplicate and split behavior. Specify one fail-closed policy before extraction. |
 | Family repositories | MOTOR FT/LP backend/provenance utilities; MEDS-Tab large/LR tabularization and runtime; MEDS-EIC-AR and supervised variant tokenization/I/O/runtime | Prefer one repository per family with multiple profiles and shared internal modules; keep algorithms outside the generic core. |
 | Template/model repository | Model architectures, objectives, feature semantics, task translators, pooling, trajectory generation, tuned defaults, concrete integration adapters | Their apparent similarity does not make them backend-neutral. |
@@ -31,7 +31,7 @@ that semantic problem rather than preserve it more widely.
 
 1. Publish the audited runtime with a documented supported contract version and optional test extras.
 2. Pilot two structurally different models and test a multi-profile family repository before migrating all.
-3. Replace copied `src/meds_model_contract` modules with pinned package dependencies. Keep the import
+3. Replace copied contract/runtime modules with pinned package dependencies. Keep the import
    namespace stable where possible, and verify installed package discovery cannot select a stale local copy.
 4. Use dependency-update PRs in every private model repository to move runtime versions and rerun its
    conformance adapters. Use Copier updates for changes to scaffolding and workflow files.

@@ -121,13 +121,14 @@ flowchart LR
 | `supervised_model` / `finetuned_model` / `probe_model` | `train_supervised` / `train_finetune` / `train_probe` | a complete task-specific inference bundle |
 | `predictions` | `predict` | the normative final output |
 
-Three properties hold for every artifact:
+Four properties hold for every artifact:
 
 - **The payload format is the model's.** The manifest declares it (`payload_format: name/version`), and
   consumers reject an incompatible type, contract version or payload format *before* doing expensive work.
-- **Publication is atomic.** The command works in a staging directory and writes `manifest.yaml` last;
-  the staging directory then replaces the destination in one step. A crashed command leaves no
-  half-written artifact behind.
+- **Publication preserves complete artifacts.** The command writes its manifest last in unique staging.
+  New outputs appear by one rename. Overwrite retains the old output until replacement succeeds and
+  restores it on failure; readers may briefly see no destination during the two renames. Process crashes
+  can leave recovery files. See [publication behavior](reference/manifest.md).
 - **Inputs and configuration are traceable.** The manifest records stable identifiers or digests of its
   inputs (including the predicates digest and, for task-conditioned artifacts, the task's provenance and
   digest), a `config_digest` over the command's arguments and resolved settings, and the git commit and

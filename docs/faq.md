@@ -52,7 +52,7 @@ In the same real run as the end-to-end test:
   index whose evaluated splits have no label column (every split, for zero-shot profiles, which read no
   label at all). It must still cover every key, so any read of an evaluated split's labels fails. A
   `predict_only` in-context learner keeps its train/tuning context.
-- **Transductive fitting:** `tests.signal.add_split_canaries` gives every tuning and held-out subject a
+- **Transductive fitting:** `meds_model_core.conformance.signal.add_split_canaries` gives every tuning and held-out subject a
   canary code that no training subject has. Your `fitted_codes(artifacts)` hook reports every code the
   model fitted a statistic for (vocabulary, frequencies, bins); no canary may appear in it.
 

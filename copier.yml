@@ -1,4 +1,5 @@
 _subdirectory: template
+_exclude: ["__pycache__", "*.py[cod]", ".git"]
 _templates_suffix: .jinja
 _answers_file: .copier-answers.yml
 

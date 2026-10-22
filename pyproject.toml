@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 dependencies = ["copier>=9.17.1"]
 
 [dependency-groups]
-dev = ["meds-model-core[data] @ git+https://github.com/florian6973/meds-model-core.git@5599c0925f9361057b2ef396c57eb8a194928c1a", "polars>=1", "pyarrow>=15", "pytest>=8", "pyyaml>=6", "ruff"]
+dev = ["meds-model-core[conformance] @ git+https://github.com/florian6973/meds-model-core.git@a86a72c89098d648ed9a605ba46dbd00d2aefca4", "polars>=1", "pyarrow>=15", "pytest>=8", "pyyaml>=6", "ruff"]
 # MkDocs 2.0 removes the plugin and theme systems Material depends on, so stay on 1.x.
 docs = ["mkdocs>=1.6,<2", "mkdocs-material>=9.5,<10"]
 

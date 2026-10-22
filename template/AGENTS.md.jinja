@@ -3,8 +3,8 @@
 Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` completely.
 `SPEC.md` points to the pinned core contract: run `meds-model-core-spec` and read that specification too.
 
-- `src/meds_model_contract/` is the compatibility layer during extraction into `meds-model-core`. Do not add framework, batching,
-  preprocessing-format, or model assumptions there.
+- `meds-model-core` is an installed dependency. Do not copy its implementations into this repository.
+  Keep framework, batching, preprocessing-format and model assumptions in the model package.
 - `src/{{ model_slug }}/`, `models/<profile>/model.yaml`, command configuration, and `tests/e2e.py` are model-owned.
 - Preserve the `{{ profiles | join(', ') }}` model profile and established command argument names.
 - Intermediate payloads are opaque. Generic tests validate their envelopes, not their contents.
