@@ -80,7 +80,7 @@ The two zero-shot profiles also receive the task itself: an ACES criteria file p
 `relaxations.yaml` ledger stating how the answered task differs from the requested one. They differ in how
 the model answers. `zero_shot_direct` models answer task-derived queries directly (MOTOR, EveryQuery),
 recommended as an `aces-to-<model>` adapter on aces-relaxations. `zero_shot_materialized` models generate
-futures in a task-independent `infer_trajectories`, and `predict_zero_shot_materialized` evaluates the task on them. See [`docs/ZERO_SHOT.md`](docs/ZERO_SHOT.md) for the design, the MOTOR mapping, and the MEDS-DEV
+futures in a task-independent `infer_trajectories`, and `predict_zero_shot_materialized` evaluates the task on them. See [Zero-shot in practice](docs/zero-shot.md) for the design, model examples, and the MEDS-DEV
 passthrough this needs.
 
 ## Work in the generated repository

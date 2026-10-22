@@ -73,7 +73,6 @@ nav:
       - Core package layout: core-package.md
   - Zero-shot models:
       - Zero-shot in practice: zero-shot.md
-      - Design notes: ZERO_SHOT.md
   - Reference:
       - Specification (normative): reference/spec.md
       - Manifest fields: reference/manifest.md
