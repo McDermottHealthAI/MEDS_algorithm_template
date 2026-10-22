@@ -5,7 +5,7 @@ contract-first MEDS model repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-model-core`](https://github.com/florian6973/meds-model-core). This template and generated projects pin commit
-`bfa347d13270bd29899671974d819e3c6c6f7ba8` directly from Git, so no PyPI release is required.
+`5599c0925f9361057b2ef396c57eb8a194928c1a` directly from Git, so no PyPI release is required.
 The core README documents implemented modules and planned extractions.
 
 The template fixes the external contract—MEDS input, six model profiles and standard arguments, typed
@@ -263,5 +263,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a model implementation.
 
 Profile selection and the distinct version 3 step names are described in [profiles](docs/profiles.md).
-See the [software contract](https://github.com/florian6973/meds-model-core/blob/bfa347d13270bd29899671974d819e3c6c6f7ba8/src/meds_model_core/CONTRACT.md), [migration guide](docs/migration-v3.md),
+See the [software contract](https://github.com/florian6973/meds-model-core/blob/5599c0925f9361057b2ef396c57eb8a194928c1a/src/meds_model_core/CONTRACT.md), [migration guide](docs/migration-v3.md),
 and [shared-package assessment](docs/shared-package-assessment.md).
