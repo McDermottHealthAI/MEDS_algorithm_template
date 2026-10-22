@@ -72,3 +72,5 @@ demo.
 the command manifests) on a `runs/<model>/<run-id>` branch and opens a draft PR. Predictions, labels, data,
 checkpoints, raw logs and metrics are never pushed; metrics come from MEDS-DEV's evaluation step. See
 [Running a model](running.md#run-results-and-github-sync) for the exact list.
+
+--8<-- "README.md:implementation-prompt"

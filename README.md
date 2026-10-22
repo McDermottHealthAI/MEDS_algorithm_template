@@ -105,11 +105,15 @@ end-to-end tests report explicit `model_stub` skips. Start with these rendered f
 
 A completed implementation removes each profile from `STUB_PROFILES` only after that profile works.
 
+<!-- --8<-- [start:implementation-prompt] -->
 ## Copyable model-implementation prompt
 
 Use this after rendering a repository. Replace all placeholders before sending it to a coding agent.
 The full-data evaluation may target any suitable MEDS dataset (for example, MIMIC-IV or NWICU); the
 provided `real_data` test remains the MIMIC-IV demo smoke test.
+
+The prompt adapts [Ponytail's implementation principles](https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail/SKILL.md)
+to scientific model development. It works with Claude and other coding agents without installing a plugin.
 
 ```text
 Based on the following source:
@@ -132,6 +136,16 @@ Read AGENTS.md, SPEC.md, README.md, and docs/IMPLEMENTATION_GUIDE.md in the gene
 completely before writing code. Inspect the paper, supplementary material, source repository,
 configuration files, checkpoints, preprocessing code, and evaluation code available from the supplied
 source.
+
+Apply the Ponytail principle of the smallest complete change: implement the complete source-defined
+model with the least additional infrastructure. Check meds-model-core, existing model-family code,
+standard libraries and installed dependencies before creating helpers. Keep shared fixes in their
+owning package; do not copy core utilities into the model repository. Avoid speculative wrappers,
+configuration options and compatibility layers. Trace affected commands, callers, fixtures and
+documentation, and finish all required changes. Simplicity must preserve scientific fidelity, temporal
+and label isolation, artifact validation, reproducibility, required evaluation evidence and human
+review gates. Write focused tests for new behavior and failure cases. Report deviations and checks
+that were not run.
 
 Preserve the selected model profile and standardized command arguments, MEDS input boundary, artifact
 manifest envelopes, MEDS-DEV model.yaml interface, and final MEDS prediction output. Intermediate payload
@@ -193,6 +207,7 @@ run, complete the report with full-data evidence, scientific deviations, and kno
 synchronize structured results through the GitHub workflow. Treat
 docs/IMPLEMENTATION_GUIDE.md as the authority for the ordered gates and their evidence.
 ```
+<!-- --8<-- [end:implementation-prompt] -->
 
 ## Test tiers in a generated repository
 
