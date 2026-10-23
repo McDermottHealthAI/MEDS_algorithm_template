@@ -44,6 +44,14 @@ MODEL_PROFILES: dict[str, tuple[CommandName, ...]] = {
     "packaged": (CommandName.preprocess_data, CommandName.predict),
 }
 
+# Profiles that never see labels and therefore receive the task definition itself (SPEC section 2.4).
+# The value is the set of commands whose output is conditioned on the task. In zero_shot_materialized,
+# `infer` materializes futures without knowing the task, so only `predict` is task-conditioned.
+ZERO_SHOT_TASK_COMMANDS: dict[str, frozenset[CommandName]] = {
+    "zero_shot_direct": frozenset({CommandName.predict}),
+    "zero_shot_materialized": frozenset({CommandName.predict}),
+}
+
 
 class Command(ABC):
     """A model-owned implementation of one contract command."""

@@ -34,11 +34,132 @@ intermediate payload formats, reject incompatible inputs before expensive work, 
 record input digests and measurements. Frameworks, subprocesses, services, batching, and non-batched
 systems are all allowed.
 
-## 5. Complete operational interfaces
+{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}### Zero-shot: task in, probabilities out
+
+This profile receives the task itself (SPEC.md sections 2.4 and 3.1). The contract requires only the task
+argument, a label-blind index, the semantics digest, complete predictions, and `relaxations.yaml`. How
+the model gets from the task to predictions is its own.
+{% endif %}{% if profile == 'zero_shot_materialized' %}
+This profile is for models that **generate futures** (for example, autoregressive EHR generators). If the
+model instead answers queries directly (hazards, code-in-window probabilities), it belongs in
+`zero_shot_direct`.
+
+1. **`infer`** (task-independent) generates futures from each index row's history up to its
+   `prediction_time`: for example, N sampled trajectories per row. It does not receive the task, so one
+   `infer` run serves every task over the same index.
+2. **`predict`** (task-conditioned) evaluates the ACES task on each row's real history plus each generated
+   future, for example with ACES or `aces_relaxations.extract_at`. It reports the fraction of futures in
+   which the label is true as `predicted_boolean_probability`.
+
+The task is evaluated, not translated, so no relaxation is needed. The ledger is usually `exact: true`,
+with one step recording the Monte Carlo estimate (number of samples, any truncation of the generation
+horizon). Record as approximations anything that does change the answer: a generation horizon shorter
+than the label window, futures that end before the task can resolve, or criteria that cannot be checked
+on generated data. Do not reject a task only because it is not future-only: its past criteria are
+evaluated on real history.
+{% endif %}{% if profile == 'zero_shot_direct' %}
+This profile is for models that **answer queries directly** (for example, MOTOR's time-to-event hazards or
+EveryQuery's code-in-window probabilities). If the model instead generates futures and evaluates the task
+on them, it belongs in `zero_shot_materialized`. The recommended shape is an `aces-to-<model>` adapter
+built on [`aces-relaxations`](https://github.com/McDermottHealthAI/aces-relaxations), with three steps,
+all inside `predict`:
+
+```python
+from abc import ABC, abstractmethod
+from pathlib import Path
+
+import polars as pl
+
+from meds_model_contract import RelaxationLedger, TaskSpec
+
+
+class ZeroShotTranslator(ABC):
+    """A recommended shape for a zero-shot model; not part of the contract."""
+
+    @abstractmethod
+    def encode(self, task: TaskSpec, index: pl.DataFrame, model_dir: Path, output_dir: Path) -> RelaxationLedger:
+        """Write the model's query for `task` over `index` (keys only) and return its ledger."""
+
+    @abstractmethod
+    def infer(self, encoded_dir: Path, data_dir: Path, model_dir: Path, output_dir: Path) -> None:
+        """Run the pretrained model on the query and write its raw outputs."""
+
+    @abstractmethod
+    def decode(self, encoded_dir: Path, inference_dir: Path, index: pl.DataFrame) -> pl.DataFrame:
+        """Return `index` with `predicted_boolean_probability` for every key, joined by key."""
+```
+
+1. **`encode`** turns the ACES task (`TaskSpec`: criteria plus predicates) and the label-blind index
+   (`read_index`) into the model's query. Use aces-relaxations to reason about the task before any data is
+   seen:
+   - reject tasks that are not future-only (`validate_future_only`) or are degenerate (`degeneracies`);
+   - apply the label-preserving rewrites (`require_bounding_events`, `normalize`);
+   - then apply whichever approximations the model's query language needs (`simplify_constraints`,
+     `last_link_target`), plus the model's own assumptions, such as restricting predicates to its
+     vocabulary.
+
+   Record each step in the ledger as it is applied; do not hard-code the ledger. aces-relaxations is
+   pre-1.0, so pin the exact version or commit in `requirements.txt`.
+2. **`infer`** runs the pretrained model on that query and writes its raw outputs.
+3. **`decode`** turns raw outputs into `predicted_boolean_probability` for every index key. Validate with
+   `check_decoded`.
+
+The contract does not validate ledger steps. The recommended keys for each step are `name`, `kind`,
+`direction`, and `detail`:
+
+| `kind` | Meaning | `direction` |
+|---|---|---|
+| `label_preserving` | a rewrite that changes no label on extracted rows (`normalize`, `require_bounding_events`) | `exact` |
+| `approximation` | a task rewrite with a known effect (`simplify_constraints`, `last_link_target`) | `exact`, `weakening` (superset of positives), or `strengthening` (subset) |
+| `model_assumption` | what the query language forces (vocabulary restriction, dropping criteria, independence between codes) | usually `unknown` |
+
+For example, [`aces-to-motor`](https://github.com/McDermottHealthAI/aces-to-motor) is a MOTOR adapter. It
+is model-specific and not part of this template. Its fixed pipeline maps onto these steps:
+
+| aces-to-motor step | `kind` | `direction` |
+|---|---|---|
+| `require_bounding_events`, `normalize` | `label_preserving` | `exact` |
+| vocabulary restriction (unmatched predicate -> `marginal`) | `model_assumption` | `unknown` |
+| `label_only`: drop inclusion/exclusion and bounding-event branches | `model_assumption` | `unknown` |
+| `last_link_target` + TTE stationarity (label window promoted to start now) | `approximation` / `model_assumption` | `exact` only when `last_link_target` reports it and no window is discarded; otherwise `unknown` |
+| decode `and`/`or` under independence; same-timestamp `and` -> within-window `and` | `model_assumption` | `unknown` / `weakening` |
+
+Record the model's whole query language in `IMPLEMENTATION_REPORT.md`, and which MEDS-DEV and benchmark
+tasks it can answer exactly, approximately, or not at all.
+
+Publish the query, the raw outputs, and `relaxations.yaml` inside the predictions artifact (for example in
+a `bundle/` subdirectory), so decode choices stay inspectable.
+
+{% endif %}{% if profile == 'packaged' %}### Packaged: no training command
+
+Nothing is trained on this dataset's labels before `predict`. Two kinds of model fit here:
+
+- **In-context learners**, such as prior-data fitted networks (TabPFN-style). `predict` reads labelled
+  examples from the training and tuning splits through `meds_model_contract.read_context_labels`, which
+  refuses the evaluated splits, and predicts the evaluated split's keys in the same forward pass. Record
+  the context splits, the number of context rows, and any subsampling in the predictions manifest.
+- **Fixed models** shipped with their weights or coefficients, such as a published risk score. `predict`
+  reads no label. Record where the weights come from, and check that the score's outcome matches the task.
+
+In both cases, statistics fitted by `preprocess_data` or `predict` (feature bins, normalization) come from
+the training split only (SPEC section 2.1).
+
+{% endif %}## 5. Complete operational interfaces
 
 Finalize `model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`. The local adapter runs the
 real model profile. The MEDS-DEV adapter supplies its isolated invocation. The MIMIC adapter locates/builds the demo
 and the pinned `mortality/in_icu/first_24h` task through MEDS-DEV and reuses its predicates.
+
+`tests/test_end_to_end.py` also checks label leakage and transductive fitting on the same run, so the
+local adapter must:
+
+- return the exact `predict` arguments it used (`E2EResult.predict_arguments`). `predict` is rerun on an
+  index with no label column and must still cover every key, so make `predict` work on unlabelled data.
+  `attach_ground_truth` already does.
+- apply `tests.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
+  canaries (`E2EResult.canaries`).
+- implement `fitted_codes`: every code the model fitted a population statistic for (vocabulary, frequency
+  table, selected features, bins), read from its artifacts. No canary may appear there.
 
 Complete `tests/test_primary_behavior.py`; its initial failure is intentional. The template provides the
 small `tests.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
@@ -76,14 +197,18 @@ Advance in this order. Each automated stage must pass before the next one starts
 6. **Commit and synchronize:** before submitting cluster jobs, commit the implementation, configuration,
    and report-so-far; push the commit to GitHub; and record its immutable commit SHA. The cluster must run
    that SHA from a clean checkout. The external task bundle is not committed.
-7. **Full target-dataset run:** run the approved ten-task registry for the selected dataset from
-   [meds-task-selection](https://github.com/florian6973/meds-task-selection) on the authorized full dataset,
-   normally through the SLURM interface. The cluster receives a shared `work/` task bundle containing
-   `tasks.yaml` and the generated per-task inputs/labels for that dataset. If a compatible bundle is not
-   available, report that blocker before launching. Pass its path explicitly in configuration; do not
-   copy it into the model repository. Record the task-selection commit, `tasks.yaml` SHA-256, task bundle
-   identifier/path, dataset name/revision, predicate provenance, model commit, exact command/configuration,
-   job IDs, and structured run evidence. Every model comparison on the same dataset must use the same
+7. **Full target-dataset run:** run the approved shared task bundle for the selected dataset on the
+   authorized full dataset, normally through the SLURM interface. The bundle is built once upstream, for
+   every model alike. Its tasks are either clinical tasks defined and extracted with
+   [ACES](https://eventstreamaces.readthedocs.io/), or randomly sampled code-by-horizon tasks (generated with
+   [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler) and selected with
+   [meds-task-selection](https://github.com/florian6973/meds-task-selection)). It contains each
+   task's definition and its per-task index/labels; zero-shot models also need each task's ACES criteria.
+   If a compatible bundle is not available, report that blocker before launching. Pass its path
+   explicitly in configuration; do not copy it into the model repository. Record the commit of the tool
+   that built the bundle, a digest of its task definitions, the bundle identifier/path, dataset
+   name/revision, predicate provenance, model commit, exact command/configuration, job IDs, and structured
+   run evidence. Every model comparison on the same dataset must use the same
    reviewed bundle. Do not treat the demo result as a scientific result.
 8. **Final report and result synchronization:** add per-task and aggregate full-data cohort/output counts,
    measurements, scientific results, deviations, failures, and limitations. Run `scripts/github-sync.sh
@@ -108,5 +233,5 @@ respective `abnormal_lab/.../first_24h` task paths. They are optional task-cover
 gates. Add one only when it is relevant to the model and its task definition resolves cleanly against the
 current MEDS-DEV MIMIC predicates and produces a non-degenerate demo cohort. Record the exact task revision
 rather than copying its dataset knowledge into this repository. These demo tasks are independent of the
-ten-task full-data benchmark: the demo validates execution and scale transition, while the frozen
-full-data task bundle supports consistent model evaluation.
+full-data task bundle: the demo validates execution and scale transition, while the frozen full-data
+bundle supports consistent model evaluation.

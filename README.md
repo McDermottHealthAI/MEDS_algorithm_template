@@ -58,6 +58,14 @@ so the command remains usable if formatting/bootstrap tasks are added later.
 Profiles are `supervised`, `finetune`, `probe`, `zero_shot_direct`, `zero_shot_materialized`, and
 `packaged`. A model profile selects required commands, not an architecture or execution backend.
 
+The two zero-shot profiles also receive the task itself: an ACES criteria file passed as
+`external_task_criteria_file` (`{task_criteria_path}` in `model.yaml`). They must publish a
+`relaxations.yaml` ledger stating how the answered task differs from the requested one. They differ in how
+the model answers. `zero_shot_direct` models answer task-derived queries directly (MOTOR, EveryQuery),
+recommended as an `aces-to-<model>` adapter on aces-relaxations. `zero_shot_materialized` models generate
+futures in a task-independent `infer`, and `predict` evaluates the task on them. See [`docs/ZERO_SHOT.md`](docs/ZERO_SHOT.md) for the design, the MOTOR mapping, and the MEDS-DEV
+passthrough this needs.
+
 ## Work in the generated repository
 
 ```bash
@@ -121,6 +129,18 @@ do not assume MIMIC mappings apply to another dataset. Keep such mappings in dat
 configuration or model-owned code. Do not introduce a generic predicate-derived feature representation
 into the contract package. Keep the provided MIMIC-IV demo code, task, and MEDS-DEV predicates as the
 canonical smoke test, regardless of the full-data target.
+
+For a zero_shot_direct model (answers queries directly, e.g. MOTOR, EveryQuery) or a zero_shot_materialized
+model (generates futures and evaluates the task on them; infer is task-independent and only predict
+receives the task): the model receives the original ACES task through
+external_task_criteria_file (with the dataset predicates) and the upstream-built index through
+external_labels_dir. Never build, filter, or extend the cohort, and read the index only through
+meds_model_contract.read_index. Reuse an existing aces-to-<model> adapter for this model if one exists;
+otherwise write one on aces-relaxations, pinned to an exact version: reject tasks that are not future-only
+or are degenerate, normalize, then apply only the approximations and assumptions the model's query
+language forces. Publish relaxations.yaml with every step, and report per task whether the answer is exact.
+A materialized model evaluates the task on generated futures instead and needs no relaxation beyond
+sampling. Follow the shape for the selected profile in docs/IMPLEMENTATION_GUIDE.md.
 Do not omit source behavior because it is inconvenient for a fixture; adapt the implementation or fixture
 instead.
 
@@ -144,11 +164,13 @@ Update IMPLEMENTATION_REPORT.md with the demo cohort, final-output coverage, pre
 environment, wall time, peak process-tree PSS/RSS, GPU measurements when available, failures, and fixes.
 Ask for a second human review before launching the selected full dataset through the repository's SLURM
 interface. Review target-dataset compatibility, access, and resources separately from the MIMIC-IV demo.
-Use the approved shared `work/` bundle for that dataset produced by
-https://github.com/florian6973/meds-task-selection; it must contain `tasks.yaml` and the generated task
-inputs/labels. If a compatible bundle is not yet available, report that blocker before the full-data run.
-Record the dataset name/revision, predicate provenance, bundle location, task-selection source commit,
-and `tasks.yaml` SHA-256. Keep the bundle external to Git. Commit and push the implementation,
+Use a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined in
+ACES and extracted with the ACES package, or randomly sampled code-by-horizon tasks (generated with
+https://github.com/florian6973/meds-random-task-sampler and selected with https://github.com/florian6973/meds-task-selection).
+It must contain each task's definition and its generated index/labels; zero-shot models also need each
+task's ACES criteria. If a compatible bundle is not yet available, report that blocker before the
+full-data run. Record the dataset name/revision, predicate provenance, bundle location, the commit of the
+tool that built it, and a digest of its task definitions. Keep the bundle external to Git. Commit and push the implementation,
 configuration, and report-so-far; run the cluster job from that exact clean commit. After the authorized
 run, complete the report with full-data evidence, scientific deviations, and known limitations, then
 synchronize structured results through the GitHub workflow. Treat
@@ -172,17 +194,19 @@ The implementation guide defines what follows these commands: a report/review ga
 an explicitly authorized run on the selected full dataset and final report. The demo's required task is
 ICU mortality; additional MEDS-DEV MIMIC-supported tasks are optional coverage checks, not a mandatory
 task benchmark.
-The full-data evaluation instead uses the separately reviewed, shared ten-task `work/` bundle generated
-by `meds-task-selection` for the target dataset so model comparisons on that dataset use the same task
-definitions and labels. Selecting another full dataset does not change the provided MIMIC-IV demo code.
+The full-data evaluation instead uses a separately reviewed, shared task bundle for the target dataset
+(clinical ACES tasks or randomly sampled code-by-horizon tasks), so model comparisons on that dataset use
+the same task definitions and labels. Selecting another full dataset does not change the provided MIMIC-IV demo code.
 
 Set `MEDS_DEV_DIR=/path/to/MEDS-DEV` to reuse a checkout and `MEDS_DEMO_DIR=/path/to/demo` to reuse the
 dataset. A bare test run never clones MEDS-DEV or downloads MIMIC data.
 
-Until MEDS-DEV PR #325 is merged, automatic integration provisioning pins commit
-`0c21a2226964181dee7ed28c9aa5aa0abdfe9765`, which supplies the explicit `predicates_path` passthrough.
-Set `MEDS_DEV_REF` to select another revision containing that capability. Reused `MEDS_DEV_DIR` checkouts
-are capability-checked rather than silently using a model-side fallback.
+Until MEDS-DEV PR #330 is merged, automatic integration provisioning pins its head commit
+`19a8aa3417fae3586b2e8f0f17aba19ddb0560d4`. That commit is on top of `dev`, so it supplies both the
+`predicates_path` passthrough (PR #325) and the `task_criteria_path` passthrough that zero-shot profiles
+use. Set `MEDS_DEV_REF` to select another revision containing those capabilities. Reused `MEDS_DEV_DIR`
+checkouts are capability-checked rather than silently using a model-side fallback. Only zero-shot
+repositories require `task_criteria_path`.
 
 ## Cluster and result interfaces
 

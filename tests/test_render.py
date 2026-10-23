@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 import types
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -233,7 +234,12 @@ def test_prediction_keys_are_compared_directly(tmp_path, prediction_rows, error)
         ).with_columns(pl.col("prediction_time").str.to_datetime())
 
     frame([(1, "2020-01-01"), (2, "2020-01-02")]).write_parquet(labels / "part.parquet")
-    frame(prediction_rows).write_parquet(predictions / "predictions.parquet")
+    frame(prediction_rows).with_columns(pl.lit(0.5).alias("predicted_boolean_probability")).write_parquet(
+        predictions / "predictions.parquet"
+    )
+    # A zero-shot query bundle next to the predictions is fine in a non-parquet format.
+    (predictions / "bundle").mkdir()
+    frame([(1, "2020-01-01"), (2, "2020-01-02")]).write_ipc(predictions / "bundle" / "index.arrow")
     if error is None:
         integration.assert_prediction_keys(predictions, labels.parent, ["held_out"])
     else:
@@ -256,6 +262,19 @@ def test_meds_dev_predicates_capability_is_explicit(tmp_path):
     implementation.write_text("format_kwargs = {}\n")
     with pytest.raises(AssertionError, match="PR #325"):
         integration.assert_meds_dev_predicates_capability(checkout)
+
+    with pytest.raises(AssertionError, match="PR #330"):
+        integration.assert_meds_dev_task_criteria_capability(checkout)
+    implementation.write_text('format_kwargs["task_criteria_path"] = str(task_criteria_path)\n')
+    integration.assert_meds_dev_task_criteria_capability(checkout)
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_only_zero_shot_meds_dev_runs_require_task_criteria(tmp_path, profile):
+    dst = tmp_path / profile
+    render(dst, profile)
+    meds_dev_test = (dst / "tests/test_meds_dev_e2e.py").read_text()
+    assert ("task_criteria=True" in meds_dev_test) == (profile in ZERO_SHOT_PROFILES)
 
 
 def test_meds_dev_ref_is_checked_out_in_clone(tmp_path, monkeypatch):
@@ -352,3 +371,361 @@ def test_measurement_manifest_is_plausible(tmp_path, monkeypatch):
     registered = register(dst, meds_dev, "measurement-model")
     assert (registered / "model.yaml").is_file()
     assert str(dst.resolve()) in (registered / "requirements.txt").read_text()
+
+
+ZERO_SHOT_PROFILES = ["zero_shot_direct", "zero_shot_materialized"]
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
+    dst = tmp_path / profile
+    render(dst, profile)
+    model_yaml = (dst / "model.yaml").read_text()
+    predict = yaml.safe_load(model_yaml)["commands"]["supervised"]["predict"]
+    slurm = (dst / "slurm/config.sh").read_text()
+    end_to_end = (dst / "tests/test_end_to_end.py").read_text()
+    if profile in ZERO_SHOT_PROFILES:
+        assert "external_task_criteria_file={task_criteria_path}" in predict
+        assert "TASK_CRITERIA_FILE" in slurm
+        guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
+        assert "Zero-shot: task in, probabilities out" in guide
+        assert "ZERO_SHOT_TASK_COMMANDS" in end_to_end and "RelaxationLedger.read" in end_to_end
+        predict_line = next(line for line in slurm.splitlines() if line.strip().startswith("predict)"))
+        assert "TASK_CRITERIA_FILE" in predict_line
+        if profile == "zero_shot_materialized":
+            # Materialized futures are task-independent: infer never sees the task, predict applies it.
+            assert "generate futures" in guide
+            assert "class ZeroShotTranslator(ABC)" not in guide
+            assert "input_inference_dir=$RUN_DIR/inference" in predict_line
+            assert "input_pretrained_model_dir" not in predict_line
+            infer_line = next(line for line in slurm.splitlines() if line.strip().startswith("infer)"))
+            assert "TASK_CRITERIA_FILE" not in infer_line
+            infer = predict.splitlines()[0]
+            assert infer.startswith("meds-model infer")
+            assert "task_criteria_path" not in infer, "materialized infer is task-independent"
+            assert "splits=[{split}]" in infer, "materialized infer must score only the evaluated split"
+            materialized_predict = predict.splitlines()[1]
+            assert "external_meds_dir={dataset_dir}" in materialized_predict, (
+                "the task is evaluated on real history"
+            )
+            assert "external_meds_dir=" in predict_line
+        else:
+            assert "class ZeroShotTranslator(ABC)" in guide, (
+                "the translator shape is guidance, kept in the guide"
+            )
+            assert "input_pretrained_model_dir" in predict_line
+        assert "flipped" not in end_to_end
+    else:
+        assert "task_criteria_path" not in model_yaml
+        assert "TASK_CRITERIA_FILE" not in slurm
+        assert "zero_shot" not in end_to_end
+
+
+@pytest.mark.parametrize("profile", ZERO_SHOT_PROFILES)
+def test_zero_shot_stub_rejects_a_missing_task_before_work(tmp_path, profile):
+    dst = tmp_path / profile
+    slug = render(dst, profile)
+    env = {**os.environ, "PYTHONPATH": str(dst / "src")}
+    output = tmp_path / "predictions"
+    command = ["python", "-m", slug, "predict", f"output_predictions_dir={output}"]
+    missing = subprocess.run(command, env=env, text=True, capture_output=True)
+    assert missing.returncode != 0
+    assert "external_task_criteria_file" in missing.stderr
+    assert not output.exists()
+
+    criteria = tmp_path / "task.yaml"
+    criteria.write_text("predicates: {}\n")
+    stub = subprocess.run(
+        [*command, f"external_task_criteria_file={criteria}"], env=env, text=True, capture_output=True
+    )
+    assert "NotImplementedError" in stub.stderr, "a valid task reaches the model-owned body"
+
+
+def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
+    import polars as pl
+
+    dst = tmp_path / "task-contract"
+    render(dst, "zero_shot_direct")
+    monkeypatch.syspath_prepend(str(dst / "src"))
+    import meds_model_contract
+    from meds_model_contract import RelaxationLedger, TaskSpec, attach_ground_truth, check_decoded, read_index
+
+    assert not hasattr(meds_model_contract, "ZeroShotTranslator"), "the translator is guidance, not contract"
+    assert {
+        name: {c.value for c in cs} for name, cs in meds_model_contract.ZERO_SHOT_TASK_COMMANDS.items()
+    } == {
+        "zero_shot_direct": {"predict"},
+        "zero_shot_materialized": {"predict"},
+    }, "only predict sees the task; materialized infer is task-independent"
+
+    criteria = tmp_path / "task.yaml"
+    criteria.write_text("trigger: admission\n")
+    mimic, other = tmp_path / "mimic.yaml", tmp_path / "other.yaml"
+    mimic.write_text("admission: {code: ADM}\n")
+    other.write_text("admission: {code: ADMIT}\n")
+    with pytest.raises(ValueError, match="external_task_criteria_file"):
+        TaskSpec.from_arguments({})
+    with pytest.raises(FileNotFoundError):
+        TaskSpec(tmp_path / "missing.yaml")
+    bound = TaskSpec.from_arguments(
+        {"external_task_criteria_file": str(criteria), "external_predicates_file": str(mimic)}
+    )
+    digests = {TaskSpec(criteria).semantics_digest(), bound.semantics_digest()}
+    digests.add(TaskSpec(criteria, other).semantics_digest())
+    assert len(digests) == 3, "the digest must change with the criteria or the predicates bound to them"
+    assert bound.semantics_digest() == TaskSpec(criteria, mimic).semantics_digest()
+    assert bound.provenance()["predicates_file"]["digest"].startswith("sha256:")
+
+    held_out = tmp_path / "labels" / "held_out"
+    held_out.mkdir(parents=True)
+    times = [datetime(2020, 1, 1), datetime(2020, 1, 2)]
+    labels = pl.DataFrame({"subject_id": [1, 2], "prediction_time": times, "boolean_value": [True, False]})
+    labels.write_parquet(held_out / "0.parquet")
+    pl.DataFrame({"subject_id": [3], "prediction_time": times[:1], "boolean_value": [True]}).write_parquet(
+        tmp_path / "labels" / "train.parquet"
+    )
+    index = read_index(tmp_path / "labels", ["held_out"])
+    with pytest.raises(FileNotFoundError, match="tuning"):
+        read_index(tmp_path / "labels", ["tuning"])  # never silently falls back to every split
+    with pytest.raises(TypeError):
+        read_index(tmp_path / "labels", "held_out")
+    assert index.columns == ["subject_id", "prediction_time"]
+    assert sorted(index["subject_id"]) == [1, 2]
+
+    ledger = RelaxationLedger(
+        query_language="test",
+        decoded_quantity="P(death within 30d)",
+        exact=False,
+        steps=(
+            {"name": "normalize", "kind": "label_preserving", "direction": "exact"},
+            {"name": "label_only", "detail": "dropped 1 criteria branch"},  # step keys are free-form
+        ),
+    )
+    ledger.write(tmp_path)
+    assert RelaxationLedger.read(tmp_path) == ledger
+    assert yaml.safe_load((tmp_path / "relaxations.yaml").read_text())["exact"] is False
+    assert RelaxationLedger.read(tmp_path).steps[1] == {
+        "name": "label_only",
+        "detail": "dropped 1 criteria branch",
+    }
+
+    exact = tmp_path / "exact"
+    exact.mkdir()
+    (exact / "relaxations.yaml").write_text(
+        "query_language: trajectories\ndecoded_quantity: P(y)\nexact: true\n"
+    )
+    assert RelaxationLedger.read(exact).steps == ()
+    (exact / "relaxations.yaml").write_text("query_language: trajectories\nexact: true\n")
+    with pytest.raises(ValueError, match="decoded_quantity"):
+        RelaxationLedger.read(exact)
+    with pytest.raises(ValueError, match="exact"):
+        RelaxationLedger(query_language="q", decoded_quantity="d", exact="yes")
+
+    predictions = index.with_columns(pl.Series("predicted_boolean_probability", [0.2, 0.9]))
+    assert check_decoded(index, predictions.reverse()).height == 2
+    with pytest.raises(ValueError, match="miss 1"):
+        check_decoded(index, predictions.head(1))
+    with pytest.raises(ValueError, match=r"\[0, 1\]"):
+        check_decoded(index, predictions.with_columns(pl.lit(1.5).alias("predicted_boolean_probability")))
+
+    final = attach_ground_truth(predictions.reverse(), tmp_path / "labels", ["held_out"])
+    assert dict(zip(final["subject_id"], final["boolean_value"], strict=True)) == {1: True, 2: False}
+    assert final["predicted_boolean_probability"].to_list() == [0.9, 0.2], "probabilities are untouched"
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_predictions_and_cli_lists_follow_meds_dev(tmp_path, profile):
+    dst = tmp_path / profile
+    slug = render(dst, profile)
+    predict = yaml.safe_load((dst / "model.yaml").read_text())["commands"]["supervised"]["predict"]
+    assert "output_predictions_dir={output_dir}/predictions" in predict, "never replace MEDS-DEV's output_dir"
+    probe = (
+        f"import sys; sys.argv = ['x']; from {slug}.__main__ import _value; "
+        "print(_value('[held_out]'), _value('[train, tuning]'), _value('[]'), _value('3'), _value('a'))"
+    )
+    env = {**os.environ, "PYTHONPATH": str(dst / "src")}
+    printed = subprocess.run(["python", "-c", probe], env=env, text=True, capture_output=True, check=True)
+    assert printed.stdout.split("\n")[0] == "['held_out'] ['train', 'tuning'] [] 3 a"
+
+
+def test_meds_dev_evaluates_every_parquet_under_predictions(tmp_path):
+    import polars as pl
+
+    dst = tmp_path / "glob"
+    render(dst, "zero_shot_direct")
+    integration = load_integration_module(dst)
+    labels, predictions = tmp_path / "labels" / "held_out", tmp_path / "predictions"
+    labels.mkdir(parents=True)
+    (predictions / "bundle").mkdir(parents=True)
+    keys = pl.DataFrame({"subject_id": [1], "prediction_time": [datetime(2020, 1, 1)]})
+    keys.write_parquet(labels / "0.parquet")
+    keys.with_columns(pl.lit(0.5).alias("predicted_boolean_probability")).write_parquet(
+        predictions / "predictions.parquet"
+    )
+    keys.write_parquet(predictions / "bundle" / "index.parquet")
+    with pytest.raises(AssertionError, match="MEDS-DEV evaluates every parquet"):
+        integration.assert_prediction_keys(predictions, labels.parent, ["held_out"])
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_artifacts_are_siblings_and_slurm_lists_only_profile_commands(tmp_path, profile):
+    dst = tmp_path / profile
+    render(dst, profile)
+    model_yaml = (dst / "model.yaml").read_text()
+    assert "output_inference_subdir" not in model_yaml and "input_inference_subdir" not in model_yaml
+    if profile in ("probe", "zero_shot_materialized"):
+        assert "output_inference_dir={output_dir}/inference" in model_yaml, "inference is a sibling artifact"
+    slurm = (dst / "slurm/config.sh").read_text()
+    cases = {line.strip().split(")")[0] for line in slurm.splitlines() if line.strip().endswith(";;")} - {"*"}
+    assert cases == set(MODEL_PROFILES[profile]), "the SLURM config lists exactly the profile's commands"
+    commands = (dst / f"src/v2_{profile}/commands.py").read_text()
+    assert "config_digest=digest_config(" in commands
+
+
+def test_contract_helpers_for_conformance_checks(tmp_path, monkeypatch):
+    import polars as pl
+
+    dst = tmp_path / "helpers"
+    render(dst, "supervised")
+    monkeypatch.syspath_prepend(str(dst / "src"))
+    monkeypatch.syspath_prepend(str(dst))
+    from meds_model_contract import attach_ground_truth, digest_config
+    from tests.signal import add_split_canaries, build_signal_dataset
+
+    assert digest_config({"a": 1, "b": Path("/x")}) == digest_config({"b": "/x", "a": 1})
+    assert digest_config({"a": 1}) != digest_config({"a": 2})
+
+    unlabelled = tmp_path / "index"
+    unlabelled.mkdir()
+    keys = pl.DataFrame({"subject_id": [1], "prediction_time": [datetime(2020, 1, 1)]})
+    keys.write_parquet(unlabelled / "held_out.parquet")
+    predictions = keys.with_columns(pl.lit(0.5).alias("predicted_boolean_probability"))
+    assert attach_ground_truth(predictions, unlabelled).equals(predictions), "unlabelled index: unchanged"
+
+    root = build_signal_dataset(tmp_path / "meds", n_train=4, n_tuning=3, n_held_out=2)
+    canaries = add_split_canaries(root)
+    for split, rows in (("train", 0), ("tuning", 3), ("held_out", 2)):
+        events = pl.read_parquet(root / "data" / split / "0.parquet")
+        found = events.filter(pl.col("code").str.starts_with("CANARY//"))
+        assert found.height == rows and found["subject_id"].n_unique() == rows
+        if rows:
+            assert set(found["code"]) == {canaries[split]}
+            assert events.schema == pl.read_parquet(root / "data" / "train" / "0.parquet").schema
+    assert "CANARY//tuning" not in set(pl.read_parquet(root / "metadata" / "codes.parquet")["code"])
+
+
+def test_packaged_reads_context_labels_never_evaluated_ones(tmp_path, monkeypatch):
+    import polars as pl
+
+    dst = tmp_path / "packaged"
+    render(dst, "packaged")
+    guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
+    assert "In-context learners" in guide and "read_context_labels" in guide
+    monkeypatch.syspath_prepend(str(dst / "src"))
+    from meds_model_contract import read_context_labels, split_files
+
+    labels = tmp_path / "labels"
+    for split, subject in (("train", 1), ("tuning", 2), ("held_out", 3)):
+        (labels / split).mkdir(parents=True)
+        pl.DataFrame(
+            {"subject_id": [subject], "prediction_time": [datetime(2020, 1, 1)], "boolean_value": [True]}
+        ).write_parquet(labels / split / "0.parquet")
+    assert [p.parent.name for p in split_files(labels, ["held_out"])] == ["held_out"]
+    context = read_context_labels(labels, ["train", "tuning"], ["held_out"])
+    assert sorted(context["subject_id"]) == [1, 2] and "boolean_value" in context.columns
+    with pytest.raises(ValueError, match="disjoint"):
+        read_context_labels(labels, ["train", "held_out"], ["held_out"])
+    with pytest.raises(ValueError, match="non-empty"):
+        read_context_labels(labels, [], ["held_out"])
+
+
+@pytest.mark.parametrize("profile", MODEL_PROFILES)
+def test_label_leakage_check_strips_what_the_profile_may_not_read(tmp_path, profile):
+    dst = tmp_path / profile
+    render(dst, profile)
+    end_to_end = (dst / "tests/test_end_to_end.py").read_text()
+    if profile in ZERO_SHOT_PROFILES:
+        assert '"unlabelled-index",\n        None,' in end_to_end, (
+            "zero-shot predict may read no label at all"
+        )
+    else:
+        assert '"unlabelled-index",\n        result.splits,' in end_to_end, (
+            "only evaluated-split labels are stripped"
+        )
+
+
+def _dry_run(dst: Path, slug: str, tmp_path: Path, **env: str) -> subprocess.CompletedProcess:
+    shim = tmp_path / "bin" / "meds-model"
+    shim.parent.mkdir(parents=True, exist_ok=True)
+    shim.write_text(f'#!/bin/sh\nexec {sys.executable} -m {slug} "$@"\n')
+    shim.chmod(0o755)
+    environment = {
+        **os.environ,
+        "PATH": f"{shim.parent}{os.pathsep}{os.environ['PATH']}",
+        "PYTHONPATH": str(dst / "src"),
+        "MEDS_ROOT": "/meds",
+        "LABELS_DIR": "/labels/task",
+        "TASK_CRITERIA_FILE": "/tasks/task.yaml",
+        "PREDICATES_FILE": "/predicates/dataset.yaml",
+        **env,
+    }
+    return subprocess.run(
+        ["bash", "slurm/submit.sh", "--dry-run"], cwd=dst, env=environment, text=True, capture_output=True
+    )
+
+
+def test_submit_stages_reuse_shared_task_independent_artifacts(tmp_path):
+    dst = tmp_path / "materialized"
+    slug = render(dst, "zero_shot_materialized", uses_predicates=True)
+    result = _dry_run(
+        dst,
+        slug,
+        tmp_path,
+        STAGES="predict,infer",
+        RUN_ROOT="/runs",
+        RUN_ID="task-a",
+        SHARED_DIR="/runs/shared/artifacts",
+        TASK_PREDICATES_FILE="/predicates/task-suite.yaml",
+    )
+    assert result.returncode == 0, result.stderr
+    args = [line for line in result.stdout.splitlines() if line.startswith("# ")]
+    assert [line.split(":")[0] for line in args if ": " in line] == ["# infer"] * 5 + ["# predict"] * 8
+    assert "# infer: input_pretrained_model_dir=/runs/shared/artifacts/pretrained" in args
+    assert "# infer: output_inference_dir=/runs/task-a/artifacts/inference" in args
+    assert "# infer: splits=[held_out]" in args and "# predict: splits=[held_out]" in args
+    assert "# predict: input_data_dir=/runs/shared/artifacts/data" in args
+    assert "# predict: external_predicates_file=/predicates/task-suite.yaml" in args
+    assert not any("preprocess_data" in line or "pretrain:" in line for line in args)
+
+    shared = _dry_run(dst, slug, tmp_path, STAGES="preprocess_data", RUN_ROOT="/runs", RUN_ID="shared")
+    assert "# preprocess_data: external_predicates_file=/predicates/dataset.yaml" in shared.stdout
+    assert "# preprocess_data: output_data_dir=/runs/shared/artifacts/data" in shared.stdout
+
+    typo = _dry_run(dst, slug, tmp_path, STAGES="infer,supervised_train")
+    assert typo.returncode == 2 and "not a command of this profile" in typo.stderr
+
+
+def test_submit_overrides_resources_args_and_sbatch_flags_from_the_environment(tmp_path):
+    dst = tmp_path / "overrides"
+    slug = render(dst, "zero_shot_materialized", uses_predicates=True)
+    result = _dry_run(
+        dst,
+        slug,
+        tmp_path,
+        STAGES="infer",
+        MEMORY="96G",
+        TIME_GPU="24:00:00",
+        ARGS_infer="n_trajectories=8 max_new_tokens=4096",
+        SBATCH_EXTRA="--exclude=c0103,c0607",
+    )
+    assert result.returncode == 0, result.stderr
+    assert "# infer: n_trajectories=8" in result.stdout and "# infer: max_new_tokens=4096" in result.stdout
+    sbatch = next(line for line in result.stdout.splitlines() if line.startswith("sbatch "))
+    assert (
+        "--mem=96G" in sbatch
+        and "--time=24:00:00" in sbatch
+        and "--exclude=c0103" in sbatch
+        and "c0607" in sbatch
+    )
+    default = _dry_run(dst, slug, tmp_path, STAGES="infer")
+    assert "--mem=16G" in default.stdout and "--exclude" not in default.stdout

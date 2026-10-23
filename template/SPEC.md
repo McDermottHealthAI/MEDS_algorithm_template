@@ -36,7 +36,28 @@ which population rather than leave the scope unstated.
 ### 2.2 Task
 
 A task input is an index of `(subject_id, prediction_time)` and, for training/evaluation only, a value
-column such as `boolean_value`. Prediction code MUST operate on the index without reading ground truth.
+column such as `boolean_value`. Labels of an **evaluated split** MUST never be read to produce a
+prediction. Which other labels a command may read depends on the profile:
+
+| Reader | Labels it may read |
+|---|---|
+| `supervised_train` | training and tuning splits |
+| `predict` in `supervised`, `finetune`, `probe` | none: the task was learned in `supervised_train` |
+| `predict` in `packaged` | training and tuning splits, as in-context examples (e.g. a prior-data fitted network), through `read_context_labels`; none for a fixed model such as a published risk score |
+| every command of a `zero_shot_*` profile | none: reading any label would make it few-shot |
+
+The one exception: once every probability is final, `predict` MAY join the label column onto the
+predictions by key (`meds_model_contract.attach_ground_truth`), because meds-evaluation reads ground truth
+from the predictions file. Nothing computed from that join may feed back into a prediction.
+
+The cohort is built upstream, not in the model repository. The index and its labels come from one
+extraction run outside every model: MEDS-DEV's `meds-dev-task` for the MIMIC-IV demo, and a shared, reviewed
+task bundle for full-data runs, whose tasks may be clinical tasks defined in ACES or randomly sampled
+code-by-horizon tasks. That extraction applies the trigger, inclusion/exclusion criteria, and splits once,
+so every model scores the same keys. A model repository
+MUST NOT re-extract, filter, or extend the index; it predicts every requested row (section 5). This holds
+for zero-shot profiles too: they receive the ACES task (section 2.4) to build their *query*, never to
+rebuild their cohort.
 
 ### 2.3 Dataset predicates
 
@@ -49,6 +70,32 @@ Any command that consumes the file MUST record its digest and origin.
 
 A model that depends on particular predicate names declares and validates those requirements in its own
 configuration and tests. The contract does not prescribe a predicate-derived feature representation.
+
+### 2.4 Task specification (zero-shot profiles)
+
+A supervised model learns what to predict from labels. A zero-shot model never sees labels, so the task
+definition itself is an input. The task language is [ACES](https://eventstreamaces.readthedocs.io/): a task
+is an ACES criteria file, supplied through `external_task_criteria_file`, bound to the dataset predicates of
+section 2.3 when the criteria do not define their own. The pair is the *task specification*
+(`meds_model_contract.TaskSpec`).
+
+- Every command of a `zero_shot_*` profile whose output depends on the task (`ZERO_SHOT_TASK_COMMANDS`:
+  `predict` in both profiles) MUST receive `external_task_criteria_file`, MUST
+  validate it before expensive work, and MUST record `TaskSpec.provenance()` under `inputs.task` and
+  `TaskSpec.semantics_digest()` as the manifest `semantics_digest`.
+- The predicates bound to the task can define the label itself (a task-suite layer defining, say, `aki`).
+  Such a file MUST reach only task-conditioned commands, never a command that builds model inputs:
+  `preprocess_data` receives dataset-level predicates only. Through SLURM the two are `PREDICATES_FILE` and
+  `TASK_PREDICATES_FILE`. Through MEDS-DEV there is no conflict, because its task YAMLs carry their label
+  predicates and `{predicates_path}` holds dataset facts only.
+- Those commands receive the task index through `external_labels_dir` for its keys only. They MUST read it
+  through `meds_model_contract.read_index`, or an equivalent that never selects a label column.
+- Through MEDS-DEV, the criteria path reaches `model.yaml` as `{task_criteria_path}` (MEDS-DEV PR #330):
+  the `task_criteria_path` argument, else the registered criteria file of `task_name`. MEDS-DEV forwards
+  the original task; relaxing it is the model's job.
+
+Non-zero-shot profiles MAY accept the same argument but do not require it, and record `semantics_digest:
+null`.
 
 ## 3. Commands and model profiles
 
@@ -64,11 +111,56 @@ Commands not present in the selected model profile are unsupported, not successf
 | `zero_shot_materialized` | `preprocess_data`, `pretrain`, `infer`, `predict` |
 | `packaged` | `preprocess_data`, `predict` |
 
+`packaged` has no training command: anything the model learns from this dataset's labels happens inside
+`predict`, from the training and tuning splits only (in-context learning, as in a prior-data fitted
+network). A fixed model shipped with its weights or coefficients, such as a published risk score, uses the
+same profile and reads no label. A `packaged` `predict` MAY accept `external_task_criteria_file` and record
+it as provenance; it does not require it.
+
 `preprocess_data` produces an implementation-defined patients/data artifact. `pretrain` produces a
 task-independent model artifact. `infer` produces reusable task-independent information at requested
 timepoints. `supervised_train` produces a task-specific model artifact. `predict` produces the normative
 final output. The selected model profile defines which artifact types may connect; payload compatibility is declared
 by producer and checked by consumer.
+
+### 3.1 Zero-shot prediction
+
+A zero-shot model maps *(task specification, label-blind index, MEDS dataset)* to *predictions* with no
+task-specific training. The two zero-shot profiles differ in **how the model answers**, not in how the
+code is organized:
+
+| Profile | The model... | `infer` | `predict` | Examples |
+|---|---|---|---|---|
+| `zero_shot_direct` | answers a query derived from the task directly (a probability, hazard, or score per query) | none | translates the task into the model's queries, runs the model, decodes probabilities | MOTOR (time-to-event hazards), EveryQuery (code-in-window queries) |
+| `zero_shot_materialized` | generates (*materializes*) possible futures, and the task is evaluated on them | task-independent: futures at the index's prediction times, reusable across tasks | applies the task to the materialized futures (e.g. ACES over each sampled trajectory) and aggregates | autoregressive EHR generators |
+
+In `zero_shot_materialized`, `infer` never receives the task and records `semantics_digest: null`. Its `predict`
+receives `external_meds_dir`, because the task is evaluated on the real history plus each generated future. Its
+output serves every task over the same index. Only `predict` is task-conditioned. A materialized model
+can usually evaluate the task exactly, past criteria included, because ACES runs on the real history plus
+the generated future. Its ledger then lists only the sampling approximation. A direct model reduces the
+task to its query language, and its ledger lists every reduction. Intermediate payloads are
+implementation-defined, as in section 4.
+
+**Relaxations.** Most zero-shot models cannot answer an arbitrary ACES task exactly; they answer a related
+question their query language can express. Every zero-shot run MUST therefore publish `relaxations.yaml`
+(`meds_model_contract.RelaxationLedger`) in a task-conditioned artifact. Three fields are required:
+
+```yaml
+query_language: MOTOR first-occurrence time-to-event over task-head codes   # required
+decoded_quantity: P(any of {MEDS_DEATH} first occurs before the first of {ICU_DISCHARGE, MEDS_DEATH})  # required
+exact: false                                                                # required
+steps:                                                                      # free-form, recommended
+  - {name: normalize, kind: label_preserving, direction: exact, detail: re-rooted at the prediction time}
+  - {name: label_only, kind: model_assumption, direction: unknown, detail: dropped 2 criteria branches}
+```
+
+`exact: true` is a claim that the decoded quantity is the requested label's probability under the model;
+an exact model lists no steps. Each entry of `steps` describes one rewrite or assumption; its keys are not
+validated, and the implementation guide recommends a vocabulary for them. A model MUST raise rather than
+answer a task it cannot pose (for example, a direct model given a task whose label is not future-only):
+the command fails and writes no predictions. A model MUST NOT omit a step because it is expected to be
+small.
 
 ## 4. Intermediate artifacts
 
@@ -83,25 +175,45 @@ artifact:
   producer: importable-or-external-implementation-id
 command:
   name: preprocess_data | pretrain | infer | supervised_train | predict
-  config_digest: sha256:...
+  config_digest: sha256:...  # digest_config(arguments + resolved model-owned settings)
+code:
+  git_commit: <sha> | null   # null outside a git checkout
+  dirty: true | false | null # whether the working tree had uncommitted changes
 inputs: {}
-semantics_digest: null
+semantics_digest: null | sha256:...  # TaskSpec digest for task-conditioned artifacts (section 2.4)
 resources: {}
 ```
 
-Inputs MUST include stable identifiers or digests, including an external predicates digest when the
-command consumes one. Consumers MUST reject incompatible artifact type,
-contract version, or payload format before doing expensive work.
+`config_digest` is `meds_model_contract.digest_config` over the command's arguments plus any model-owned
+settings it resolved (defaults, configuration files), so two artifacts made with the same configuration
+share it. `code` is recorded automatically by `measured_artifact`: a run from a modified tree is
+identifiable as such. Inputs MUST include stable identifiers or digests, including an external predicates
+digest when the command consumes one. Consumers MUST reject incompatible artifact type, contract version,
+or payload format before doing expensive work.
+
+Each artifact is its own directory, published by atomically replacing that directory. Artifacts MUST NOT
+be nested inside one another: `infer` writes to `output_inference_dir`, a sibling of the data and
+predictions directories, never to a subdirectory of the shared `patients` artifact, so runs over different
+indexes or splits cannot overwrite each other. In a MEDS-DEV run directory the layout is `data/`,
+`pretrained/`, `model/`, `inference/`, `predictions/`, next to MEDS-DEV's own files.
 
 ## 5. Final predictions
 
-Predictions MUST conform to the current MEDS evaluation prediction schema. They MUST contain exactly one
+Predictions MUST conform to the prediction schema of the meds-evaluation version MEDS-DEV evaluates with
+(currently `meds-evaluation==0.0.3`, `validate_binary_classification_schema`). MEDS-DEV evaluates every
+`**/*.parquet` under the predictions directory, so every parquet file in the predictions artifact MUST be a
+predictions file; supporting tables (for example a zero-shot query bundle) use another format, such as
+Arrow IPC. Predictions MUST contain exactly one
 row for every requested `(subject_id, prediction_time)` unless an explicitly declared exclusion policy
 permits otherwise. Keys MUST be unique. Row order is not meaningful and MUST never be used to associate
 outputs with keys. Extra output columns are permitted only when documented by the selected task/output
 kind. Conformance tests MUST compare actual prediction keys directly with the requested evaluation index;
 self-reported coverage counts are not proof of coverage. Manifests MAY include coverage counts as diagnostic
 metadata. Any exclusion policy MUST identify its excluded keys so tests can validate the resulting index.
+
+Zero-shot predictions are evaluated against the labels of the *requested* task, never the relaxed one: the
+relaxation is part of the model. The prediction artifact MUST carry or reference the `relaxations.yaml` that
+produced it, so a reader can tell model error from relaxation error.
 
 ## 6. Measurements
 
@@ -139,7 +251,14 @@ portable pass/fail thresholds.
   prediction keys, schema, manifests, and resource blocks. A stub MAY skip explicitly during initial
   implementation; a completed port MUST have zero stub skips.
 - The model-owned end-to-end adapters MUST identify the labels/evaluation index and evaluated splits so
-  generic tests can compare requested and written prediction keys directly.
+  generic tests can compare requested and written prediction keys directly. `run_e2e` MUST also return the
+  exact `predict` arguments it used, and MUST apply `tests.signal.add_split_canaries` to its fixture and
+  return the canaries. `fitted_codes` MUST report every code the model fitted a population statistic for,
+  read from its artifacts.
+- `meds-model-add-to-meds-dev` (`meds_model_contract.meds_dev.register`) installs `model.yaml` and
+  `requirements.txt`, with the repository as an editable requirement, into a MEDS-DEV checkout. A
+  top-level `predicates.yaml` is copied as well when the repository has one. MEDS-DEV's own dataset
+  predicates remain the default (section 2.3).
 - `slurm/submit.sh --dry-run` MUST print the model-profile submission without mutation. `slurm/submit.sh`
   MUST submit the selected model profile with dependencies, per-stage resources, durable results, and no interactive-shell
   dependency.
@@ -158,6 +277,16 @@ portable pass/fail thresholds.
 The generated repository MUST test command discovery, selected-model-profile consistency, artifact compatibility,
 atomic publication, predicate provenance, prediction key coverage/uniqueness, absence of label
 leakage and of transductive fitting (section 2.1), resource measurement presence, `model.yaml`, SLURM
-dry-run, and its real end-to-end chain.
+dry-run, and its real end-to-end chain. The rendered `tests/test_end_to_end.py` does so in one real run:
+
+- **Label leakage:** `predict` is run again on a copy of the index whose evaluated splits have no label
+  column (every split for zero-shot profiles), and MUST still cover every key. Any read of an evaluated
+  split's labels fails. `attach_ground_truth` returns predictions unchanged on an unlabelled index.
+- **Transductive fitting:** every tuning and held-out subject carries a canary code that occurs in no
+  training subject. None of the canaries may appear in `fitted_codes`.
+- **Configuration:** every manifest carries a `config_digest`.
+
+A zero-shot repository additionally tests that task-conditioned manifests carry the task's semantics
+digest and that a valid `relaxations.yaml` is published.
 MIMIC-IV demo conformance is opt-in through a `real_data` pytest marker; a normal test run MUST NOT
 download it.
