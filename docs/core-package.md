@@ -1,7 +1,7 @@
 # Shared core package
 
 The core lives in its own [repository](https://github.com/florian6973/meds-model-core), pinned by the template to an immutable commit.
-See its [layout and usage](https://github.com/florian6973/meds-model-core/blob/a86a72c89098d648ed9a605ba46dbd00d2aefca4/README.md) for its artifact, runtime, task, evaluation, integration and conformance APIs.
+See its [layout and usage](https://github.com/florian6973/meds-model-core/blob/a16ba1d5e6837bb0d50120cdf2e09b348745c964/README.md) for its artifact, runtime, task, evaluation, integration and conformance APIs.
 The [specification](reference/spec.md) below is rendered from the installed dependency, so the site
 and generated models use the same version without copying the contract into this repository.
 

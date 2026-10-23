@@ -6,7 +6,10 @@ from meds_model_core.conformance.types import E2EResult, MEDSDevRun
 def run_e2e(tmp_path, *, profile: str, **inputs):
     """Run every selected step into tmp_path, honoring all external inputs and split overrides.
 
-    Return E2EResult with external_meds_dir and all task inputs recorded in inputs. Conformance reruns
+    Return E2EResult with seed, external_meds_dir and all task inputs recorded in inputs. Apply the seed
+    to every RNG/framework/subprocess and use deterministic fixture settings. Conformance compares
+    keyed scores across reruns (rtol=1e-6, atol=1e-8); stochastic production runs remain model-owned.
+    Conformance reruns
     this hook with evaluated outcomes removed. Reuse supplied histories, not an old prepared artifact;
     emit fresh artifacts below tmp_path. Training/context splits retain their permitted labels.
     """

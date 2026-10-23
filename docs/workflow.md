@@ -37,7 +37,7 @@ end-to-end tests skip with an explicit `model_stub` reason until the real model 
 Implement every command in the union of declared profiles, `tests/e2e.py`, `models/<profile>/model.yaml`, and `slurm/config.sh`. In
 `tests/e2e.py`, `run_e2e` runs the real profile on a small fixture to which it applies
 `meds_model_core.conformance.signal.add_split_canaries`, and returns the artifacts, the evaluated index and splits, the exact
-`predict` arguments and the canaries; `fitted_codes` reports every code the model fitted a population
+external inputs, deterministic fixture seed and the canaries; `fitted_codes` reports every code the model fitted a population
 statistic for; `prepare_meds_dev_run` configures the MEDS-DEV run. Complete `tests/test_primary_behavior.py`,
 which fails on purpose until it shows the model's claimed behavior on a known signal, with a negative
 control. Record every source element as ported, adapted or omitted in `IMPLEMENTATION_REPORT.md`.

@@ -25,4 +25,8 @@ validates scientific compatibility. Core also supplies `meds-model-add-to-meds-d
 
 Model-owned adapters remain `run_e2e(tmp_path, *, profile, **inputs)`, `fitted_codes(artifacts)`, and
 `prepare_meds_dev_run(meds_dev, tmp_path, *, profile)`. The shared lifecycle check reruns the selected
-profile with evaluated labels removed and fresh outputs; adapters must honor those input overrides.
+profile with evaluated labels removed and fresh outputs; adapters must honor those input overrides,
+record and apply the fixture seed, and produce reproducible keyed scores. Use `read_predictions` from
+`conformance.assertions` to validate all shards. For separate context/evaluation directories, supply
+`evaluation_index_dir` to `read_context_labels`. `conformance.reports.assert_implementation_report`
+validates shared evidence and completed profiles independently of unfinished profiles.

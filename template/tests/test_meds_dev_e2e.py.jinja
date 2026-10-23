@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from meds_model_core.integrations.meds_dev import register
+from meds_model_core.conformance.assertions import read_predictions
 from {{ model_slug }}.commands import STUB_PROFILES, PROFILES
 
 from meds_model_core.conformance.meds_dev import RUN_TIMEOUT, assert_prediction_keys, assert_prediction_schema, provision_meds_dev, run, venv_bin
@@ -25,7 +26,6 @@ def meds_dev(request, tmp_path_factory):
 def test_meds_dev_runs_model_yaml(meds_dev, tmp_path, profile):
     if profile in STUB_PROFILES:
         pytest.skip("model_stub: implement this profile")
-    import polars as pl
     import yaml
 
     from .e2e import prepare_meds_dev_run
@@ -35,8 +35,7 @@ def test_meds_dev_runs_model_yaml(meds_dev, tmp_path, profile):
     prepared = prepare_meds_dev_run(meds_dev, tmp_path, profile=profile)
     run([venv_bin(meds_dev) / "meds-dev-model", f"model={registered.name}", *prepared.args], timeout=RUN_TIMEOUT)
 
-    predictions_file = prepared.predictions_dir / "predictions.parquet"
-    predictions = pl.read_parquet(predictions_file)
+    predictions = read_predictions(prepared.predictions_dir)
     assert_prediction_schema(predictions)
     assert predictions.height > 0
     assert predictions.select("subject_id", "prediction_time").unique().height == predictions.height

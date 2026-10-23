@@ -217,3 +217,26 @@ def test_rendered_spec_points_to_core_and_contract_is_not_copied(multi):
     assert not (multi / "src/meds_model_core").exists()
     assert "meds-model-core-spec" in (multi / "SPEC.md").read_text()
     assert not (multi / "docs/SOFTWARE_CONTRACT.md").exists()
+
+
+def test_rendered_report_gate_checks_completed_profile_with_other_stubs(multi):
+    script = """
+import importlib.util
+from pathlib import Path
+from multi_model.commands import STUB_PROFILES
+spec = importlib.util.spec_from_file_location('report_gate', Path('tests/test_report.py'))
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+module.test_completed_model_has_a_completed_report()
+STUB_PROFILES.remove('supervised')
+module.test_completed_model_has_a_completed_report()
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=multi,
+        env={**os.environ, "PYTHONPATH": str(multi / "src")},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "Incomplete implementation report: Source" in result.stderr

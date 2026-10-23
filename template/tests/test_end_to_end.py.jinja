@@ -8,6 +8,6 @@ def test_end_to_end(tmp_path, profile):
     if profile in STUB_PROFILES:
         pytest.skip("model_stub: implement commands and the repository-specific run_e2e adapter")
     from .e2e import fitted_codes, run_e2e
-    result = run_e2e(tmp_path / "run", profile=profile)
+    result = run_e2e(tmp_path / "run", profile=profile, seed=0)
     assert_profile_run(result, profile=profile, run_e2e=run_e2e,
                        fitted_codes=fitted_codes, tmp_path=tmp_path)

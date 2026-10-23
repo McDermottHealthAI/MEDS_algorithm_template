@@ -137,7 +137,8 @@ a `bundle/` subdirectory), so decode choices stay inspectable.
 Nothing is trained on this dataset's labels before `predict_only`. Two kinds of model fit here:
 
 - **In-context learners**, such as prior-data fitted networks (TabPFN-style). `predict_only` reads labelled
-  examples from the training and tuning splits through `meds_model_core.read_context_labels`, which
+  examples from the training and tuning splits through `meds_model_core.read_context_labels`, passing
+  `evaluation_index_dir=external_index_dir` when the evaluation index is separate. This helper
   refuses the evaluated splits, and predicts the evaluated split's keys in the same forward pass. Record
   the context splits, the number of context rows, and any subsampling in the predictions manifest.
 - **Fixed models** shipped with their weights or coefficients, such as a published risk score. `predict_only`
@@ -155,10 +156,14 @@ and the pinned `mortality/in_icu/first_24h` task through MEDS-DEV and reuses its
 `tests/test_end_to_end.py` also checks label leakage and transductive fitting on the same run, so the
 local adapter must:
 
-- return `E2EResult` from `meds_model_core.conformance.types`, recording `external_meds_dir` and all task
+- return `E2EResult` from `meds_model_core.conformance.types`, recording the integer `seed`, `external_meds_dir` and all task
   inputs in `inputs`. The shared checker reruns the full lifecycle with forbidden labels removed and
   fresh output paths. Honor every external input override; preserve permitted training/context labels.
   `attach_ground_truth(predictions, labels_dir, splits)` supports an entirely unlabelled index.
+  Apply the same seed to every RNG, framework and subprocess; use deterministic fixture execution.
+  Original and label-blind probabilities must agree by key (`rtol=1e-6`, `atol=1e-8`), and any Boolean
+  decisions must agree exactly. Keep training labels, index and evaluation-label paths separate in
+  `inputs` when they are separate on disk; the checker sanitizes each independently.
 - apply `meds_model_core.conformance.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
   canaries (`E2EResult.canaries`).
 - implement `fitted_codes`: every code the model fitted a population statistic for (vocabulary, frequency
