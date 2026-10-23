@@ -8,6 +8,17 @@ artifact manifests, final MEDS predictions, measurements, MEDS-DEV, SLURM, and G
 leaving preprocessing, featurization, intermediate formats, frameworks, batching, and model execution to
 the generated repository.
 
+## Documentation
+
+This README is written for coding agents that port models. For a human-oriented explanation of the
+contract (concepts, choosing a profile, zero-shot models, the gate workflow, running, and reference), read
+the documentation site: https://florian6973.github.io/MEDS_model_template/ (built from `docs/` by
+`.github/workflows/docs.yml`). Preview it locally with:
+
+```bash
+uv run --group docs mkdocs serve
+```
+
 ## Render a repository
 
 From the root of this checkout:

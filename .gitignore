@@ -36,3 +36,4 @@ multirun/
 lightning_logs/
 mlruns/
 wandb/
+site/
