@@ -1,90 +1,13 @@
-"""End-to-end contract test for this rendered repository's real implementation.
-
-Replace ``run_e2e`` and ``fitted_codes`` in `tests/e2e.py` with fixture preparation, command arguments, and
-artifact reading appropriate to the model. A completed port must have no `model_stub` skip.
-
-One run of the real profile backs every check below, so the most expensive step happens once.
-"""
-
-from pathlib import Path
-
+"""Model-owned execution adapters run shared core conformance for every declared profile."""
 import pytest
+from meds_model_core.conformance.end_to_end import assert_profile_run
+from {{ model_slug }}.commands import STUB_PROFILES, PROFILES
 
-from meds_model_contract import MODEL_PROFILES, {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}ZERO_SHOT_TASK_COMMANDS, RelaxationLedger, TaskSpec, {% endif %}read_manifest
-from {{ model_slug }}.commands import IS_STUB
-
-
-def _strip_labels(labels_dir: Path, destination: Path, splits) -> Path:
-    """Copy the index, keeping only the keys of the given splits' files (every file when ``splits`` is None)."""
-    import polars as pl
-
-    from meds_model_contract import split_files
-
-    stripped = set(split_files(labels_dir, splits)) if splits else None
-    for path in sorted(Path(labels_dir).rglob("*.parquet")):
-        target = destination / path.relative_to(labels_dir)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        if stripped is None or path in stripped:
-            pl.read_parquet(path, columns=["subject_id", "prediction_time"]).write_parquet(target)
-        else:
-            pl.read_parquet(path).write_parquet(target)
-    return destination
-
-
-def test_end_to_end(tmp_path: Path):
-    if IS_STUB:
+@pytest.mark.parametrize("profile", PROFILES)
+def test_end_to_end(tmp_path, profile):
+    if profile in STUB_PROFILES:
         pytest.skip("model_stub: implement commands and the repository-specific run_e2e adapter")
-    from {{ model_slug }}.__main__ import REPOSITORY
-
     from .e2e import fitted_codes, run_e2e
-    from .integration import assert_prediction_keys
-
-    result = run_e2e(tmp_path / "run")
-    artifacts = result.artifacts
-    assert list(artifacts) == [command.value for command in MODEL_PROFILES["{{ profile }}"]]
-    for command, directory in artifacts.items():
-        manifest = read_manifest(directory)
-        assert manifest["command"]["name"] == command
-        assert str(manifest["command"]["config_digest"]).startswith("sha256:"), f"{command} has no config digest"
-        resources = manifest["resources"]
-        assert resources["wall_seconds"] >= 0
-        assert resources["memory"]["peak_process_tree_rss_bytes"] > 0
-    prediction_manifest = read_manifest(artifacts["predict"])
-    assert prediction_manifest["artifact"]["type"] == "predictions"
-    assert_prediction_keys(artifacts["predict"], result.labels_dir, result.splits)
-
-    # Absence of label leakage (SPEC 2.2): predict runs on an index whose evaluated splits have no label
-    # column{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %} (here: every split, since a zero-shot model reads no label at all){% endif %}, so any code path that
-    # reads them fails here. This needs only one extra predict, and no determinism.
-    assert result.predict_arguments, "run_e2e must return the predict_arguments it used"
-    unlabelled = _strip_labels(
-        result.labels_dir,
-        tmp_path / "unlabelled-index",
-        {% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}None{% else %}result.splits{% endif %},
-    )
-    blind = tmp_path / "unlabelled-predictions"
-    REPOSITORY.run(
-        "predict",
-        {**result.predict_arguments, "external_labels_dir": str(unlabelled), "output_predictions_dir": str(blind)},
-    )
-    assert_prediction_keys(blind, result.labels_dir, result.splits)
-
-    # Absence of transductive fitting (SPEC 2.1): codes that occur only in tuning or held-out subjects must
-    # not be part of anything the model fitted.
-    assert set(result.canaries) == {"tuning", "held_out"}, (
-        "run_e2e must apply tests.signal.add_split_canaries to its fixture and return the canaries"
-    )
-    leaked = set(result.canaries.values()) & set(fitted_codes(artifacts))
-    assert not leaked, f"statistics were fitted over non-training splits: {sorted(leaked)}"
-{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}
-    # Zero-shot: every task-conditioned artifact names its task, and a ledger is published (SPEC 2.4, 3.1).
-    task = TaskSpec.from_arguments(result.inputs)
-    for command in ZERO_SHOT_TASK_COMMANDS["{{ profile }}"]:
-        manifest = read_manifest(artifacts[command.value])
-        assert manifest["semantics_digest"] == task.semantics_digest(), f"{command.value} is not bound to the task"
-        assert manifest["inputs"]["task"]["criteria_file"]["digest"].startswith("sha256:")
-    ledgers = [path.parent for d in artifacts.values() for path in Path(d).rglob("relaxations.yaml")]
-    assert ledgers, "every zero-shot run must publish relaxations.yaml"
-    for directory in ledgers:
-        RelaxationLedger.read(directory)  # raises unless query_language, decoded_quantity, and exact are set
-{% endif %}
+    result = run_e2e(tmp_path / "run", profile=profile, seed=0)
+    assert_profile_run(result, profile=profile, run_e2e=run_e2e,
+                       fitted_codes=fitted_codes, tmp_path=tmp_path)

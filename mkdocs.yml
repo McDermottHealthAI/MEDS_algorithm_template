@@ -5,6 +5,9 @@ site_description: >-
 repo_url: https://github.com/florian6973/MEDS_model_template
 repo_name: florian6973/MEDS_model_template
 edit_uri: edit/main/docs/
+hooks:
+  - docs/hooks.py
+
 docs_dir: docs
 strict: true
 validation:
@@ -65,9 +68,11 @@ nav:
   - Building a model:
       - Workflow: workflow.md
       - Running a model: running.md
+      - Migrating to version 3: migration-v3.md
+      - Template and shared package: shared-package-assessment.md
+      - Core package layout: core-package.md
   - Zero-shot models:
       - Zero-shot in practice: zero-shot.md
-      - Design notes: ZERO_SHOT.md
   - Reference:
       - Specification (normative): reference/spec.md
       - Manifest fields: reference/manifest.md

@@ -29,26 +29,18 @@ schema.
 
 ## The task index (built upstream)
 
-A *task* reaches the model as an **index**, passed as `external_labels_dir`. The index files hold two kinds
-of column:
+An upstream task extraction can store both keys and outcomes. Inference/scoring receives its key-only
+view as `external_index_dir`; training receives permitted targets through `external_labels_dir`:
 
 - **keys**: `(subject_id, prediction_time)`, the rows to predict, in every split;
 - **labels**: a value column such as `boolean_value`.
 
 ### Who reads which labels
 
-Labels of an **evaluated split** are never read to produce a prediction. Which other labels a command may
-read depends on the profile:
-
-| Reader | Labels it may read |
-|---|---|
-| `supervised_train` | training and tuning splits |
-| `predict` in `supervised`, `finetune`, `probe` | none: the task was learned in `supervised_train` |
-| `predict` in `packaged` | training and tuning splits, as in-context examples (e.g. a prior-data fitted network), through `read_context_labels`; none for a fixed model such as a published risk score |
-| every command of a `zero_shot_*` profile | none: reading any label would make it few-shot |
-| `infer` | none (keys only, for the split it processes) |
-
-Every command that predicts reads the keys of the evaluated split.
+Keys identify where to predict; ground-truth values describe what happened. They are not interchangeable.
+The [canonical argument table](reference/spec.md#step-arguments-and-artifacts) defines each step's access.
+Inference and ordinary scoring read only keys. The core index reader projects those columns at Parquet
+read time, even when MEDS-DEV supplies a directory whose files also contain outcomes.
 
 The index is never built in the model repository. One ACES extraction, run upstream, applies the task's
 trigger, inclusion/exclusion criteria and splits, so every model scores exactly the same rows:
@@ -67,8 +59,8 @@ it is supposed to be blind to.
 
 ### Reading labels: the one rule
 
-The table above is the whole rule: evaluated-split labels are never read, and only `supervised_train`
-and a `packaged` in-context learner read train/tuning labels. There is exactly one sanctioned exception: once every probability is final, `predict` may join the label column onto the predictions by
+The contract rule is: evaluated-split labels are never read, and only `train_supervised` / `train_finetune` / `train_probe`
+and a `predict_only` in-context learner read train/tuning labels. There is exactly one sanctioned exception: once every probability is final, `predict` may join the label column onto the predictions by
 key (`attach_ground_truth`), because meds-evaluation reads ground truth from the predictions file. Nothing
 computed from that join may feed back into a prediction.
 
@@ -113,9 +105,9 @@ Every command publishes one **artifact**: a directory containing whatever payloa
 ```mermaid
 flowchart LR
     p[preprocess_data] -->|patients| pt[pretrain]
-    pt -->|pretrained_model| i[infer]
-    i -->|inference| st[supervised_train]
-    st -->|supervised_model| pr[predict]
+    pt -->|pretrained_model| i[infer_embeddings]
+    i -->|embeddings| st[train_probe]
+    st -->|probe_model| pr[predict_probe]
     pr -->|predictions| out[(final output)]
 ```
 
@@ -125,22 +117,23 @@ flowchart LR
 |---|---|---|
 | `patients` | `preprocess_data` | the model's own representation of the dataset |
 | `pretrained_model` | `pretrain` | a task-independent model |
-| `inference` | `infer` | reusable, task-independent information at the requested timepoints (embeddings, generated futures, …) |
-| `supervised_model` | `supervised_train` | a task-specific model |
+| `embeddings` / `trajectories` | `infer_embeddings` / `infer_trajectories` | separate task-independent representations and generated futures |
+| `supervised_model` / `finetuned_model` / `probe_model` | `train_supervised` / `train_finetune` / `train_probe` | a complete task-specific inference bundle |
 | `predictions` | `predict` | the normative final output |
 
-Three properties hold for every artifact:
+Four properties hold for every artifact:
 
 - **The payload format is the model's.** The manifest declares it (`payload_format: name/version`), and
   consumers reject an incompatible type, contract version or payload format *before* doing expensive work.
-- **Publication is atomic.** The command works in a staging directory and writes `manifest.yaml` last;
-  the staging directory then replaces the destination in one step. A crashed command leaves no
-  half-written artifact behind.
+- **Publication preserves complete artifacts.** The command writes its manifest last in unique staging.
+  New outputs appear by one rename. Overwrite retains the old output until replacement succeeds and
+  restores it on failure; readers may briefly see no destination during the two renames. Process crashes
+  can leave recovery files. See [publication behavior](reference/manifest.md).
 - **Inputs and configuration are traceable.** The manifest records stable identifiers or digests of its
   inputs (including the predicates digest and, for task-conditioned artifacts, the task's provenance and
   digest), a `config_digest` over the command's arguments and resolved settings, and the git commit and
   dirty state of the code that produced it.
-- **Artifacts are never nested.** Each artifact is its own directory; `infer`, for example, writes a
+- **Artifacts are never nested.** Each artifact is its own directory; `infer_embeddings`, for example, writes a
   sibling of the data artifact rather than a subdirectory of it, so runs over different indexes cannot
   overwrite each other.
 

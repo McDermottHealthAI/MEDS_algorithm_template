@@ -46,20 +46,21 @@ supporting tables — a zero-shot query bundle, a coverage table — in another 
 
 ## How do the tests catch label leakage and transductive fitting?
 
-In the same real run as the end-to-end test:
+The end-to-end check validates the original run and a fresh full-lifecycle rerun:
 
-- **Label leakage:** `predict` is run again, with the exact arguments `run_e2e` used, on a copy of the
-  index whose evaluated splits have no label column (every split, for zero-shot profiles, which read no
-  label at all). It must still cover every key, so any read of an evaluated split's labels fails. A
-  `packaged` in-context learner keeps its train/tuning context.
-- **Transductive fitting:** `tests.signal.add_split_canaries` gives every tuning and held-out subject a
+- **Label leakage:** every stage runs again with evaluated outcome columns removed (all outcomes for
+  zero-shot). Separate input roots remain separate; permitted training/context labels are retained.
+  Both runs use the recorded fixture seed and deterministic settings. They must produce the same keyed
+  scores within the contract's tolerance. Original and rerun probabilities are checked across every shard.
+- **Transductive fitting:** `meds_model_core.conformance.signal.add_split_canaries` gives every tuning and held-out subject a
   canary code that no training subject has. Your `fitted_codes(artifacts)` hook reports every code the
   model fitted a statistic for (vocabulary, frequencies, bins); no canary may appear in it.
 
 ## Can a non-zero-shot model use the ACES task?
 
-It may accept `external_task_criteria_file`, but it is not required to, and its artifacts record
-`semantics_digest: null`. Supervised, finetune and probe models learn the task from its labels.
+Only `predict_only` may accept optional `external_task_criteria_file` as provenance, with
+`semantics_digest: null`. Other non-zero-shot commands reject it. Supervised, finetune and probe models
+learn the task from its labels.
 
 ## What does `scripts/github-sync.sh` push?
 

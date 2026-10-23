@@ -5,10 +5,16 @@
 - Paper/repository: {{ implementation_source if implementation_source else 'TODO' }}
 - Exact revision/version: TODO
 
-## Model profile choice
+## Profile choices
 
-- Selected model profile: `{{ profile }}`
-- Justification: TODO
+{% for profile in profiles %}### {{ profile }}
+
+- Lifecycle justification: TODO
+- Implemented command classes and payload formats: TODO
+- Frozen/fitted parameters and permitted label access: TODO
+- Local and MEDS-DEV evidence for this profile: TODO
+
+{% endfor %}
 
 ## Source-element ledger
 
@@ -16,7 +22,7 @@
 |---|---|---|---|
 | TODO | TODO | TODO | TODO |
 
-{% if profile == 'zero_shot_direct' %}## Zero-shot task translation
+{% if 'zero_shot_direct' in profiles %}## Zero-shot task translation
 
 - Query language of the model: TODO
 - Task -> model query (`encode`), including use of aces-relaxations: TODO
@@ -24,10 +30,10 @@
 - Relaxations per evaluated task (attach each `relaxations.yaml`; state which are `exact`): TODO
 - Tasks rejected as not posable (not future-only, degenerate, outside the vocabulary): TODO
 
-{% elif profile == 'zero_shot_materialized' %}## Zero-shot materialization
+{% endif %}{% if 'zero_shot_materialized' in profiles %}## Zero-shot materialization
 
-- What `infer` generates (samples per row, generation horizon, stopping rule): TODO
-- How `predict` evaluates the ACES task on history plus generated futures, and aggregates: TODO
+- What `infer_trajectories` generates (samples per row, generation horizon, stopping rule): TODO
+- How `predict_zero_shot_materialized` evaluates the task on history plus futures, and aggregates: TODO
 - Ledger per evaluated task (sampling approximation; horizon or unresolvable-future effects): TODO
 - Tasks that cannot be evaluated on generated data, and why: TODO
 

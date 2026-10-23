@@ -7,4 +7,4 @@ set -euo pipefail
 : "${MEDS_MODEL_ARGS_FILE:?MEDS_MODEL_ARGS_FILE is required}"
 
 mapfile -t model_args < "$MEDS_MODEL_ARGS_FILE"
-meds-model "$MEDS_MODEL_COMMAND" "${model_args[@]}" "$@"
+meds-model "$MEDS_MODEL_COMMAND" --profile "${PROFILE:?PROFILE is required}" "${model_args[@]}" "$@"

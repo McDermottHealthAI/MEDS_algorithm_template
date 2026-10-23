@@ -10,7 +10,7 @@ architecture.
 
 ## 2. Justify the model profile
 
-This repository selected the `{{ profile }}` model profile. Confirm that its commands match the source's actual
+This repository declares `{{ profiles | join(', ') }}`. Justify each profile separately. Confirm that its commands match the source's actual
 training and prediction lifecycle. Record the justification in `IMPLEMENTATION_REPORT.md`; do not change
 graphs merely to avoid implementing a stage.
 
@@ -29,25 +29,27 @@ establish compatibility with another dataset; keep the provided demo code and pr
 
 ## 4. Implement commands
 
-Implement every class registered in `COMMANDS`. Preserve standard external arguments. Choose and version
-intermediate payload formats, reject incompatible inputs before expensive work, publish atomically, and
+Read [installed core contract](../SPEC.md), then implement every class registered in `COMMANDS`.
+Keep shared preprocessing/pretraining task-independent. Prediction must receive its prepared data or embeddings explicitly and check compatibility with
+the fitted model. Probe prediction applies the head; it does not rerun the encoder. Preserve standard external arguments. Choose and version
+intermediate payload formats, reject incompatible inputs before expensive work, publish with rollback, and
 record input digests and measurements. Frameworks, subprocesses, services, batching, and non-batched
 systems are all allowed.
 
-{% if profile in ['zero_shot_direct', 'zero_shot_materialized'] %}### Zero-shot: task in, probabilities out
+{% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}### Zero-shot: task in, probabilities out
 
 This profile receives the task itself (SPEC.md sections 2.4 and 3.1). The contract requires only the task
 argument, a label-blind index, the semantics digest, complete predictions, and `relaxations.yaml`. How
 the model gets from the task to predictions is its own.
-{% endif %}{% if profile == 'zero_shot_materialized' %}
+{% endif %}{% if 'zero_shot_materialized' in profiles %}
 This profile is for models that **generate futures** (for example, autoregressive EHR generators). If the
 model instead answers queries directly (hazards, code-in-window probabilities), it belongs in
 `zero_shot_direct`.
 
-1. **`infer`** (task-independent) generates futures from each index row's history up to its
+1. **`infer_trajectories`** (task-independent) generates futures from each index row's history up to its
    `prediction_time`: for example, N sampled trajectories per row. It does not receive the task, so one
-   `infer` run serves every task over the same index.
-2. **`predict`** (task-conditioned) evaluates the ACES task on each row's real history plus each generated
+   `infer_trajectories` run serves every task over the same index.
+2. **`predict_zero_shot_materialized`** (task-conditioned) evaluates the ACES task on each row's real history plus each generated
    future, for example with ACES or `aces_relaxations.extract_at`. It reports the fraction of futures in
    which the label is true as `predicted_boolean_probability`.
 
@@ -57,12 +59,12 @@ horizon). Record as approximations anything that does change the answer: a gener
 than the label window, futures that end before the task can resolve, or criteria that cannot be checked
 on generated data. Do not reject a task only because it is not future-only: its past criteria are
 evaluated on real history.
-{% endif %}{% if profile == 'zero_shot_direct' %}
+{% endif %}{% if 'zero_shot_direct' in profiles %}
 This profile is for models that **answer queries directly** (for example, MOTOR's time-to-event hazards or
 EveryQuery's code-in-window probabilities). If the model instead generates futures and evaluates the task
 on them, it belongs in `zero_shot_materialized`. The recommended shape is an `aces-to-<model>` adapter
 built on [`aces-relaxations`](https://github.com/McDermottHealthAI/aces-relaxations), with three steps,
-all inside `predict`:
+all inside `predict_zero_shot_direct`:
 
 ```python
 from abc import ABC, abstractmethod
@@ -70,7 +72,7 @@ from pathlib import Path
 
 import polars as pl
 
-from meds_model_contract import RelaxationLedger, TaskSpec
+from meds_model_core import RelaxationLedger, TaskSpec
 
 
 class ZeroShotTranslator(ABC):
@@ -130,45 +132,51 @@ tasks it can answer exactly, approximately, or not at all.
 Publish the query, the raw outputs, and `relaxations.yaml` inside the predictions artifact (for example in
 a `bundle/` subdirectory), so decode choices stay inspectable.
 
-{% endif %}{% if profile == 'packaged' %}### Packaged: no training command
+{% endif %}{% if 'predict_only' in profiles %}### Predict-only: no training command
 
-Nothing is trained on this dataset's labels before `predict`. Two kinds of model fit here:
+Nothing is trained on this dataset's labels before `predict_only`. Two kinds of model fit here:
 
-- **In-context learners**, such as prior-data fitted networks (TabPFN-style). `predict` reads labelled
-  examples from the training and tuning splits through `meds_model_contract.read_context_labels`, which
+- **In-context learners**, such as prior-data fitted networks (TabPFN-style). `predict_only` reads labelled
+  examples from the training and tuning splits through `meds_model_core.read_context_labels`, passing
+  `evaluation_index_dir=external_index_dir` when the evaluation index is separate. This helper
   refuses the evaluated splits, and predicts the evaluated split's keys in the same forward pass. Record
   the context splits, the number of context rows, and any subsampling in the predictions manifest.
-- **Fixed models** shipped with their weights or coefficients, such as a published risk score. `predict`
+- **Fixed models** shipped with their weights or coefficients, such as a published risk score. `predict_only`
   reads no label. Record where the weights come from, and check that the score's outcome matches the task.
 
-In both cases, statistics fitted by `preprocess_data` or `predict` (feature bins, normalization) come from
+In both cases, statistics fitted by `preprocess_data` or `predict_only` (feature bins, normalization) come from
 the training split only (SPEC section 2.1).
 
 {% endif %}## 5. Complete operational interfaces
 
-Finalize `model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`. The local adapter runs the
-real model profile. The MEDS-DEV adapter supplies its isolated invocation. The MIMIC adapter locates/builds the demo
+Finalize `models/<profile>/model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`. The local adapter runs the
+real selected profile via `run_e2e(tmp_path, profile=..., **inputs)`. The MEDS-DEV adapter supplies its isolated invocation. The MIMIC adapter locates/builds the demo
 and the pinned `mortality/in_icu/first_24h` task through MEDS-DEV and reuses its predicates.
 
 `tests/test_end_to_end.py` also checks label leakage and transductive fitting on the same run, so the
 local adapter must:
 
-- return the exact `predict` arguments it used (`E2EResult.predict_arguments`). `predict` is rerun on an
-  index with no label column and must still cover every key, so make `predict` work on unlabelled data.
-  `attach_ground_truth` already does.
-- apply `tests.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
+- return `E2EResult` from `meds_model_core.conformance.types`, recording the integer `seed`, `external_meds_dir` and all task
+  inputs in `inputs`. The shared checker reruns the full lifecycle with forbidden labels removed and
+  fresh output paths. Honor every external input override; preserve permitted training/context labels.
+  `attach_ground_truth(predictions, labels_dir, splits)` supports an entirely unlabelled index.
+  Apply the same seed to every RNG, framework and subprocess; use deterministic fixture execution.
+  Original and label-blind probabilities must agree by key (`rtol=1e-6`, `atol=1e-8`), and any Boolean
+  decisions must agree exactly. Keep training labels, index and evaluation-label paths separate in
+  `inputs` when they are separate on disk; the checker sanitizes each independently.
+- apply `meds_model_core.conformance.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
   canaries (`E2EResult.canaries`).
 - implement `fitted_codes`: every code the model fitted a population statistic for (vocabulary, frequency
   table, selected features, bins), read from its artifacts. No canary may appear there.
 
 Complete `tests/test_primary_behavior.py`; its initial failure is intentional. The template provides the
-small `tests.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
+small `meds_model_core.conformance.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
 history length and signal position do not leak the label. Use it unchanged, adapt its codes, or replace it
 when the model requires a fixed vocabulary, selected codes, predicates, derived features, numeric values,
 or another valid MEDS construction. The test must explicitly show that the signal survives the model's
 real selection/featurization layer, exercise the real model profile, and include a shuffled-label negative control.
 Use a profile-appropriate behavioral assertion: supervised/fine-tuned/probe models should learn the
-signal, while zero-shot or packaged models should demonstrate their claimed response without pretending
+signal, while zero-shot or predict_only models should demonstrate their claimed response without pretending
 to train.
 
 ## 6. Follow the staged verification workflow
@@ -180,7 +188,7 @@ Advance in this order. Each automated stage must pass before the next one starts
    compare actual prediction keys with the requested label index and evaluated splits. It also runs the
    required primary-behavior test; structural conformance alone does not pass this gate.
 2. **MEDS-DEV gate:** run `uv run pytest -m meds_dev -rs`. This verifies installation and the command
-   strings in `model.yaml` through MEDS-DEV's isolated execution path. Return `MEDSDevRun` from its adapter
+   strings in `models/<profile>/model.yaml` through MEDS-DEV's isolated execution path. Return `MEDSDevRun` from its adapter
    with the invocation, prediction directory, requested label index, and evaluated splits.
 3. **Pre-demo report and human gate:** complete the source ledger, scientific deviations, input mapping,
    predicate interpretation, the results from the first two gates, and the proposed MIMIC-IV demo execution plan
@@ -218,7 +226,7 @@ Advance in this order. Each automated stage must pass before the next one starts
 
 Final predictions at every data gate must exactly cover the requested keys without relying on order. Do
 not assert portable performance thresholds; record wall time, process-tree PSS/RSS, GPU metrics,
-environment, and scale. Remove all placeholders and set `IS_STUB = False` only when the implemented model profile
+environment, and scale. Remove all placeholders and remove each profile from `STUB_PROFILES` only when that profile
 passes the applicable pre-demo gates; real-data access remains separately human-approved.
 
 ### MIMIC-IV demo task scope

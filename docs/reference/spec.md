@@ -1,8 +1,6 @@
 # Specification (normative)
 
-This page includes `template/SPEC.md` verbatim, so it always matches the specification that generated
-repositories receive as their own `SPEC.md`. The rest of this site explains it; this page *is* it.
+This page includes the same contract source shipped in the core wheel. Generated model repositories
+refer to their installed core version rather than copying the specification.
 
----
-
---8<-- "template/SPEC.md"
+<!-- The MkDocs hook appends the installed core contract. Do not copy it here. -->

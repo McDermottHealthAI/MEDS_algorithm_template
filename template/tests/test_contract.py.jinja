@@ -1,7 +1,9 @@
-from meds_model_contract import MODEL_PROFILES, ModelRepository
-from {{ model_slug }}.commands import COMMANDS
+from meds_model_core import MODEL_PROFILES, ModelRepository
+from {{ model_slug }}.commands import COMMANDS, PROFILES
 
 
-def test_command_registry_is_exact_selected_dag():
-    repository = ModelRepository("{{ profile }}", COMMANDS)
-    assert tuple(repository.profile_commands) == MODEL_PROFILES["{{ profile }}"]
+def test_command_registry_is_exact_selected_union():
+    repository = ModelRepository(PROFILES, COMMANDS)
+    for profile in PROFILES:
+        assert repository.profile_commands(profile) == MODEL_PROFILES[profile]
+    assert set(COMMANDS) == {step for profile in PROFILES for step in MODEL_PROFILES[profile]}

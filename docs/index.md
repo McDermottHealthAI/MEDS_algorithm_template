@@ -47,10 +47,10 @@ what makes results comparable.
 | Inputs: a split-sharded MEDS dataset, a task index, optional dataset predicates, and (zero-shot) an ACES task | Preprocessing, featurization, tokenization |
 | Six **model profiles**, each a fixed sequence of commands | Architecture, framework, batching, hardware |
 | Standard command arguments (`external_meds_dir`, `output_predictions_dir`, …) | Intermediate payload formats (checkpoints, embeddings, caches) |
-| A `manifest.yaml` envelope on every artifact, written last and published atomically | How the payload inside an artifact is laid out |
+| A `manifest.yaml` envelope on every artifact, written last and published with rollback | How the payload inside an artifact is laid out |
 | Wall time and memory measurements on every command | How fast the model is |
 | Final predictions in the meds-evaluation schema, keyed and complete | How probabilities are computed |
-| `model.yaml` for MEDS-DEV, SLURM scripts, GitHub result sync | The command strings inside them, once finalized |
+| `models/<profile>/model.yaml` for MEDS-DEV, SLURM scripts, GitHub result sync | The command strings inside them, once finalized |
 
 The contract fixes **boundaries**, not methods. A model can be a PyTorch transformer, a gradient-boosted
 tree, an external executable or a call to a service; the template only cares that each command consumes
