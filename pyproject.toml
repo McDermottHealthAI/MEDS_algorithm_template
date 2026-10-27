@@ -1,13 +1,13 @@
 [project]
-name = "meds-model-template"
+name = "meds-algorithm-template"
 version = "0.3.0"
-description = "A minimal, contract-first Copier template for MEDS model repositories."
+description = "A minimal, contract-first Copier template for MEDS algorithm repositories."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = ["copier>=9.17.1"]
 
 [dependency-groups]
-dev = ["meds-model-core[conformance] @ git+https://github.com/florian6973/meds-model-core.git@a16ba1d5e6837bb0d50120cdf2e09b348745c964", "polars>=1", "pyarrow>=15", "pytest>=8", "pyyaml>=6", "ruff"]
+dev = ["meds-algorithm-core[conformance] @ git+https://github.com/florian6973/meds-algorithm-core.git@7134bc4370b04b7fbbbfca1017a30ffa07709299", "polars>=1", "pyarrow>=15", "pytest>=8", "pyyaml>=6", "ruff"]
 # MkDocs 2.0 removes the plugin and theme systems Material depends on, so stay on 1.x.
 docs = ["mkdocs>=1.6,<2", "mkdocs-material>=9.5,<10"]
 

@@ -1,4 +1,4 @@
-name: Model contract
+name: Algorithm contract
 
 on:
   pull_request:

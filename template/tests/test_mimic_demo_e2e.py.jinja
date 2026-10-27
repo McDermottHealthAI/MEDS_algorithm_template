@@ -1,14 +1,14 @@
-"""Run the completed model profile on the MEDS-DEV MIMIC-IV demo and its predicates."""
+"""Run the completed algorithm profile on the MEDS-DEV MIMIC-IV demo and its predicates."""
 
 from pathlib import Path
 
 import pytest
 
-from meds_model_core import MODEL_PROFILES
-from meds_model_core.conformance.assertions import read_predictions
-from {{ model_slug }}.commands import STUB_PROFILES, PROFILES
+from meds_algorithm_core import ALGORITHM_PROFILES
+from meds_algorithm_core.conformance.assertions import read_predictions
+from {{ algorithm_slug }}.{{ algorithm_slug }} import STUB_PROFILES, PROFILES
 
-from meds_model_core.conformance.meds_dev import assert_prediction_keys, assert_prediction_schema, provision_meds_dev
+from meds_algorithm_core.conformance.meds_dev import assert_prediction_keys, assert_prediction_schema, provision_meds_dev
 
 pytestmark = [pytest.mark.slow, pytest.mark.real_data]
 
@@ -16,15 +16,15 @@ pytestmark = [pytest.mark.slow, pytest.mark.real_data]
 @pytest.fixture(scope="session")
 def meds_dev(request, tmp_path_factory):
     if set(PROFILES) <= STUB_PROFILES:
-        pytest.skip("model_stub: MIMIC-IV demo runs only after the real model profile is implemented")
+        pytest.skip("algorithm_stub: MIMIC-IV demo runs only after the real algorithm profile is implemented")
     return provision_meds_dev(request, tmp_path_factory)
 
 
 @pytest.mark.parametrize("profile", PROFILES)
 def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path, profile):
     if profile in STUB_PROFILES:
-        pytest.skip("model_stub: implement this profile")
-    from meds_model_core.conformance.meds_dev import {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}mimic_task_criteria, {% endif %}prepare_mimic_demo
+        pytest.skip("algorithm_stub: implement this profile")
+    from meds_algorithm_core.conformance.meds_dev import {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}mimic_task_criteria, {% endif %}prepare_mimic_demo
     from .e2e import run_e2e
 
     dataset_dir, labels_dir, predicates_file = prepare_mimic_demo(meds_dev, tmp_path)
@@ -41,7 +41,7 @@ def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path, profile):
 {% endif %}        splits=["held_out"],
     )
     artifacts = result.artifacts
-    predictions_dir = artifacts[MODEL_PROFILES[profile][-1].value]
+    predictions_dir = artifacts[ALGORITHM_PROFILES[profile][-1].value]
     predictions = read_predictions(predictions_dir)
     assert_prediction_schema(predictions)
     assert predictions.height > 0

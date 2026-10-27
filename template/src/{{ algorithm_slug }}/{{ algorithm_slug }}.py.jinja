@@ -1,0 +1,98 @@
+"""Algorithm-owned algorithm. Implement typed methods; core owns staging and publication."""
+
+from pathlib import Path
+
+from meds_algorithm_core import AlgorithmRepository, PayloadMetadata
+{% if 'supervised' in profiles %}from meds_algorithm_core import SupervisedAlgorithm
+{% endif %}{% if 'finetune' in profiles %}from meds_algorithm_core import FinetuneAlgorithm
+{% endif %}{% if 'probe' in profiles %}from meds_algorithm_core import ProbeAlgorithm
+{% endif %}{% if 'zero_shot_direct' in profiles %}from meds_algorithm_core import ZeroShotDirectAlgorithm
+{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm_core import ZeroShotMaterializedAlgorithm
+{% endif %}{% if 'predict_only' in profiles %}from meds_algorithm_core import PredictOnlyAlgorithm
+{% endif %}{% if 'supervised' in profiles or 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles or 'predict_only' in profiles %}from meds_algorithm_core.requests import PreprocessDataRequest
+{% endif %}{% if 'supervised' in profiles %}from meds_algorithm_core.requests import TrainSupervisedRequest
+{% endif %}{% if 'supervised' in profiles %}from meds_algorithm_core.requests import PredictSupervisedRequest
+{% endif %}{% if 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}from meds_algorithm_core.requests import PretrainRequest
+{% endif %}{% if 'finetune' in profiles %}from meds_algorithm_core.requests import TrainFinetuneRequest
+{% endif %}{% if 'finetune' in profiles %}from meds_algorithm_core.requests import PredictFinetuneRequest
+{% endif %}{% if 'probe' in profiles %}from meds_algorithm_core.requests import InferEmbeddingsRequest
+{% endif %}{% if 'probe' in profiles %}from meds_algorithm_core.requests import TrainProbeRequest
+{% endif %}{% if 'probe' in profiles %}from meds_algorithm_core.requests import PredictProbeRequest
+{% endif %}{% if 'zero_shot_direct' in profiles %}from meds_algorithm_core.requests import PredictZeroShotDirectRequest
+{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm_core.requests import InferTrajectoriesRequest
+{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm_core.requests import PredictZeroShotMaterializedRequest
+{% endif %}{% if 'predict_only' in profiles %}from meds_algorithm_core.requests import PredictOnlyRequest
+{% endif %}
+from .config import {{ algorithm_class }}Config
+
+
+class {{ algorithm_class }}({% for profile in profiles %}{{ {'supervised': 'SupervisedAlgorithm', 'finetune': 'FinetuneAlgorithm', 'probe': 'ProbeAlgorithm', 'zero_shot_direct': 'ZeroShotDirectAlgorithm', 'zero_shot_materialized': 'ZeroShotMaterializedAlgorithm', 'predict_only': 'PredictOnlyAlgorithm'}[profile] }}{% if not loop.last %}, {% endif %}{% endfor %}):
+    name = "{{ algorithm_slug }}"
+    config_type = {{ algorithm_class }}Config
+
+    # Extend validate_inputs(request) for payload/vocabulary compatibility. Call super() unless
+    # explicitly documenting support for compatible external algorithms or different configurations.
+
+{% if 'supervised' in profiles or 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles or 'predict_only' in profiles %}    def preprocess_data(self, request: PreprocessDataRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.preprocess_data")
+{% endif %}
+{% if 'supervised' in profiles %}    def train_supervised(self, request: TrainSupervisedRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.train_supervised")
+{% endif %}
+{% if 'supervised' in profiles %}    def predict_supervised(self, request: PredictSupervisedRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.predict_supervised")
+{% endif %}
+{% if 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}    def pretrain(self, request: PretrainRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.pretrain")
+{% endif %}
+{% if 'finetune' in profiles %}    def train_finetune(self, request: TrainFinetuneRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.train_finetune")
+{% endif %}
+{% if 'finetune' in profiles %}    def predict_finetune(self, request: PredictFinetuneRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.predict_finetune")
+{% endif %}
+{% if 'probe' in profiles %}    def infer_embeddings(self, request: InferEmbeddingsRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.infer_embeddings")
+{% endif %}
+{% if 'probe' in profiles %}    def train_probe(self, request: TrainProbeRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.train_probe")
+{% endif %}
+{% if 'probe' in profiles %}    def predict_probe(self, request: PredictProbeRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.predict_probe")
+{% endif %}
+{% if 'zero_shot_direct' in profiles %}    def predict_zero_shot_direct(self, request: PredictZeroShotDirectRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.predict_zero_shot_direct")
+{% endif %}
+{% if 'zero_shot_materialized' in profiles %}    def infer_trajectories(self, request: InferTrajectoriesRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.infer_trajectories")
+{% endif %}
+{% if 'zero_shot_materialized' in profiles %}    def predict_zero_shot_materialized(self, request: PredictZeroShotMaterializedRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.predict_zero_shot_materialized")
+{% endif %}
+{% if 'predict_only' in profiles %}    def predict_only(self, request: PredictOnlyRequest) -> PayloadMetadata:
+        """Write payload into request.output.directory; return its format and version."""
+        raise NotImplementedError("Implement {{ algorithm_class }}.predict_only")
+{% endif %}
+
+# Declarative implementation/completion metadata, never fitted algorithms or mutable runtime state.
+IMPLEMENTATIONS = {
+{% for profile in profiles %}    "{{ profile }}": {{ algorithm_class }},
+{% endfor %}}
+PROFILES = tuple(IMPLEMENTATIONS)
+STUB_PROFILES = set(PROFILES)
+
+
+def create_repository():
+    return AlgorithmRepository(IMPLEMENTATIONS, repo=Path(__file__).resolve().parents[2])

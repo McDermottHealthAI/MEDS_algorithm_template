@@ -1,4 +1,4 @@
-# Implementation report: {{ model_name }}
+# Implementation report: {{ algorithm_name }}
 
 ## Source
 
@@ -10,7 +10,7 @@
 {% for profile in profiles %}### {{ profile }}
 
 - Lifecycle justification: TODO
-- Implemented command classes and payload formats: TODO
+- Implemented profile methods, algorithm-owned configuration and payload formats: TODO
 - Frozen/fitted parameters and permitted label access: TODO
 - Local and MEDS-DEV evidence for this profile: TODO
 
@@ -24,9 +24,9 @@
 
 {% if 'zero_shot_direct' in profiles %}## Zero-shot task translation
 
-- Query language of the model: TODO
-- Task -> model query (`encode`), including use of aces-relaxations: TODO
-- Raw model outputs and their decoding into probabilities (`decode`): TODO
+- Query language of the algorithm: TODO
+- Task -> algorithm query (`encode`), including use of aces-relaxations: TODO
+- Raw algorithm outputs and their decoding into probabilities (`decode`): TODO
 - Relaxations per evaluated task (attach each `relaxations.yaml`; state which are `exact`): TODO
 - Tasks rejected as not posable (not future-only, degenerate, outside the vocabulary): TODO
 
@@ -58,7 +58,7 @@ TODO
 ### Primary behavior
 
 - Signal and expected behavior: TODO
-- How the signal enters the model's selected codes/features: TODO
+- How the signal enters the algorithm's selected codes/features: TODO
 - Example generator used or adaptation made: TODO
 - Positive-control result: TODO
 - Shuffled-label negative-control result: TODO
@@ -85,7 +85,7 @@ TODO
 
 ## Environment and provenance
 
-- Model commit and dirty state: TODO
+- Algorithm commit and dirty state: TODO
 - Dataset/task identifiers: TODO
 - Dataset, task, and predicate revisions: TODO
 - Task-bundle kind (clinical ACES tasks / sampled code-by-horizon tasks) and the commit of the tool that built it: TODO

@@ -1,4 +1,4 @@
-# Running a model
+# Running a algorithm
 
 A generated repository exposes one command-line entry point, a MEDS-DEV descriptor, and a SLURM
 interface. All three run the same commands with the same standard arguments.
@@ -6,17 +6,17 @@ interface. All three run the same commands with the same standard arguments.
 ## Local commands
 
 ```bash
-uv run meds-model profiles
-uv run meds-model commands --profile zero_shot_direct
-uv run meds-model predict_zero_shot_direct --profile zero_shot_direct \
-  input_data_dir=runs/x/data input_pretrained_model_dir=runs/x/pretrained \
+uv run meds-algorithm profiles
+uv run meds-algorithm commands --profile zero_shot_direct
+uv run meds-algorithm predict_zero_shot_direct --profile zero_shot_direct \
+  input_data_dir=runs/x/data input_pretrained_algorithm_dir=runs/x/pretrained \
   external_index_dir=/task/index external_task_criteria_file=/task/criteria.yaml \
   splits=[held_out] output_predictions_dir=runs/x/predictions
 ```
 
 Multiple profiles require explicit selection; a single-profile repository may omit `--profile`.
 Arguments are `key=value`; booleans and numeric values are decoded, and `splits=[train,tuning]` is a list.
-Inference and prediction require a nonempty explicit split list. Additional model settings must be
+Inference and prediction require a nonempty explicit split list. Additional algorithm settings must be
 validated and included in the resolved configuration digest. See the
 [per-step argument table](reference/spec.md#9-software-interfaces).
 
@@ -26,11 +26,11 @@ scores are fixed. The two directories may physically share files; their reader r
 
 Supervised/fine-tuned prediction requires `input_data_dir`; probe prediction requires
 `input_embeddings_dir`. MEDS-DEV resolves recorded upstream paths into explicit CLI arguments with
-`meds-model-resolve-input`; SLURM passes the chosen artifact paths directly.
+`meds-algorithm-resolve-input`; SLURM passes the chosen artifact paths directly.
 
 ## MEDS-DEV
 
-`models/<profile>/model.yaml` is the [MEDS-DEV](https://github.com/Medical-Event-Data-Standard/MEDS-DEV) descriptor. Its
+`algorithms/<profile>/model.yaml` is the [MEDS-DEV](https://github.com/Medical-Event-Data-Standard/MEDS-DEV) descriptor. Its
 `unsupervised` / `supervised` × `train` / `predict` slots hold command strings with these template
 variables:
 
@@ -44,7 +44,7 @@ variables:
 | `{predicates_path}` | the dataset's predicates file (`predicates_path` argument; MEDS-DEV PR #325) |
 | `{task_criteria_path}` | the task's ACES criteria: the `task_criteria_path` argument, else the registered criteria file of `task_name` (MEDS-DEV PR #330) |
 
-Every artifact gets its own subdirectory of the MEDS-DEV run directory: `data/`, `pretrained/`, `model/`,
+Every artifact gets its own subdirectory of the MEDS-DEV run directory: `data/`, `pretrained/`, `algorithm/`,
 `embeddings/` or `trajectories/`, `predictions/`. Nothing is written to `{output_dir}` itself, because MEDS-DEV keeps its own
 `cmd.sh` and `.done` marker there and artifacts are published by publishing their destination
 directory. Artifacts are never nested inside one another, so runs over different indexes or splits cannot
@@ -56,10 +56,10 @@ every parquet file there must be a predictions file (see the [FAQ](faq.md)).
 Register a completed repository with MEDS-DEV by copying its descriptor into a MEDS-DEV checkout:
 
 ```bash
-uv run meds-model-add-to-meds-dev --meds-dev /path/to/MEDS-DEV --name my_model --profile probe
+uv run meds-algorithm-add-to-meds-dev --meds-dev /path/to/MEDS-DEV --name my_algorithm --profile probe
 ```
 
-This registers `models/probe/model.yaml` as `my_model__probe`. Register each desired profile separately.
+This registers `algorithms/probe/model.yaml` as `my_algorithm__probe`. Register each desired profile separately.
 
 The `meds_dev` test tier
 provisions MEDS-DEV at a pinned commit that supplies both passthroughs (currently the head of PR #330, which
@@ -94,7 +94,7 @@ PROFILE=probe ./slurm/submit.sh              # submits the profile as dependent 
 scripts/github-sync.sh <run-id>
 ```
 
-commits exactly these files on a new `runs/<model>/<run-id>` branch, pushes that branch, and opens a draft
+commits exactly these files on a new `runs/<algorithm>/<run-id>` branch, pushes that branch, and opens a draft
 PR for it. It changes nothing else.
 
 | Pushed | Contents |
@@ -107,7 +107,7 @@ PR for it. It changes nothing else.
 |---|---|
 | predictions | they are artifacts under `runs/<run-id>/<profile>/artifacts`, not evidence files |
 | labels, datasets | patient data stays where it is |
-| checkpoints and other artifact payloads | large and model-owned |
+| checkpoints and other artifact payloads | large and algorithm-owned |
 | raw logs, credentials | may contain anything |
 | metrics (AUROC, …) | the template computes no metrics; MEDS-DEV's evaluation step (meds-evaluation) does |
 

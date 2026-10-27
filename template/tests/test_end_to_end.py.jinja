@@ -1,12 +1,12 @@
-"""Model-owned execution adapters run shared core conformance for every declared profile."""
+"""Algorithm-owned execution adapters run shared core conformance for every declared profile."""
 import pytest
-from meds_model_core.conformance.end_to_end import assert_profile_run
-from {{ model_slug }}.commands import STUB_PROFILES, PROFILES
+from meds_algorithm_core.conformance.end_to_end import assert_profile_run
+from {{ algorithm_slug }}.{{ algorithm_slug }} import STUB_PROFILES, PROFILES
 
 @pytest.mark.parametrize("profile", PROFILES)
 def test_end_to_end(tmp_path, profile):
     if profile in STUB_PROFILES:
-        pytest.skip("model_stub: implement commands and the repository-specific run_e2e adapter")
+        pytest.skip("algorithm_stub: implement commands and the repository-specific run_e2e adapter")
     from .e2e import fitted_codes, run_e2e
     result = run_e2e(tmp_path / "run", profile=profile, seed=0)
     assert_profile_run(result, profile=profile, run_e2e=run_e2e,
