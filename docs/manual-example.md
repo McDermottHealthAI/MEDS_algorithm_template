@@ -17,15 +17,40 @@ Python/packages. Run the commands in a new workspace; the script refuses an exis
 package, core, Polars and the conformance dependencies into its `.venv`. No global Python environment
 is modified. Copier and the template revision are pinned so the tutorial can be reproduced.
 
-You can paste the entire block into Bash, or save/download the [same script](examples/manual-supervised.sh)
-and run `bash manual-supervised.sh /absolute/path/to/a/new/tutorial-directory`.
+Run the numbered sections below **in order, in the same Bash session**. Alternatively, expand
+[All commands](#all-commands) at the end to copy the complete script, or download the
+[same script](examples/manual-supervised.sh) and run
+`bash manual-supervised.sh /absolute/path/to/a/new/tutorial-directory`.
 
 The generated package is `manual_baseline`, its class is `ManualBaseline`, and its named command is
 `manual-baseline`. `meds-algorithm` is an equivalent entry point. Each lifecycle command starts a fresh
 process, using the same `config_file`. There are three training outcomes (`true, true, false`) and a
 smoothing value of 1, so the resulting probability is `(2 + 1) / (3 + 2) = 0.6` for both held-out rows.
 
-## All commands, in order
+---
+
+## 1. Create the workspace and generate the repository
+
+Choose a new directory and render the supervised profile. These commands create `manual-baseline/`
+and change into it; all subsequent paths are relative to that generated repository.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:setup"
+```
+
+---
+
+## 2. Install the environment
+
+Install Python and the generated package, then inspect its profiles, commands and installed contract.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:environment"
+```
+
+---
+
+## 3. Implement the algorithm
 
 The code-writing commands below intentionally replace the generated tutorial stubs. The template alone
 does not contain an implemented algorithm. Leave its completion gate in place: this short tutorial does
@@ -33,9 +58,81 @@ not implement `tests/e2e.py`, the full implementation report, or the MEDS-DEV/de
 The final pytest command runs only the generated contract and operations checks; its success does not
 mean a production port has passed the [complete workflow](workflow.md).
 
+### Typed configuration
+
+Define the smoothing parameter and validate it when configuration is loaded.
+
 ```bash
---8<-- "docs/examples/manual-supervised.sh"
+--8<-- "docs/examples/manual-supervised.sh:configuration"
 ```
+
+### Algorithm class
+
+Implement preprocessing, supervised training and prediction. The learned probability is saved to disk
+so prediction can run in a separate process.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:algorithm"
+```
+
+---
+
+## 4. Prepare synthetic inputs and dataset settings
+
+Create the event table, separate training and held-out label/index files, base and additional
+predicates, and the dataset configuration that refers to those additions.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:inputs"
+```
+
+---
+
+## 5. Run each lifecycle step
+
+Set the shared paths once. Each command below then starts its own process.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:paths"
+```
+
+### Preprocess the data
+
+Compose the feature predicates and write the prepared data artifact.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:preprocess"
+```
+
+### Train the algorithm
+
+Estimate the smoothed probability from the training outcomes and persist it in the algorithm artifact.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:train"
+```
+
+### Predict on the held-out index
+
+Load the saved probability and emit one prediction per requested key. The runner attaches evaluation
+labels after scoring.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:predict"
+```
+
+---
+
+## 6. Inspect and verify the outputs
+
+Check the two expected probabilities, the prediction schema, artifact metadata and composed predicates.
+Then run the generated contract and operations checks.
+
+```bash
+--8<-- "docs/examples/manual-supervised.sh:verify"
+```
+
+---
 
 ## What was produced
 
@@ -65,3 +162,16 @@ To rerun, choose fresh output paths. Explicit `do_overwrite=true` opts into repl
 rollback; do not add it automatically to every command. Other profiles have different intermediate
 steps: use the [profile lifecycle table](reference/spec.md#3-commands-and-algorithm-profiles) and
 [per-step arguments](reference/spec.md#9-software-interfaces) when adapting this example.
+
+---
+
+## All commands
+
+This is the complete script used by the sections above. Run it from a fresh workspace instead of
+running it again in the directory you just created.
+
+??? example "All commands — complete runnable script"
+
+    ```bash
+    --8<-- "docs/examples/manual-supervised.sh"
+    ```

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# --8<-- [start:setup]
 # A complete local tutorial. Prerequisites: Bash, Git, uv, and network access for dependencies.
 set -euo pipefail
 command -v git >/dev/null
@@ -29,15 +30,19 @@ uvx --from 'copier==9.17.1' copier copy --defaults --trust \
   --data-file answers.yaml \
   https://github.com/florian6973/MEDS_algorithm_template.git manual-baseline
 cd manual-baseline
+# --8<-- [end:setup]
 
+# --8<-- [start:environment]
 # 2. Create the Python environment and install the generated package and test dependencies.
 uv python install 3.11
 uv sync --python 3.11 --extra test
 uv run manual-baseline profiles
 uv run manual-baseline commands --profile supervised
 uv run meds-algorithm-core-spec > installed-contract.txt
+# --8<-- [end:environment]
 
 # 3. Implement the generated stubs manually. No agent or MEDS-DEV runner is involved.
+# --8<-- [start:configuration]
 cat > src/manual_baseline/config.py <<'PY'
 from dataclasses import dataclass
 from meds_algorithm_core import AlgorithmConfig
@@ -51,7 +56,9 @@ class ManualBaselineConfig(AlgorithmConfig):
         if self.smoothing <= 0:
             raise ValueError("smoothing must be positive")
 PY
+# --8<-- [end:configuration]
 
+# --8<-- [start:algorithm]
 cat > src/manual_baseline/manual_baseline.py <<'PY'
 import json
 from pathlib import Path
@@ -106,7 +113,9 @@ STUB_PROFILES = set(PROFILES)
 def create_repository():
     return AlgorithmRepository(IMPLEMENTATIONS, repo=Path(__file__).resolve().parents[2])
 PY
+# --8<-- [end:algorithm]
 
+# --8<-- [start:inputs]
 # 4. Create tiny synthetic MEDS events and an upstream label/index bundle.
 # Real work should reuse a reviewed task bundle, not derive labels inside the algorithm.
 mkdir -p inputs/meds/data inputs/labels dataset_configs predicates
@@ -144,28 +153,38 @@ cat > dataset_configs/demo.yaml <<'YAML'
 smoothing: 1.0
 additional_predicates_file: ../predicates/demo_additional.yaml
 YAML
+# --8<-- [end:inputs]
 
+# --8<-- [start:paths]
 # 5. Run the complete supervised lifecycle, one independent process per step.
 CONFIG="$PWD/dataset_configs/demo.yaml"
 MEDS="$PWD/inputs/meds"
 LABELS="$PWD/inputs/labels"
 BASE_PREDICATES="$PWD/predicates/base.yaml"
 ARTIFACTS="$PWD/runs/manual/supervised/artifacts"
+# --8<-- [end:paths]
 
+# --8<-- [start:preprocess]
 uv run manual-baseline preprocess_data --profile supervised \
   "config_file=$CONFIG" "external_meds_dir=$MEDS" \
   "external_predicates_file=$BASE_PREDICATES" "output_data_dir=$ARTIFACTS/data"
+# --8<-- [end:preprocess]
 
+# --8<-- [start:train]
 uv run manual-baseline train_supervised --profile supervised \
   "config_file=$CONFIG" "input_data_dir=$ARTIFACTS/data" \
   "external_labels_dir=$LABELS" "output_supervised_algorithm_dir=$ARTIFACTS/algorithm"
+# --8<-- [end:train]
 
+# --8<-- [start:predict]
 uv run manual-baseline predict_supervised --profile supervised \
   "config_file=$CONFIG" "input_data_dir=$ARTIFACTS/data" \
   "input_supervised_algorithm_dir=$ARTIFACTS/algorithm" "external_index_dir=$LABELS" \
   'splits=[held_out]' "output_predictions_dir=$ARTIFACTS/predictions" \
   "external_evaluation_labels_dir=$LABELS"
+# --8<-- [end:predict]
 
+# --8<-- [start:verify]
 # 6. Inspect and verify the outputs. Only the runner attaches the held-out truth after scoring.
 uv run python - <<'PY'
 from pathlib import Path
@@ -194,3 +213,4 @@ assert ManualBaseline(config).name == "manual_baseline"
 PY
 uv run pytest -q tests/test_contract.py tests/test_operations.py
 printf 'Tutorial completed in %s\n' "$PWD"
+# --8<-- [end:verify]
