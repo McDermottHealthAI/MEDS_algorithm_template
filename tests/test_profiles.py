@@ -104,6 +104,19 @@ def test_all_profiles_coexist_and_selection_is_required(multi):
     assert source.count("def pretrain(") == 1
 
 
+def test_slurm_forwards_dataset_configuration_to_every_step(multi, tmp_path):
+    result = _dry_run(
+        multi,
+        "multi_algorithm",
+        tmp_path,
+        PROFILE="supervised",
+        ALGORITHM_CONFIG_FILE="/configs/dataset settings.yaml",
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("config_file=") == len(ALGORITHM_PROFILES["supervised"])
+    assert "dataset" in result.stdout and "settings.yaml" in result.stdout
+
+
 def test_descriptors_dispatch_only_their_profile_with_complete_arguments(multi):
     from meds_algorithm_core import ALGORITHM_PROFILES as profiles
     from meds_algorithm_core import STEP_SPECS, CommandName

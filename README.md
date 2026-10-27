@@ -5,7 +5,7 @@ contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-algorithm-core`](https://github.com/florian6973/meds-algorithm-core). This template and generated projects pin commit
-`7134bc4370b04b7fbbbfca1017a30ffa07709299` directly from Git, so no PyPI release is required.
+`43cc0298ba71a4fc13b609b26ee4e202d903dead` directly from Git, so no PyPI release is required.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -158,6 +158,9 @@ Write minimalist, auditable, object-oriented algorithm code. Put source-defined 
 in the algorithm-owned frozen <AlgorithmClass>Config class in config.py; validate values and prove
 serialization round trips. Keep the implementation in <algorithm_slug>.py and expose the named algorithm
 and configuration classes from the package, so callers can import them meaningfully.
+Use inherited additional_predicates_file for dataset-specific feature additions when needed. Read the
+runner-resolved request.predicates_file in preprocessing; do not override base definitions, merge again,
+or change task predicates. Preserve temporal isolation and use the same configuration across steps.
 Implement the selected Algorithm profile methods with their typed request classes. Prefer small cohesive
 components and explicit constructor dependencies; use inheritance for the profile contract and composition
 for algorithm internals. Do not add unnecessary classes, wrappers, mutable module-level runtime state, hidden
@@ -300,5 +303,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](docs/profiles.md).
-See the [software contract](https://github.com/florian6973/meds-algorithm-core/blob/7134bc4370b04b7fbbbfca1017a30ffa07709299/src/meds_algorithm_core/CONTRACT.md), [migration guide](docs/migration-v4.md),
+See the [software contract](https://github.com/florian6973/meds-algorithm-core/blob/43cc0298ba71a4fc13b609b26ee4e202d903dead/src/meds_algorithm_core/CONTRACT.md), [migration guide](docs/migration-v4.md),
 and [shared-package assessment](docs/shared-package-assessment.md).

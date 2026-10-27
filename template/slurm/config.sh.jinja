@@ -17,6 +17,9 @@ export PROFILE
 # Embeddings need training/tuning keys to fit a probe. Inference never reads the label values.
 # TASK_PREDICATES_FILE is separate from dataset-level PREDICATES_FILE.
 stage_args() {
+  if [[ -n "${ALGORITHM_CONFIG_FILE:-}" ]]; then
+    printf '%s\n' "config_file=$ALGORITHM_CONFIG_FILE"
+  fi
   case "$1" in
 {% if 'supervised' in profiles or 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles or 'predict_only' in profiles %}    preprocess_data) printf '%s\n' "external_meds_dir=${MEDS_ROOT:?set MEDS_ROOT}" "output_data_dir=$SHARED_DIR/data"{% if uses_predicates %} "external_predicates_file=${PREDICATES_FILE:?set PREDICATES_FILE}"{% endif %} ;;
 {% endif %}{% if 'supervised' in profiles %}    train_supervised) printf '%s\n' "input_data_dir=$SHARED_DIR/data" "external_labels_dir=${LABELS_DIR:?set LABELS_DIR}" "output_supervised_algorithm_dir=$RUN_DIR/algorithm" ;;

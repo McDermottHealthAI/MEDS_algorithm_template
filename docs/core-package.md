@@ -1,7 +1,7 @@
 # Shared core package
 
 The core lives in its own [repository](https://github.com/florian6973/meds-algorithm-core), pinned by the template to an immutable commit.
-See its [layout and usage](https://github.com/florian6973/meds-algorithm-core/blob/7134bc4370b04b7fbbbfca1017a30ffa07709299/README.md) for its artifact, runtime, task, evaluation, integration and conformance APIs.
+See its [layout and usage](https://github.com/florian6973/meds-algorithm-core/blob/43cc0298ba71a4fc13b609b26ee4e202d903dead/README.md) for its artifact, runtime, task, evaluation, integration and conformance APIs.
 The [specification](reference/spec.md) below is rendered from the installed dependency, so the site
 and generated algorithms use the same version without copying the contract into this repository.
 The [architecture and UML](reference/architecture.md) are also rendered from the pinned core wheel.

@@ -5,6 +5,13 @@ interface. All three run the same commands with the same standard arguments.
 
 ## Local commands
 
+Pass `config_file=/absolute/path/dataset_configs/mimic_iv.yaml` to each lifecycle invocation to select
+algorithm settings, including optional `additional_predicates_file`. See [feature additions](concepts.md#additional-feature-predicates-per-dataset).
+For MEDS-DEV, add the same `config_file=...` argument to each command in the selected descriptor; use a
+path accessible inside its execution environment. MEDS-DEV still supplies the base `{predicates_path}`.
+For SLURM, set `ALGORITHM_CONFIG_FILE` to an absolute configuration path; generated `stage_args` passes
+it to every selected step. No dataset is inferred from a directory name, and no upstream file is edited.
+
 ```bash
 uv run meds-algorithm profiles
 uv run meds-algorithm commands --profile zero_shot_direct
