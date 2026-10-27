@@ -3,6 +3,9 @@
 A generated repository exposes one command-line entry point, a MEDS-DEV descriptor, and a SLURM
 interface. All three run the same commands with the same standard arguments.
 
+For a copyable sequence from an empty directory to verified predictions, start with the
+[fully manual example](manual-example.md). It includes setup, implementation code and synthetic inputs.
+
 ## Local commands
 
 Pass `config_file=/absolute/path/dataset_configs/mimic_iv.yaml` to each lifecycle invocation to select

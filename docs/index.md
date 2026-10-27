@@ -59,6 +59,7 @@ the right artifacts and publishes the right one.
 ## Where to go next
 
 - New to the template? Read [Concepts](concepts.md), then [Choosing a profile](profiles.md).
+- Want to run everything by hand? Follow the [fully manual example](manual-example.md).
 - Porting a zero-shot algorithm? Read [Zero-shot in practice](zero-shot.md).
 - Running or reviewing a port? Read [Workflow](workflow.md) and [Running a algorithm](running.md).
 - Need the exact rule? Go to the [specification](reference/spec.md).

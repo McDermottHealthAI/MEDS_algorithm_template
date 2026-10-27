@@ -15,6 +15,9 @@ the generated repository.
 
 ## Documentation
 
+For setup and every command in execution order, see the [fully manual example](docs/manual-example.md).
+It includes a complete tutorial implementation and synthetic data, so it runs without an agent or cluster.
+
 This README is written for coding agents that port algorithms. For a human-oriented explanation of the
 contract (concepts, choosing a profile, zero-shot algorithms, the gate workflow, running, and reference), read
 the documentation site: https://florian6973.github.io/MEDS_algorithm_template/ (built from `docs/` by
@@ -71,13 +74,13 @@ so the command remains usable if formatting/bootstrap tasks are added later.
 | `algorithm_description` | Short description rendered into README and `algorithms/<profile>/model.yaml`. |
 | `author_name`, `author_email` | MEDS-DEV contact metadata. |
 | `uses_predicates` | Whether generated MEDS-DEV commands pass `external_predicates_file`. The algorithm still owns interpretation. |
+| `implementation_source` | Paper path/URL, source repository path/URL, or both; prefilled into generated guidance and the report. |
 
 For example, `algorithm_slug=retain algorithm_class=RETAIN` generates `retain/retain.py` containing
 `RETAIN`, plus `retain/config.py` containing `RETAINConfig`. Import them with
 `from retain import RETAIN, RETAINConfig` (or `from retain.retain import RETAIN`). The installed
 `retain` and `meds-algorithm` commands share the same dispatcher. Use the core runner for Python
 execution so direct imports retain the same validation/publication path as the CLI.
-| `implementation_source` | Paper path/URL, source repository path/URL, or both; prefilled into generated guidance and the report. |
 
 Profiles are `supervised`, `finetune`, `probe`, `zero_shot_direct`, `zero_shot_materialized`, and
 `predict_only`. A algorithm profile selects required commands, not an architecture or execution backend.
