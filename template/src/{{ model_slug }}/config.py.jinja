@@ -1,0 +1,14 @@
+"""Model-owned configuration: add only source-defined, typed, immutable settings."""
+
+from dataclasses import dataclass
+
+from meds_model_core import ModelConfig
+
+
+@dataclass(frozen=True)
+class Config(ModelConfig):
+    """Add fields/defaults here and override validate() for value constraints.
+
+    Nested groups must also be frozen dataclasses. Use tuples, not mutable collections.
+    Core provides strict from_dict(), from_file(), save() and load().
+    """

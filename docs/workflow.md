@@ -69,6 +69,15 @@ stub skip. Passing automated checks establishes the properties listed below; it 
 establish fidelity to the paper or scientific validity. Keep the detailed instructions in the shared
 prompt and generated implementation guide rather than maintaining a separate prompt for each agent.
 
+### Typed implementation and audit trail
+
+The generated model owns a concrete `ModelAlgorithm` and frozen `Config`. Profile ABCs require its
+methods; typed request objects carry artifact references and permitted inputs. The shared runner owns
+validation, measurement, staging, metadata and publication. Agents should implement cohesive model
+components with explicit dependencies, without mutable global runtime state, unnecessary wrappers or
+copies of core utilities. Test config/request serialization and execution in a fresh process. See the
+[shared architecture and UML](reference/architecture.md) for the implemented design.
+
 ### Implementation deliverables
 
 Implement every command in the union of declared profiles, `tests/e2e.py`, `models/<profile>/model.yaml`, and `slurm/config.sh`. In

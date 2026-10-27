@@ -6,9 +6,10 @@ the new contract. The template emits and reads version 3 envelopes.
 
 1. Replace the Copier `profile` answer with `profiles: [<name>, ...]`. Rename `packaged` to `predict_only`.
    Keep the original source/revision metadata in `.copier-answers.yml` and review the Copier update diff.
-2. Replace the command registry with the union of selected profiles. Shared steps appear once.
+2. Implement the selected profile ABCs and associate profiles with concrete classes in `IMPLEMENTATIONS`.
+   Shared methods appear once where their semantics match.
 3. Rename commands according to the table below. Split previously conditional implementations into
-   distinct classes, keeping shared private helpers where their semantics really match.
+   distinct profile methods, sharing cohesive components where their semantics really match.
 4. Update every invocation, manifest producer, output argument, test adapter and SLURM stage selection.
 5. Move the MEDS-DEV descriptor to `models/<profile>/model.yaml`; add one for each declared profile.
    Register them independently using `--profile`; the registered name is `<name>__<profile>`.
@@ -46,7 +47,24 @@ install the alpha from an immutable Git commit in the separate core repository; 
 Replace imports from `meds_model_contract` with `meds_model_core` and remove the generated compatibility
 package. Core supplies the registration/input-resolution CLI entry points; keep only the model's own
 CLI in its project configuration. Import shared fixtures and checks from `meds_model_core.conformance`.
-Pass model provenance explicitly to `measured_artifact(..., repo=model_root)` and pass `splits` explicitly
-to `attach_ground_truth`. Return `E2EResult` from core's `conformance.types`, recording all external inputs;
+For the typed API, pass model provenance explicitly to `AlgorithmRepository(..., repo=model_root)`.
+Return `E2EResult` from core's `conformance.types`, recording all external inputs;
 the lifecycle checker now reruns every step with forbidden outcomes absent and fresh output paths.
 Existing model repositories are not migrated by this template change.
+
+## From mapping-based commands to typed algorithms
+
+The Python API in core 0.4.0a1 keeps the version 3 CLI names and artifact envelope. Existing
+`Command`/`ModelRepository` callers still work; their model-owned publication does not automatically
+gain the new runner behavior. Migrate deliberately:
+
+1. Move command bodies to the selected `Algorithm` profile methods. Use their typed request fields.
+2. Put model settings/defaults in a frozen `ModelConfig` subclass; test validation and JSON round trips.
+3. Replace internal publication contexts with writes to `request.output.directory` and a returned
+   `PayloadMetadata`. Remove model-written manifests and truth attachment; the runner owns those.
+4. Extend `validate_inputs` for payload compatibility. Document any override of its default same-model,
+   same-config rule, especially for external pretrained artifacts or legacy manifests without config.
+5. Route the CLI and end-to-end adapters through `AlgorithmRepository`/`StepRunner`. Verify saved
+   requests/configuration and fitted artifacts work in a fresh process.
+
+See [architecture and UML](reference/architecture.md). No private model migration is included here.

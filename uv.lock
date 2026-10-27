@@ -469,8 +469,8 @@ wheels = [
 
 [[package]]
 name = "meds-model-core"
-version = "0.3.0a3"
-source = { git = "https://github.com/florian6973/meds-model-core.git?rev=a16ba1d5e6837bb0d50120cdf2e09b348745c964#a16ba1d5e6837bb0d50120cdf2e09b348745c964" }
+version = "0.4.0a1"
+source = { git = "https://github.com/florian6973/meds-model-core.git?rev=4660dbfaf43ff355882d6ff9ae2d11eb38474329#4660dbfaf43ff355882d6ff9ae2d11eb38474329" }
 dependencies = [
     { name = "pyyaml" },
 ]
@@ -510,7 +510,7 @@ requires-dist = [{ name = "copier", specifier = ">=9.17.1" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-model-core", extras = ["conformance"], git = "https://github.com/florian6973/meds-model-core.git?rev=a16ba1d5e6837bb0d50120cdf2e09b348745c964" },
+    { name = "meds-model-core", extras = ["conformance"], git = "https://github.com/florian6973/meds-model-core.git?rev=4660dbfaf43ff355882d6ff9ae2d11eb38474329" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },

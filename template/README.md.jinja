@@ -52,9 +52,24 @@ files. The implementation source recorded when this repository was generated is:
 {{ implementation_source if implementation_source else 'Not supplied during generation.' }}
 ```
 
-The model-owned surface is `src/{{ model_slug }}/commands.py`, command configuration, `models/<profile>/model.yaml`, and
-`tests/e2e.py`. Implement every registered command, define exact intermediate compatibility checks,
+The model-owned surface is `src/{{ model_slug }}/commands.py` (the typed algorithm), `src/{{ model_slug }}/config.py`
+(its immutable configuration), `models/<profile>/model.yaml`, and
+`tests/e2e.py`. Implement the selected profile methods, define exact intermediate compatibility checks in
+`validate_inputs`,
 finalize MEDS-DEV command strings, and complete the report. Remove a profile from `STUB_PROFILES` only after it runs end to end. Complete every declared profile.
+
+## Configuration and execution ownership
+
+Declare typed fields/defaults in `Config`, with `validate()` for constraints. Pass
+`config_file=/path/config.yaml` to a step for a JSON/YAML values mapping; unknown fields fail. Core saves
+the complete resolved config and original typed request as `config.json` and `request.json` in each
+published artifact. These JSON envelopes can be reloaded with the corresponding explicit classes.
+
+Model methods receive typed requests, write payloads into `request.output.directory` (staging), and
+return `PayloadMetadata`. `create_repository().run(...)` constructs a fresh algorithm and delegates to
+core's runner. It owns measurements, prediction validation, optional post-score truth attachment,
+metadata and publication. Never publish from inside model methods or write the reserved metadata files.
+Reopen fitted artifacts on each step. Test config/request round trips and execution in a fresh process.
 
 ## Verification
 

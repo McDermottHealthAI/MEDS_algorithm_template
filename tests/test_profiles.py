@@ -5,7 +5,6 @@ import os
 import shlex
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 import yaml
@@ -47,8 +46,8 @@ def test_all_profiles_coexist_and_selection_is_required(multi):
     assert cross.returncode != 0 and "not part of" in cross.stderr
     assert cli(multi, "commands", "--profile", "packaged").returncode != 0
     source = (multi / "src/multi_model/commands.py").read_text()
-    assert source.count("class PreprocessData(") == 1
-    assert source.count("class Pretrain(") == 1
+    assert source.count("def preprocess_data(") == 1
+    assert source.count("def pretrain(") == 1
 
 
 def test_descriptors_dispatch_only_their_profile_with_complete_arguments(multi):
@@ -100,48 +99,20 @@ def test_registration_keeps_profile_descriptors_separate(multi, tmp_path):
         register(multi, dev, "model", "missing")
 
 
-def test_registry_and_request_validation_reject_ambiguous_or_malformed_inputs(multi):
-    from meds_model_core import Command, CommandName, ModelRepository
-
-    calls = []
-
-    class Preprocess(Command):
-        name = CommandName.preprocess_data
-
-        def run(self, arguments):
-            calls.append(arguments)
-            return Path(arguments["output_data_dir"])
-
-    class Predict(Command):
-        name = CommandName.predict_only
-
-        def run(self, arguments):
-            calls.append(arguments)
-            return Path(arguments["output_predictions_dir"])
-
-    registry = {Preprocess.name: Preprocess, Predict.name: Predict}
-    repository = ModelRepository(["predict_only"], registry)
-    for profiles in ([], ["predict_only", "predict_only"], ["packaged"], "predict_only"):
-        with pytest.raises(ValueError):
-            ModelRepository(profiles, registry)
-    with pytest.raises(ValueError):
-        ModelRepository(["predict_only"], {Preprocess.name: Preprocess})
-    with pytest.raises(ValueError):
-        ModelRepository(["predict_only"], {Preprocess.name: Predict, Predict.name: Predict})
-    good = {"external_meds_dir": "/meds", "output_data_dir": "/data"}
-    assert repository.run("preprocess_data", good) == Path("/data")
-    for bad in ({}, {**good, "do_overwrite": "false"}, {**good, "external_task_criteria_file": "/task"}):
-        with pytest.raises(ValueError):
-            repository.run("preprocess_data", bad)
-    assert len(calls) == 1, "invalid arguments must not reach model code"
-    prediction = {
-        "input_data_dir": "/data",
-        "external_index_dir": "/index",
-        "output_predictions_dir": "/out",
-    }
-    for splits in (None, [], "held_out", ["train", "train"], [123]):
-        with pytest.raises(ValueError, match="splits"):
-            repository.run("predict_only", {**prediction, "splits": splits})
+def test_generated_requests_reject_unknown_arguments(multi):
+    main = importlib.import_module("multi_model.__main__")
+    repository = main.create_repository()
+    assert repository.profiles == tuple(MODEL_PROFILES)
+    with pytest.raises(ValueError, match="Unknown or forbidden"):
+        repository.run(
+            "preprocess_data",
+            {
+                "external_meds_dir": "/meds",
+                "output_data_dir": "/data",
+                "invented_option": True,
+            },
+            profile="supervised",
+        )
 
 
 def test_slurm_selects_one_profile_and_isolates_default_outputs(multi, tmp_path):

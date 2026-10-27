@@ -5,7 +5,7 @@ contract-first MEDS model repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-model-core`](https://github.com/florian6973/meds-model-core). This template and generated projects pin commit
-`a16ba1d5e6837bb0d50120cdf2e09b348745c964` directly from Git, so no PyPI release is required.
+`4660dbfaf43ff355882d6ff9ae2d11eb38474329` directly from Git, so no PyPI release is required.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six model profiles and standard arguments, typed
@@ -99,7 +99,7 @@ end-to-end tests report explicit `model_stub` skips. Start with these rendered f
 2. `SPEC.md`
 3. `README.md`
 4. `docs/IMPLEMENTATION_GUIDE.md`
-5. `src/<model_slug>/commands.py`
+5. `src/<model_slug>/commands.py` and `src/<model_slug>/config.py`
 6. `tests/e2e.py`
 7. `IMPLEMENTATION_REPORT.md`
 
@@ -147,6 +147,19 @@ and label isolation, artifact validation, reproducibility, required evaluation e
 review gates. Write focused tests for new behavior and failure cases. Report deviations and checks
 that were not run.
 
+Write minimalist, auditable, object-oriented model code. Put source-defined hyperparameters and defaults
+in the model-owned frozen Config class in config.py; validate values and prove serialization round trips.
+Implement the selected Algorithm profile methods with their typed request classes. Prefer small cohesive
+components and explicit constructor dependencies; use inheritance for the profile contract and composition
+for model internals. Do not add unnecessary classes, wrappers, mutable module-level runtime state, hidden
+singletons, import-time work, broad exception swallowing, or duplicated contract tables. Declarative
+constants and the profile-to-implementation association are appropriate; fitted state belongs in artifacts.
+Use core's runner for both CLI execution and tests. Model methods write only to its staging destination
+and return PayloadMetadata; do not reimplement publication, measurements or manifest/config/request writing.
+Implement explicit payload compatibility checks. Prediction outputs contain keys and probabilities;
+only the runner attaches evaluation truth after scoring. Demonstrate that saved configuration and requests
+can be reloaded in a fresh process and executed without an earlier call on the same algorithm instance.
+
 Preserve the selected model profile and standardized command arguments, MEDS input boundary, artifact
 manifest envelopes, MEDS-DEV model.yaml interface, and final MEDS prediction output. Intermediate payload
 formats and execution mechanisms are model-owned: choose whatever preprocessing, featurization, framework,
@@ -176,7 +189,7 @@ Do not omit source behavior because it is inconvenient for a fixture; adapt the 
 instead.
 
 Record every material source element as ported, adapted, or omitted, with evidence and justification, in
-IMPLEMENTATION_REPORT.md. Implement every registered command, finalize the implementation-specific
+IMPLEMENTATION_REPORT.md. Implement every selected typed algorithm method, finalize the implementation-specific
 command strings in model.yaml, and implement tests/e2e.py. Keep STUB_PROFILES = set(PROFILES) until the actual selected
 model profile completes and produces standards-conformant predictions.
 
@@ -278,5 +291,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a model implementation.
 
 Profile selection and the distinct version 3 step names are described in [profiles](docs/profiles.md).
-See the [software contract](https://github.com/florian6973/meds-model-core/blob/a16ba1d5e6837bb0d50120cdf2e09b348745c964/src/meds_model_core/CONTRACT.md), [migration guide](docs/migration-v3.md),
+See the [software contract](https://github.com/florian6973/meds-model-core/blob/4660dbfaf43ff355882d6ff9ae2d11eb38474329/src/meds_model_core/CONTRACT.md), [migration guide](docs/migration-v3.md),
 and [shared-package assessment](docs/shared-package-assessment.md).

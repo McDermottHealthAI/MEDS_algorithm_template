@@ -29,11 +29,26 @@ establish compatibility with another dataset; keep the provided demo code and pr
 
 ## 4. Implement commands
 
-Read [installed core contract](../SPEC.md), then implement every class registered in `COMMANDS`.
+Read [installed core contract](../SPEC.md), then implement every selected profile method on `ModelAlgorithm` in `commands.py`.
+Declare source-defined parameters/defaults in the frozen `Config` class in `config.py`. Use
+`Config.validate()` for constraints, and test strict serialization and reconstruction in a fresh process.
+Read the installed architecture guide with `from meds_model_core.spec import architecture`.
+
+Each method receives a typed request, writes its payload into `request.output.directory` (staging), and
+returns `PayloadMetadata(format, version)`. `create_repository().run(...)` invokes core's shared runner:
+it owns input validation, measurements, manifest/config/request writing, rollback and publication.
+Do not call publication helpers or write reserved metadata files inside model methods. Return prediction
+keys/probabilities without ground truth; the runner alone attaches optional evaluation labels afterward.
+Extend `validate_inputs(request)` with model-specific compatibility checks before expensive work.
+
+Keep code minimalist and auditable: small cohesive classes, typed immutable configuration, explicit
+dependencies and persisted fitted state. Avoid speculative abstractions, mutable global runtime state,
+hidden singletons, import-time computation and duplicated core behavior. Use the same runner from the
+CLI and `tests/e2e.py`; demonstrate independent execution after reopening serialized inputs.
 Keep shared preprocessing/pretraining task-independent. Prediction must receive its prepared data or embeddings explicitly and check compatibility with
 the fitted model. Probe prediction applies the head; it does not rerun the encoder. Preserve standard external arguments. Choose and version
-intermediate payload formats, reject incompatible inputs before expensive work, publish with rollback, and
-record input digests and measurements. Frameworks, subprocesses, services, batching, and non-batched
+intermediate payload formats, reject incompatible inputs before expensive work, let the runner publish with rollback, and
+record model-specific content identities in addition to its automatic provenance. Frameworks, subprocesses, services, batching, and non-batched
 systems are all allowed.
 
 {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}### Zero-shot: task in, probabilities out

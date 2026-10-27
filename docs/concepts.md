@@ -137,7 +137,8 @@ Four properties hold for every artifact:
   sibling of the data artifact rather than a subdirectory of it, so runs over different indexes cannot
   overwrite each other.
 
-The helper `measured_artifact(...)` does all of this; see the [manifest reference](reference/manifest.md).
+Core's `StepRunner` owns this work through `measured_artifact(...)`; model methods write payloads into
+the supplied staging directory. See the [manifest reference](reference/manifest.md).
 
 ## Final predictions
 

@@ -6,7 +6,11 @@ There is no generated compatibility package.
 
 | Module | Responsibility |
 |---|---|
-| `contracts.commands` | Profile registry, step metadata and dispatch |
+| `algorithms` | Algorithm/profile ABCs and ordered lifecycles |
+| `requests` | Typed per-step inputs and CLI field mappings |
+| `configuration`, `serialization` | Model-owned config base, strict versioned JSON round trips |
+| `runner` | Shared execution, validation, staging, measurements and publication |
+| `contracts.commands` | Derived compatibility views and legacy dispatch |
 | `artifacts` | Manifests, publication with rollback, upstream references and run results |
 | `runtime` | Explicit model provenance, memory measurement and subprocess execution |
 | `data` | Strict split selection, key-only index reads and permitted context targets |
@@ -15,7 +19,10 @@ There is no generated compatibility package.
 | `integrations.meds_dev` | Per-profile registration |
 | `conformance` | Reusable assertions, synthetic fixtures and explicitly selected integration tests |
 
-Pass the model checkout as `repo=` to `measured_artifact`; unavailable provenance is recorded as null.
+See the [architecture and UML](architecture.md) for profile inheritance and request/artifact types.
+Pass the model checkout as `repo=` to `AlgorithmRepository` or `StepRunner`; unavailable provenance is
+recorded as null. Model methods return `PayloadMetadata`, while the runner returns a typed published
+artifact. Low-level `measured_artifact` remains for legacy callers; new methods must not publish twice.
 Use explicit `splits` for outcome attachment. Install the `data` extra for dataframe helpers and the
 `conformance` extra for shared tests. The base package does not import data or model frameworks.
 

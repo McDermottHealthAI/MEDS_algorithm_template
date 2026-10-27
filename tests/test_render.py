@@ -422,19 +422,22 @@ def test_zero_shot_stub_rejects_a_missing_task_before_work(tmp_path, profile):
     slug = render(dst, profile)
     env = {**os.environ, "PYTHONPATH": str(dst / "src")}
     output = tmp_path / "predictions"
+    from meds_model_core import STEP_SPECS
+
+    step = MODEL_PROFILES[profile][-1]
+    spec = STEP_SPECS[step]
     command = [
         "python",
         "-m",
         slug,
-        MODEL_PROFILES[profile][-1],
+        step,
         f"output_predictions_dir={output}",
-        "input_data_dir=/data",
-        "input_pretrained_model_dir=/model",
-        "input_trajectories_dir=/futures",
-        "external_meds_dir=/meds",
-        "external_index_dir=/labels",
         "splits=[held_out]",
     ]
+    command.extend(f"{item.argument}=/missing/{item.argument}" for item in spec.artifact_inputs)
+    command.extend(
+        f"{name}=/missing/{name}" for name in spec.external_arguments if name != "external_task_criteria_file"
+    )
     missing = subprocess.run(command, env=env, text=True, capture_output=True)
     assert missing.returncode != 0
     assert "external_task_criteria_file" in missing.stderr
@@ -445,7 +448,8 @@ def test_zero_shot_stub_rejects_a_missing_task_before_work(tmp_path, profile):
     stub = subprocess.run(
         [*command, f"external_task_criteria_file={criteria}"], env=env, text=True, capture_output=True
     )
-    assert "NotImplementedError" in stub.stderr, "a valid task reaches the model-owned body"
+    assert stub.returncode != 0 and "/missing/" in stub.stderr
+    assert "NotImplementedError" not in stub.stderr, "invalid inputs must not reach model code"
 
 
 def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
@@ -587,7 +591,7 @@ def test_artifacts_are_siblings_and_slurm_lists_only_profile_commands(tmp_path, 
     cases = {line.strip().split(")")[0] for line in slurm.splitlines() if line.strip().endswith(";;")} - {"*"}
     assert cases == set(MODEL_PROFILES[profile]), "the SLURM config lists exactly the profile's commands"
     commands = (dst / f"src/v2_{profile}/commands.py").read_text()
-    assert "config_digest=digest_config(" in commands
+    assert "AlgorithmRepository" in commands
 
 
 def test_contract_helpers_for_conformance_checks(tmp_path, monkeypatch):

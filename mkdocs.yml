@@ -77,4 +77,5 @@ nav:
       - Specification (normative): reference/spec.md
       - Manifest fields: reference/manifest.md
       - Contract API: reference/api.md
+      - Architecture and UML: reference/architecture.md
       - FAQ: faq.md

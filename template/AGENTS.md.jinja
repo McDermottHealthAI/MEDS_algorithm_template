@@ -6,6 +6,13 @@ Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` 
 - `meds-model-core` is an installed dependency. Do not copy its implementations into this repository.
   Keep framework, batching, preprocessing-format and model assumptions in the model package.
 - `src/{{ model_slug }}/`, `models/<profile>/model.yaml`, command configuration, and `tests/e2e.py` are model-owned.
+- Implement typed profile methods on `ModelAlgorithm`; keep source-defined settings in frozen `Config`.
+- Use core's runner for CLI and test execution. Methods write payloads into staging and return
+  `PayloadMetadata`; core owns publication, measurements and reserved manifest/config/request files.
+- Keep object-oriented code minimalist and auditable: cohesive components, explicit dependencies,
+  no unnecessary mutable globals/singletons, import-time computation or duplicated contract definitions.
+- Test configuration/request serialization and step execution in a fresh process. Reopen fitted artifacts;
+  do not rely on training having run on the same Python object.
 - Preserve the `{{ profiles | join(', ') }}` model profile and established command argument names.
 - Intermediate payloads are opaque. Generic tests validate their envelopes, not their contents.
 - MEDS-DEV owns dataset-specific predicates; the model owns their interpretation.

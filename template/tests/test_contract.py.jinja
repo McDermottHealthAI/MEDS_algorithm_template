@@ -1,9 +1,15 @@
-from meds_model_core import MODEL_PROFILES, ModelRepository
-from {{ model_slug }}.commands import COMMANDS, PROFILES
+from meds_model_core import MODEL_PROFILES
+from {{ model_slug }}.commands import PROFILES, create_repository
+from {{ model_slug }}.config import Config
 
 
-def test_command_registry_is_exact_selected_union():
-    repository = ModelRepository(PROFILES, COMMANDS)
+def test_profile_implementations_match_contract():
+    repository = create_repository()
     for profile in PROFILES:
         assert repository.profile_commands(profile) == MODEL_PROFILES[profile]
-    assert set(COMMANDS) == {step for profile in PROFILES for step in MODEL_PROFILES[profile]}
+
+
+def test_model_configuration_roundtrips(tmp_path):
+    config = Config()
+    path = config.save(tmp_path / "config.json")
+    assert Config.load(path) == config
