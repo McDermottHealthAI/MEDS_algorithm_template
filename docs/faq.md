@@ -1,20 +1,20 @@
 # FAQ
 
-## Why can't my model build or filter its own cohort?
+## Why can't my algorithm build or filter its own cohort?
 
-Because then two models could be evaluated on different patients and nobody would notice. The index and
+Because then two algorithms could be evaluated on different patients and nobody would notice. The index and
 its labels come from one extraction run upstream (MEDS-DEV's `meds-dev-task` for the demo, a shared,
-reviewed task bundle for full data). A model predicts every requested row; rows can be left out
+reviewed task bundle for full data). A algorithm predicts every requested row; rows can be left out
 only under a declared exclusion policy that lists them.
 
-## My model needs a statistic over the whole dataset. Can I compute it on all splits?
+## My algorithm needs a statistic over the whole dataset. Can I compute it on all splits?
 
 No. Fit vocabularies, frequencies, bins and normalizers on `train` only. Computing them over all splits is
 transductive leakage: it uses held-out patients' data even though it never touches a label.
 
-## Why do some models run in two Python environments?
+## Why do some algorithms run in two Python environments?
 
-Because their dependencies cannot coexist. A model's training stack may pin an older `meds` (for example
+Because their dependencies cannot coexist. A algorithm's training stack may pin an older `meds` (for example
 femr 0.2.4 requires `meds==0.3.3`), while the ACES tooling a zero-shot adapter uses for task translation
 (aces-relaxations, es-aces ≥ 0.7.3) requires `meds ≥ 0.4`. The two sides can run in separate environments
 and exchange only files. The contract does not care how a command
@@ -22,22 +22,22 @@ is executed, so this is allowed; document it in the repository.
 
 ## What does it mean that a task is "refused"?
 
-A zero-shot model must raise rather than answer a task it cannot pose; the command fails and writes no
-predictions. The common case is a direct model given a task whose label is not *future-only* in
+A zero-shot algorithm must raise rather than answer a task it cannot pose; the command fails and writes no
+predictions. The common case is a direct algorithm given a task whose label is not *future-only* in
 aces-relaxations' structural sense — for example MEDS-DEV's `mortality/in_icu/first_24h`, whose `gap`
 window is anchored at the trigger and straddles the prediction time. A re-anchoring step makes it
 posable; see [Zero-shot in practice](zero-shot.md#windows-that-straddle-the-prediction-time).
-Materialized models are not affected.
+Materialized algorithms are not affected.
 
 ## Why is the AUROC on the MIMIC-IV demo undefined (or meaningless)?
 
 The demo has 100 patients. For `mortality/in_icu/first_24h` the held-out split has a handful of rows and
 may have no positive label at all, in which case AUROC is undefined. Training rows cannot stand in for a
-pretrained model: pretraining saw those patients' futures. The demo gate validates that the pipeline runs
-on real data — formats, scale transitions, coverage, resources — not how good the model is. Performance
+pretrained algorithm: pretraining saw those patients' futures. The demo gate validates that the pipeline runs
+on real data — formats, scale transitions, coverage, resources — not how good the algorithm is. Performance
 comes from the full-data run.
 
-## My model writes several files next to `predictions.parquet`. Is that allowed?
+## My algorithm writes several files next to `predictions.parquet`. Is that allowed?
 
 Yes, with one rule: every parquet file in the predictions artifact must be a predictions file. MEDS-DEV
 evaluates every `**/*.parquet` under the predictions directory, and the key check does the same. Store
@@ -52,21 +52,21 @@ The end-to-end check validates the original run and a fresh full-lifecycle rerun
   zero-shot). Separate input roots remain separate; permitted training/context labels are retained.
   Both runs use the recorded fixture seed and deterministic settings. They must produce the same keyed
   scores within the contract's tolerance. Original and rerun probabilities are checked across every shard.
-- **Transductive fitting:** `meds_model_core.conformance.signal.add_split_canaries` gives every tuning and held-out subject a
+- **Transductive fitting:** `meds_algorithm_core.conformance.signal.add_split_canaries` gives every tuning and held-out subject a
   canary code that no training subject has. Your `fitted_codes(artifacts)` hook reports every code the
-  model fitted a statistic for (vocabulary, frequencies, bins); no canary may appear in it.
+  algorithm fitted a statistic for (vocabulary, frequencies, bins); no canary may appear in it.
 
-## Can a non-zero-shot model use the ACES task?
+## Can a non-zero-shot algorithm use the ACES task?
 
 Only `predict_only` may accept optional `external_task_criteria_file` as provenance, with
-`semantics_digest: null`. Other non-zero-shot commands reject it. Supervised, finetune and probe models
+`semantics_digest: null`. Other non-zero-shot commands reject it. Supervised, finetune and probe algorithms
 learn the task from its labels.
 
 ## What does `scripts/github-sync.sh` push?
 
 Only `runs/<run-id>/spec.yaml` (dataset name and counts, task, predicates digest), `runs/<run-id>/result.yaml`
 (status, git commit and dirty state, environment, SLURM job id, per-command resource summary) and
-`runs/<run-id>/manifests/*.yaml`, on a `runs/<model>/<run-id>` branch with a draft PR. It never pushes
+`runs/<run-id>/manifests/*.yaml`, on a `runs/<algorithm>/<run-id>` branch with a draft PR. It never pushes
 predictions, labels, data, checkpoints, raw logs or metrics. The template computes no metrics at all:
 MEDS-DEV's evaluation step (meds-evaluation) does.
 

@@ -18,7 +18,7 @@ uv.lock.tmp
 htmlcov/
 .hypothesis/
 
-# Rendered scratch model repos (from `copier copy` during local dev / tests)
+# Rendered scratch algorithm repos (from `copier copy` during local dev / tests)
 /scratch/
 /_render/
 /tmp_render/
@@ -28,7 +28,7 @@ htmlcov/
 .vscode/
 .DS_Store
 
-# MEDS / model artifacts that should never be committed
+# MEDS / algorithm artifacts that should never be committed
 *.ckpt
 *.nrt
 outputs/

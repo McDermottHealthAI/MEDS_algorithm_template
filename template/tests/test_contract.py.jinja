@@ -1,15 +1,15 @@
-from meds_model_core import MODEL_PROFILES
-from {{ model_slug }}.commands import PROFILES, create_repository
-from {{ model_slug }}.config import Config
+from meds_algorithm_core import ALGORITHM_PROFILES
+from {{ algorithm_slug }}.{{ algorithm_slug }} import PROFILES, create_repository
+from {{ algorithm_slug }}.config import {{ algorithm_class }}Config
 
 
 def test_profile_implementations_match_contract():
     repository = create_repository()
     for profile in PROFILES:
-        assert repository.profile_commands(profile) == MODEL_PROFILES[profile]
+        assert repository.profile_commands(profile) == ALGORITHM_PROFILES[profile]
 
 
-def test_model_configuration_roundtrips(tmp_path):
-    config = Config()
+def test_algorithm_configuration_roundtrips(tmp_path):
+    config = {{ algorithm_class }}Config()
     path = config.save(tmp_path / "config.json")
-    assert Config.load(path) == config
+    assert {{ algorithm_class }}Config.load(path) == config

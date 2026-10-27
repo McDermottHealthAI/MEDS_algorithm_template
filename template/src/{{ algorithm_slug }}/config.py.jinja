@@ -1,12 +1,12 @@
-"""Model-owned configuration: add only source-defined, typed, immutable settings."""
+"""Algorithm-owned configuration: add only source-defined, typed, immutable settings."""
 
 from dataclasses import dataclass
 
-from meds_model_core import ModelConfig
+from meds_algorithm_core import AlgorithmConfig
 
 
 @dataclass(frozen=True)
-class Config(ModelConfig):
+class {{ algorithm_class }}Config(AlgorithmConfig):
     """Add fields/defaults here and override validate() for value constraints.
 
     Nested groups must also be frozen dataclasses. Use tuples, not mutable collections.

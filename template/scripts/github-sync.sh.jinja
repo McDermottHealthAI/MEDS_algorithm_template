@@ -15,10 +15,10 @@ if [[ ! -f "$result_dir/result.yaml" ]]; then
   exit 1
 fi
 
-branch="runs/{{ model_slug }}/$run_id"
+branch="runs/{{ algorithm_slug }}/$run_id"
 git switch -c "$branch"
 git add "$result_dir/spec.yaml" "$result_dir/result.yaml" "$result_dir/manifests"
-git commit -m "Record {{ model_slug }} run $run_id"
+git commit -m "Record {{ algorithm_slug }} run $run_id"
 if ! git push --set-upstream origin "$branch"; then
   echo "Push failed; the result remains committed locally on $branch" >&2
   exit 1

@@ -1,9 +1,9 @@
 from pathlib import Path
 
-from meds_model_core.conformance.reports import assert_implementation_report
-from {{ model_slug }}.commands import PROFILES, STUB_PROFILES
+from meds_algorithm_core.conformance.reports import assert_implementation_report
+from {{ algorithm_slug }}.{{ algorithm_slug }} import PROFILES, STUB_PROFILES
 
 
-def test_completed_model_has_a_completed_report():
+def test_completed_algorithm_has_a_completed_report():
     report = (Path(__file__).parents[1] / "IMPLEMENTATION_REPORT.md").read_text()
     assert_implementation_report(report, PROFILES, STUB_PROFILES)

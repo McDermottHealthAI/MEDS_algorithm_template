@@ -1,6 +1,6 @@
 # Concepts
 
-This page walks through the objects the contract talks about, in the order data flows through a model:
+This page walks through the objects the contract talks about, in the order data flows through a algorithm:
 the dataset, the task, the predicates, the task specification (zero-shot only), the artifacts each
 command publishes, the final predictions, and the measurements attached to all of them.
 
@@ -8,7 +8,7 @@ command publishes, the final predictions, and the measurements attached to all o
 
 The input data is a split-sharded [MEDS](https://medical-event-data-standard.github.io/) dataset, passed
 as `external_meds_dir`. MEDS fixes what `subject_id`, `time`, `code`, the value columns, static events
-(`time = null`) and code metadata mean; a model may not reinterpret them.
+(`time = null`) and code metadata mean; a algorithm may not reinterpret them.
 
 The dataset comes with three splits: `train`, `tuning` and `held_out`. They are a **boundary**:
 
@@ -16,12 +16,12 @@ The dataset comes with three splits: `train`, `tuning` and `held_out`. They are 
     Anything fitted over a population — vocabularies, code frequencies, quantile bins, normalization
     constants, feature selections — must be fitted on the training split alone. Fitting over all splits is
     *transductive leakage*. It is easy to miss because it is not label leakage: code frequencies do not
-    depend on labels, so a model can pass every label-leakage check and still carry it. If preprocessing
+    depend on labels, so a algorithm can pass every label-leakage check and still carry it. If preprocessing
     is delegated upstream and the scope is not yours to control, declare which quantity was fitted over
     which population.
 
 The generated end-to-end test checks this: it plants a canary code in every tuning and held-out subject of
-its fixture, and none may appear among the codes the model fitted statistics for (see the
+its fixture, and none may appear among the codes the algorithm fitted statistics for (see the
 [FAQ](faq.md#how-do-the-tests-catch-label-leakage-and-transductive-fitting)).
 
 The MIMIC-IV demo in MEDS form is the canonical real-data example used by the tests; it is not a separate
@@ -42,19 +42,19 @@ The [canonical argument table](reference/spec.md#step-arguments-and-artifacts) d
 Inference and ordinary scoring read only keys. The core index reader projects those columns at Parquet
 read time, even when MEDS-DEV supplies a directory whose files also contain outcomes.
 
-The index is never built in the model repository. One ACES extraction, run upstream, applies the task's
-trigger, inclusion/exclusion criteria and splits, so every model scores exactly the same rows:
+The index is never built in the algorithm repository. One ACES extraction, run upstream, applies the task's
+trigger, inclusion/exclusion criteria and splits, so every algorithm scores exactly the same rows:
 
 | Run | Who builds the index |
 |---|---|
 | MIMIC-IV demo (smoke test) | MEDS-DEV's `meds-dev-task`, task `mortality/in_icu/first_24h` |
 | Full-data evaluation | a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined and extracted with [ACES](https://eventstreamaces.readthedocs.io/), or randomly sampled code-by-horizon tasks (generated with [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler) and selected with [meds-task-selection](https://github.com/florian6973/meds-task-selection)), containing each task's definition and its per-task index and labels |
 
-Every model compared on a dataset uses the same bundle. Zero-shot runs additionally need each task's ACES
+Every algorithm compared on a dataset uses the same bundle. Zero-shot runs additionally need each task's ACES
 criteria file.
 
-A model repository must not re-extract, filter or extend the index. If a model rebuilt the cohort itself,
-two models could silently be evaluated on different patients, and a zero-shot model would read the labels
+A algorithm repository must not re-extract, filter or extend the index. If a algorithm rebuilt the cohort itself,
+two algorithms could silently be evaluated on different patients, and a zero-shot algorithm would read the labels
 it is supposed to be blind to.
 
 ### Reading labels: the one rule
@@ -72,15 +72,15 @@ dataset's codes. It is passed as `external_predicates_file` (MEDS-DEV's `{predic
 
 - When MEDS-DEV provides predicates for a dataset, reuse them; the MIMIC-IV demo must use MEDS-DEV's
   MIMIC-IV predicates.
-- The model decides whether and how to use them: selecting tokens, building SQL or columns, matching
+- The algorithm decides whether and how to use them: selecting tokens, building SQL or columns, matching
   events directly, or not at all.
 - Any command that consumes the file records its digest and origin in its manifest.
-- A model that relies on particular predicate names declares and validates them in its own configuration.
+- A algorithm that relies on particular predicate names declares and validates them in its own configuration.
   The contract deliberately has no generic "predicate features" format.
 
 ## The task specification (zero-shot only)
 
-A supervised model learns *what* to predict from labels. A zero-shot model never sees labels, so the task
+A supervised algorithm learns *what* to predict from labels. A zero-shot algorithm never sees labels, so the task
 itself must be an input. The task language is [ACES](https://eventstreamaces.readthedocs.io/): a criteria
 file passed as `external_task_criteria_file`, bound to the dataset predicates. The pair is the **task
 specification** (`TaskSpec`).
@@ -99,15 +99,15 @@ be silently reused for another task. See [Zero-shot in practice](zero-shot.md).
 
 ## Artifacts and the manifest envelope
 
-Every command publishes one **artifact**: a directory containing whatever payload the model wants plus a
+Every command publishes one **artifact**: a directory containing whatever payload the algorithm wants plus a
 `manifest.yaml` that follows a fixed envelope.
 
 ```mermaid
 flowchart LR
     p[preprocess_data] -->|patients| pt[pretrain]
-    pt -->|pretrained_model| i[infer_embeddings]
+    pt -->|pretrained_algorithm| i[infer_embeddings]
     i -->|embeddings| st[train_probe]
-    st -->|probe_model| pr[predict_probe]
+    st -->|probe_algorithm| pr[predict_probe]
     pr -->|predictions| out[(final output)]
 ```
 
@@ -115,15 +115,15 @@ flowchart LR
 
 | Artifact type | Produced by | Meaning |
 |---|---|---|
-| `patients` | `preprocess_data` | the model's own representation of the dataset |
-| `pretrained_model` | `pretrain` | a task-independent model |
+| `patients` | `preprocess_data` | the algorithm's own representation of the dataset |
+| `pretrained_algorithm` | `pretrain` | a task-independent algorithm |
 | `embeddings` / `trajectories` | `infer_embeddings` / `infer_trajectories` | separate task-independent representations and generated futures |
-| `supervised_model` / `finetuned_model` / `probe_model` | `train_supervised` / `train_finetune` / `train_probe` | a complete task-specific inference bundle |
+| `supervised_algorithm` / `finetuned_algorithm` / `probe_algorithm` | `train_supervised` / `train_finetune` / `train_probe` | a complete task-specific inference bundle |
 | `predictions` | `predict` | the normative final output |
 
 Four properties hold for every artifact:
 
-- **The payload format is the model's.** The manifest declares it (`payload_format: name/version`), and
+- **The payload format is the algorithm's.** The manifest declares it (`payload_format: name/version`), and
   consumers reject an incompatible type, contract version or payload format *before* doing expensive work.
 - **Publication preserves complete artifacts.** The command writes its manifest last in unique staging.
   New outputs appear by one rename. Overwrite retains the old output until replacement succeeds and
@@ -137,7 +137,7 @@ Four properties hold for every artifact:
   sibling of the data artifact rather than a subdirectory of it, so runs over different indexes cannot
   overwrite each other.
 
-Core's `StepRunner` owns this work through `measured_artifact(...)`; model methods write payloads into
+Core's `StepRunner` owns this work through `measured_artifact(...)`; algorithm methods write payloads into
 the supplied staging directory. See the [manifest reference](reference/manifest.md).
 
 ## Final predictions
@@ -154,8 +154,8 @@ evaluates with (currently `meds-evaluation==0.0.3`, checked with `validate_binar
 - every parquet file in the predictions artifact is read as predictions (MEDS-DEV evaluates
   `**/*.parquet`), so supporting tables use another format.
 
-For zero-shot models, predictions are always evaluated against the labels of the *requested* task, and the
-predictions artifact carries or references the `relaxations.yaml` describing what the model actually
+For zero-shot algorithms, predictions are always evaluated against the labels of the *requested* task, and the
+predictions artifact carries or references the `relaxations.yaml` describing what the algorithm actually
 answered.
 
 ## Measurements
@@ -170,4 +170,4 @@ SLURM):
 - optional work units (subjects, events, rows, optimizer steps).
 
 `null` means *not measured*; `0` means *measured, nothing used*. Measurements are observations for
-comparing models, never pass/fail thresholds.
+comparing algorithms, never pass/fail thresholds.

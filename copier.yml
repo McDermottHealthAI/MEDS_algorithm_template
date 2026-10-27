@@ -3,13 +3,23 @@ _exclude: ["__pycache__", "*.py[cod]", ".git"]
 _templates_suffix: .jinja
 _answers_file: .copier-answers.yml
 
-model_name:
+algorithm_name:
   type: str
-  default: Minimal MEDS Model
+  default: Minimal MEDS Algorithm
 
-model_slug:
+algorithm_slug:
   type: str
-  default: "{{ model_name | lower | replace(' ', '_') | replace('-', '_') }}"
+  default: "{{ algorithm_name | lower | replace(' ', '_') | replace('-', '_') }}"
+  help: Lowercase Python package and module name, for example retain.
+  validator: >-
+    {% if not (algorithm_slug | regex_search('^[a-z][a-z0-9_]*$')) or algorithm_slug in ['config', 'meds_algorithm', 'meds_algorithm_core', 'keyword', 'pathlib', 'dataclasses', 'argparse', 'json', 'typing', 'abc', 'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'] %}Choose a non-reserved lowercase Python identifier.{% endif %}
+
+algorithm_class:
+  type: str
+  default: "{{ algorithm_slug | replace('_', ' ') | title | replace(' ', '') }}"
+  help: Public Python class name, for example RETAIN; its config class will be RETAINConfig.
+  validator: >-
+    {% if not (algorithm_class | regex_search('^[A-Z][A-Za-z0-9]*$')) or algorithm_class in ['False', 'None', 'True', 'Path', 'Algorithm', 'AlgorithmConfig', 'AlgorithmRepository', 'PayloadMetadata', 'SupervisedAlgorithm', 'FinetuneAlgorithm', 'ProbeAlgorithm', 'ZeroShotDirectAlgorithm', 'ZeroShotMaterializedAlgorithm', 'PredictOnlyAlgorithm', 'PretrainedAlgorithm', 'PreprocessDataRequest', 'PretrainRequest', 'TrainSupervisedRequest', 'PredictSupervisedRequest', 'TrainFinetuneRequest', 'PredictFinetuneRequest', 'InferEmbeddingsRequest', 'TrainProbeRequest', 'PredictProbeRequest', 'InferTrajectoriesRequest', 'PredictZeroShotDirectRequest', 'PredictZeroShotMaterializedRequest', 'PredictOnlyRequest'] %}Choose a non-reserved class name beginning with a capital letter.{% endif %}
 
 profiles:
   type: str
@@ -24,13 +34,13 @@ profiles:
   default: [supervised]
   validator: "{% if not profiles %}Select at least one profile.{% endif %}"
 
-model_description:
+algorithm_description:
   type: str
-  default: "{{ model_name }} implemented against the minimal MEDS model contract."
+  default: "{{ algorithm_name }} implemented against the minimal MEDS algorithm contract."
 
 author_name:
   type: str
-  default: Model Author
+  default: Algorithm Author
 
 author_email:
   type: str

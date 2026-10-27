@@ -5,10 +5,10 @@
 Source: `{{ implementation_source if implementation_source else '<paper/repository not yet supplied>' }}`
 
 Read the paper, supplement, repository, configs, data preparation, checkpoints, and evaluation code.
-Build a source-element inventory before implementation; do not infer the model solely from its headline
+Build a source-element inventory before implementation; do not infer the algorithm solely from its headline
 architecture.
 
-## 2. Justify the model profile
+## 2. Justify the algorithm profile
 
 This repository declares `{{ profiles | join(', ') }}`. Justify each profile separately. Confirm that its commands match the source's actual
 training and prediction lifecycle. Record the justification in `IMPLEMENTATION_REPORT.md`; do not change
@@ -16,49 +16,49 @@ graphs merely to avoid implementing a stage.
 
 ## 3. Map inputs
 
-Document how MEDS events and task timepoints enter the model. If dataset predicates are useful, accept
+Document how MEDS events and task timepoints enter the algorithm. If dataset predicates are useful, accept
 `external_predicates_file`, declare which names are required, and implement their interpretation in
-model-owned code. Reuse MEDS-DEV's MIMIC predicates for the demo test. Do not create a generic feature
+algorithm-owned code. Reuse MEDS-DEV's MIMIC predicates for the demo test. Do not create a generic feature
 format in the contract package.
 
 The full-data target may be any suitable MEDS dataset, such as MIMIC-IV or NWICU. Record its name,
 revision, and MEDS location. Validate its codes, units, task definitions, and label mappings; reuse its
 MEDS-DEV predicates when available, or supply reviewed external predicates with recorded provenance.
-Keep dataset-specific mappings in configuration or model-owned code. Passing the MIMIC-IV demo does not
+Keep dataset-specific mappings in configuration or algorithm-owned code. Passing the MIMIC-IV demo does not
 establish compatibility with another dataset; keep the provided demo code and predicates unchanged.
 
 ## 4. Implement commands
 
-Read [installed core contract](../SPEC.md), then implement every selected profile method on `ModelAlgorithm` in `commands.py`.
-Declare source-defined parameters/defaults in the frozen `Config` class in `config.py`. Use
-`Config.validate()` for constraints, and test strict serialization and reconstruction in a fresh process.
-Read the installed architecture guide with `from meds_model_core.spec import architecture`.
+Read [installed core contract](../SPEC.md), then implement every selected profile method on `{{ algorithm_class }}` in `{{ algorithm_slug }}.py`.
+Declare source-defined parameters/defaults in the frozen `{{ algorithm_class }}Config` class in `config.py`. Use
+`{{ algorithm_class }}Config.validate()` for constraints, and test strict serialization and reconstruction in a fresh process.
+Read the installed architecture guide with `from meds_algorithm_core.spec import architecture`.
 
 Each method receives a typed request, writes its payload into `request.output.directory` (staging), and
 returns `PayloadMetadata(format, version)`. `create_repository().run(...)` invokes core's shared runner:
 it owns input validation, measurements, manifest/config/request writing, rollback and publication.
-Do not call publication helpers or write reserved metadata files inside model methods. Return prediction
+Do not call publication helpers or write reserved metadata files inside algorithm methods. Return prediction
 keys/probabilities without ground truth; the runner alone attaches optional evaluation labels afterward.
-Extend `validate_inputs(request)` with model-specific compatibility checks before expensive work.
+Extend `validate_inputs(request)` with algorithm-specific compatibility checks before expensive work.
 
 Keep code minimalist and auditable: small cohesive classes, typed immutable configuration, explicit
 dependencies and persisted fitted state. Avoid speculative abstractions, mutable global runtime state,
 hidden singletons, import-time computation and duplicated core behavior. Use the same runner from the
 CLI and `tests/e2e.py`; demonstrate independent execution after reopening serialized inputs.
 Keep shared preprocessing/pretraining task-independent. Prediction must receive its prepared data or embeddings explicitly and check compatibility with
-the fitted model. Probe prediction applies the head; it does not rerun the encoder. Preserve standard external arguments. Choose and version
+the fitted algorithm. Probe prediction applies the head; it does not rerun the encoder. Preserve standard external arguments. Choose and version
 intermediate payload formats, reject incompatible inputs before expensive work, let the runner publish with rollback, and
-record model-specific content identities in addition to its automatic provenance. Frameworks, subprocesses, services, batching, and non-batched
+record algorithm-specific content identities in addition to its automatic provenance. Frameworks, subprocesses, services, batching, and non-batched
 systems are all allowed.
 
 {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}### Zero-shot: task in, probabilities out
 
 This profile receives the task itself (SPEC.md sections 2.4 and 3.1). The contract requires only the task
 argument, a label-blind index, the semantics digest, complete predictions, and `relaxations.yaml`. How
-the model gets from the task to predictions is its own.
+the algorithm gets from the task to predictions is its own.
 {% endif %}{% if 'zero_shot_materialized' in profiles %}
-This profile is for models that **generate futures** (for example, autoregressive EHR generators). If the
-model instead answers queries directly (hazards, code-in-window probabilities), it belongs in
+This profile is for algorithms that **generate futures** (for example, autoregressive EHR generators). If the
+algorithm instead answers queries directly (hazards, code-in-window probabilities), it belongs in
 `zero_shot_direct`.
 
 1. **`infer_trajectories`** (task-independent) generates futures from each index row's history up to its
@@ -75,9 +75,9 @@ than the label window, futures that end before the task can resolve, or criteria
 on generated data. Do not reject a task only because it is not future-only: its past criteria are
 evaluated on real history.
 {% endif %}{% if 'zero_shot_direct' in profiles %}
-This profile is for models that **answer queries directly** (for example, MOTOR's time-to-event hazards or
-EveryQuery's code-in-window probabilities). If the model instead generates futures and evaluates the task
-on them, it belongs in `zero_shot_materialized`. The recommended shape is an `aces-to-<model>` adapter
+This profile is for algorithms that **answer queries directly** (for example, MOTOR's time-to-event hazards or
+EveryQuery's code-in-window probabilities). If the algorithm instead generates futures and evaluates the task
+on them, it belongs in `zero_shot_materialized`. The recommended shape is an `aces-to-<algorithm>` adapter
 built on [`aces-relaxations`](https://github.com/McDermottHealthAI/aces-relaxations), with three steps,
 all inside `predict_zero_shot_direct`:
 
@@ -87,19 +87,19 @@ from pathlib import Path
 
 import polars as pl
 
-from meds_model_core import RelaxationLedger, TaskSpec
+from meds_algorithm_core import RelaxationLedger, TaskSpec
 
 
 class ZeroShotTranslator(ABC):
-    """A recommended shape for a zero-shot model; not part of the contract."""
+    """A recommended shape for a zero-shot algorithm; not part of the contract."""
 
     @abstractmethod
-    def encode(self, task: TaskSpec, index: pl.DataFrame, model_dir: Path, output_dir: Path) -> RelaxationLedger:
-        """Write the model's query for `task` over `index` (keys only) and return its ledger."""
+    def encode(self, task: TaskSpec, index: pl.DataFrame, algorithm_dir: Path, output_dir: Path) -> RelaxationLedger:
+        """Write the algorithm's query for `task` over `index` (keys only) and return its ledger."""
 
     @abstractmethod
-    def infer(self, encoded_dir: Path, data_dir: Path, model_dir: Path, output_dir: Path) -> None:
-        """Run the pretrained model on the query and write its raw outputs."""
+    def infer(self, encoded_dir: Path, data_dir: Path, algorithm_dir: Path, output_dir: Path) -> None:
+        """Run the pretrained algorithm on the query and write its raw outputs."""
 
     @abstractmethod
     def decode(self, encoded_dir: Path, inference_dir: Path, index: pl.DataFrame) -> pl.DataFrame:
@@ -107,17 +107,17 @@ class ZeroShotTranslator(ABC):
 ```
 
 1. **`encode`** turns the ACES task (`TaskSpec`: criteria plus predicates) and the label-blind index
-   (`read_index`) into the model's query. Use aces-relaxations to reason about the task before any data is
+   (`read_index`) into the algorithm's query. Use aces-relaxations to reason about the task before any data is
    seen:
    - reject tasks that are not future-only (`validate_future_only`) or are degenerate (`degeneracies`);
    - apply the label-preserving rewrites (`require_bounding_events`, `normalize`);
-   - then apply whichever approximations the model's query language needs (`simplify_constraints`,
-     `last_link_target`), plus the model's own assumptions, such as restricting predicates to its
+   - then apply whichever approximations the algorithm's query language needs (`simplify_constraints`,
+     `last_link_target`), plus the algorithm's own assumptions, such as restricting predicates to its
      vocabulary.
 
    Record each step in the ledger as it is applied; do not hard-code the ledger. aces-relaxations is
    pre-1.0, so pin the exact version or commit in `requirements.txt`.
-2. **`infer`** runs the pretrained model on that query and writes its raw outputs.
+2. **`infer`** runs the pretrained algorithm on that query and writes its raw outputs.
 3. **`decode`** turns raw outputs into `predicted_boolean_probability` for every index key. Validate with
    `check_decoded`.
 
@@ -128,20 +128,20 @@ The contract does not validate ledger steps. The recommended keys for each step 
 |---|---|---|
 | `label_preserving` | a rewrite that changes no label on extracted rows (`normalize`, `require_bounding_events`) | `exact` |
 | `approximation` | a task rewrite with a known effect (`simplify_constraints`, `last_link_target`) | `exact`, `weakening` (superset of positives), or `strengthening` (subset) |
-| `model_assumption` | what the query language forces (vocabulary restriction, dropping criteria, independence between codes) | usually `unknown` |
+| `algorithm_assumption` | what the query language forces (vocabulary restriction, dropping criteria, independence between codes) | usually `unknown` |
 
 For example, [`aces-to-motor`](https://github.com/McDermottHealthAI/aces-to-motor) is a MOTOR adapter. It
-is model-specific and not part of this template. Its fixed pipeline maps onto these steps:
+is algorithm-specific and not part of this template. Its fixed pipeline maps onto these steps:
 
 | aces-to-motor step | `kind` | `direction` |
 |---|---|---|
 | `require_bounding_events`, `normalize` | `label_preserving` | `exact` |
-| vocabulary restriction (unmatched predicate -> `marginal`) | `model_assumption` | `unknown` |
-| `label_only`: drop inclusion/exclusion and bounding-event branches | `model_assumption` | `unknown` |
-| `last_link_target` + TTE stationarity (label window promoted to start now) | `approximation` / `model_assumption` | `exact` only when `last_link_target` reports it and no window is discarded; otherwise `unknown` |
-| decode `and`/`or` under independence; same-timestamp `and` -> within-window `and` | `model_assumption` | `unknown` / `weakening` |
+| vocabulary restriction (unmatched predicate -> `marginal`) | `algorithm_assumption` | `unknown` |
+| `label_only`: drop inclusion/exclusion and bounding-event branches | `algorithm_assumption` | `unknown` |
+| `last_link_target` + TTE stationarity (label window promoted to start now) | `approximation` / `algorithm_assumption` | `exact` only when `last_link_target` reports it and no window is discarded; otherwise `unknown` |
+| decode `and`/`or` under independence; same-timestamp `and` -> within-window `and` | `algorithm_assumption` | `unknown` / `weakening` |
 
-Record the model's whole query language in `IMPLEMENTATION_REPORT.md`, and which MEDS-DEV and benchmark
+Record the algorithm's whole query language in `IMPLEMENTATION_REPORT.md`, and which MEDS-DEV and benchmark
 tasks it can answer exactly, approximately, or not at all.
 
 Publish the query, the raw outputs, and `relaxations.yaml` inside the predictions artifact (for example in
@@ -149,14 +149,14 @@ a `bundle/` subdirectory), so decode choices stay inspectable.
 
 {% endif %}{% if 'predict_only' in profiles %}### Predict-only: no training command
 
-Nothing is trained on this dataset's labels before `predict_only`. Two kinds of model fit here:
+Nothing is trained on this dataset's labels before `predict_only`. Two kinds of algorithm fit here:
 
 - **In-context learners**, such as prior-data fitted networks (TabPFN-style). `predict_only` reads labelled
-  examples from the training and tuning splits through `meds_model_core.read_context_labels`, passing
+  examples from the training and tuning splits through `meds_algorithm_core.read_context_labels`, passing
   `evaluation_index_dir=external_index_dir` when the evaluation index is separate. This helper
   refuses the evaluated splits, and predicts the evaluated split's keys in the same forward pass. Record
   the context splits, the number of context rows, and any subsampling in the predictions manifest.
-- **Fixed models** shipped with their weights or coefficients, such as a published risk score. `predict_only`
+- **Fixed algorithms** shipped with their weights or coefficients, such as a published risk score. `predict_only`
   reads no label. Record where the weights come from, and check that the score's outcome matches the task.
 
 In both cases, statistics fitted by `preprocess_data` or `predict_only` (feature bins, normalization) come from
@@ -164,14 +164,14 @@ the training split only (SPEC section 2.1).
 
 {% endif %}## 5. Complete operational interfaces
 
-Finalize `models/<profile>/model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`. The local adapter runs the
+Finalize `algorithms/<profile>/model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`. The local adapter runs the
 real selected profile via `run_e2e(tmp_path, profile=..., **inputs)`. The MEDS-DEV adapter supplies its isolated invocation. The MIMIC adapter locates/builds the demo
 and the pinned `mortality/in_icu/first_24h` task through MEDS-DEV and reuses its predicates.
 
 `tests/test_end_to_end.py` also checks label leakage and transductive fitting on the same run, so the
 local adapter must:
 
-- return `E2EResult` from `meds_model_core.conformance.types`, recording the integer `seed`, `external_meds_dir` and all task
+- return `E2EResult` from `meds_algorithm_core.conformance.types`, recording the integer `seed`, `external_meds_dir` and all task
   inputs in `inputs`. The shared checker reruns the full lifecycle with forbidden labels removed and
   fresh output paths. Honor every external input override; preserve permitted training/context labels.
   `attach_ground_truth(predictions, labels_dir, splits)` supports an entirely unlabelled index.
@@ -179,31 +179,31 @@ local adapter must:
   Original and label-blind probabilities must agree by key (`rtol=1e-6`, `atol=1e-8`), and any Boolean
   decisions must agree exactly. Keep training labels, index and evaluation-label paths separate in
   `inputs` when they are separate on disk; the checker sanitizes each independently.
-- apply `meds_model_core.conformance.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
+- apply `meds_algorithm_core.conformance.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
   canaries (`E2EResult.canaries`).
-- implement `fitted_codes`: every code the model fitted a population statistic for (vocabulary, frequency
+- implement `fitted_codes`: every code the algorithm fitted a population statistic for (vocabulary, frequency
   table, selected features, bins), read from its artifacts. No canary may appear there.
 
 Complete `tests/test_primary_behavior.py`; its initial failure is intentional. The template provides the
-small `meds_model_core.conformance.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
+small `meds_algorithm_core.conformance.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
 history length and signal position do not leak the label. Use it unchanged, adapt its codes, or replace it
-when the model requires a fixed vocabulary, selected codes, predicates, derived features, numeric values,
-or another valid MEDS construction. The test must explicitly show that the signal survives the model's
-real selection/featurization layer, exercise the real model profile, and include a shuffled-label negative control.
-Use a profile-appropriate behavioral assertion: supervised/fine-tuned/probe models should learn the
-signal, while zero-shot or predict_only models should demonstrate their claimed response without pretending
+when the algorithm requires a fixed vocabulary, selected codes, predicates, derived features, numeric values,
+or another valid MEDS construction. The test must explicitly show that the signal survives the algorithm's
+real selection/featurization layer, exercise the real algorithm profile, and include a shuffled-label negative control.
+Use a profile-appropriate behavioral assertion: supervised/fine-tuned/probe algorithms should learn the
+signal, while zero-shot or predict_only algorithms should demonstrate their claimed response without pretending
 to train.
 
 ## 6. Follow the staged verification workflow
 
 Advance in this order. Each automated stage must pass before the next one starts.
 
-1. **Local gate:** run `uv run pytest -rs`. This exercises the contract and the model-owned basic
+1. **Local gate:** run `uv run pytest -rs`. This exercises the contract and the algorithm-owned basic
    end-to-end adapter on a small synthetic fixture. Return `E2EResult` from that adapter so the test can
    compare actual prediction keys with the requested label index and evaluated splits. It also runs the
    required primary-behavior test; structural conformance alone does not pass this gate.
 2. **MEDS-DEV gate:** run `uv run pytest -m meds_dev -rs`. This verifies installation and the command
-   strings in `models/<profile>/model.yaml` through MEDS-DEV's isolated execution path. Return `MEDSDevRun` from its adapter
+   strings in `algorithms/<profile>/model.yaml` through MEDS-DEV's isolated execution path. Return `MEDSDevRun` from its adapter
    with the invocation, prediction directory, requested label index, and evaluated splits.
 3. **Pre-demo report and human gate:** complete the source ledger, scientific deviations, input mapping,
    predicate interpretation, the results from the first two gates, and the proposed MIMIC-IV demo execution plan
@@ -211,7 +211,7 @@ Advance in this order. Each automated stage must pass before the next one starts
    accessing or running MIMIC-IV.
 4. **MIMIC-IV demo gate:** after approval, run `uv run pytest -m real_data -rs`. This builds or reuses the
    MEDS-DEV demo, derives labels with `mortality/in_icu/first_24h`, reuses MEDS-DEV's MIMIC-IV predicates,
-   and runs the complete selected model profile. The purpose is to expose scale-dependent pipeline, resource,
+   and runs the complete selected algorithm profile. The purpose is to expose scale-dependent pipeline, resource,
    serialization, and key-coverage failures before a full-data run.
 5. **Demo report and human gate:** add the exact demo revision, task and predicate provenance, cohort
    counts, prediction-key coverage, measurements, failures, and fixes to the report. A human decides
@@ -222,16 +222,16 @@ Advance in this order. Each automated stage must pass before the next one starts
    that SHA from a clean checkout. The external task bundle is not committed.
 7. **Full target-dataset run:** run the approved shared task bundle for the selected dataset on the
    authorized full dataset, normally through the SLURM interface. The bundle is built once upstream, for
-   every model alike. Its tasks are either clinical tasks defined and extracted with
+   every algorithm alike. Its tasks are either clinical tasks defined and extracted with
    [ACES](https://eventstreamaces.readthedocs.io/), or randomly sampled code-by-horizon tasks (generated with
    [meds-random-task-sampler](https://github.com/florian6973/meds-random-task-sampler) and selected with
    [meds-task-selection](https://github.com/florian6973/meds-task-selection)). It contains each
-   task's definition and its per-task index/labels; zero-shot models also need each task's ACES criteria.
+   task's definition and its per-task index/labels; zero-shot algorithms also need each task's ACES criteria.
    If a compatible bundle is not available, report that blocker before launching. Pass its path
-   explicitly in configuration; do not copy it into the model repository. Record the commit of the tool
+   explicitly in configuration; do not copy it into the algorithm repository. Record the commit of the tool
    that built the bundle, a digest of its task definitions, the bundle identifier/path, dataset
-   name/revision, predicate provenance, model commit, exact command/configuration, job IDs, and structured
-   run evidence. Every model comparison on the same dataset must use the same
+   name/revision, predicate provenance, algorithm commit, exact command/configuration, job IDs, and structured
+   run evidence. Every algorithm comparison on the same dataset must use the same
    reviewed bundle. Do not treat the demo result as a scientific result.
 8. **Final report and result synchronization:** add per-task and aggregate full-data cohort/output counts,
    measurements, scientific results, deviations, failures, and limitations. Run `scripts/github-sync.sh
@@ -253,8 +253,8 @@ remaining a single deterministic smoke test.
 MEDS-DEV also currently declares these MIMIC-IV-supported candidates: anemia, leukocytosis,
 thrombocytopenia, hypotension, hyponatremia, metabolic acidosis, and elevated creatinine, all under their
 respective `abnormal_lab/.../first_24h` task paths. They are optional task-coverage tests, not required demo
-gates. Add one only when it is relevant to the model and its task definition resolves cleanly against the
+gates. Add one only when it is relevant to the algorithm and its task definition resolves cleanly against the
 current MEDS-DEV MIMIC predicates and produces a non-degenerate demo cohort. Record the exact task revision
 rather than copying its dataset knowledge into this repository. These demo tasks are independent of the
 full-data task bundle: the demo validates execution and scale transition, while the frozen full-data
-bundle supports consistent model evaluation.
+bundle supports consistent algorithm evaluation.

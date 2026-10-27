@@ -3,7 +3,7 @@
 import argparse
 import json
 
-from .commands import create_repository
+from .{{ algorithm_slug }} import create_repository
 
 
 def _value(text: str):
@@ -18,7 +18,7 @@ def _value(text: str):
 
 def main() -> None:
     repository = create_repository()
-    parser = argparse.ArgumentParser(description="Run one declared MEDS model profile")
+    parser = argparse.ArgumentParser(description="Run one declared MEDS algorithm profile")
     parser.add_argument("command", help="profiles, commands, or a step name")
     parser.add_argument("--profile", choices=repository.profiles)
     parser.add_argument("arguments", nargs="*", metavar="key=value")

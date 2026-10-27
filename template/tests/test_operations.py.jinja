@@ -5,17 +5,17 @@ from pathlib import Path
 import yaml
 import pytest
 
-from {{ model_slug }}.commands import PROFILES
+from {{ algorithm_slug }}.{{ algorithm_slug }} import PROFILES
 
-from meds_model_core import MODEL_PROFILES
+from meds_algorithm_core import ALGORITHM_PROFILES
 
 
 ROOT = Path(__file__).parents[1]
 
 
 @pytest.mark.parametrize("profile", PROFILES)
-def test_model_yaml_is_a_meds_dev_descriptor(profile):
-    descriptor = yaml.safe_load((ROOT / "models" / profile / "model.yaml").read_text())
+def test_algorithm_yaml_is_a_meds_dev_descriptor(profile):
+    descriptor = yaml.safe_load((ROOT / "algorithms" / profile / "model.yaml").read_text())
     assert set(descriptor) == {"metadata", "commands"}
     assert "supervised" in descriptor["commands"]
     assert descriptor["commands"]["supervised"]["predict"]
@@ -44,6 +44,6 @@ def test_slurm_dry_run_is_non_mutating(profile):
     )
     after = {p.relative_to(ROOT) for p in ROOT.rglob("*")}
     assert before == after
-    for command in MODEL_PROFILES[profile]:
+    for command in ALGORITHM_PROFILES[profile]:
         assert command.value in result.stdout
     assert "sbatch" in result.stdout

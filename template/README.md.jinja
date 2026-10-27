@@ -1,13 +1,32 @@
-# {{ model_name }}
+# {{ algorithm_name }}
 
-{{ model_description }}
+## Python API and named command
 
-This repository declares the **`{{ profiles | join(', ') }}`** profiles under version 3 of the minimal MEDS model
+The implementation is `src/{{ algorithm_slug }}/{{ algorithm_slug }}.py`, with configuration in `config.py`.
+Both concrete classes are public package exports:
+
+```python
+from {{ algorithm_slug }} import {{ algorithm_class }}, {{ algorithm_class }}Config
+
+algorithm = {{ algorithm_class }}({{ algorithm_class }}Config())
+```
+
+Run typed requests through `meds_algorithm_core.StepRunner.run(...)` so validation, measurements and
+publication apply. Calling an implementation method directly bypasses that execution contract.
+After installation, `{{ algorithm_slug | replace('_', '-') }}` and `meds-algorithm` invoke the same CLI:
+
+```bash
+{{ algorithm_slug | replace('_', '-') }} commands --profile {{ profiles[0] }}
+```
+
+{{ algorithm_description }}
+
+This repository declares the **`{{ profiles | join(', ') }}`** profiles under version 4 of the minimal MEDS algorithm
 contract. The contract standardizes MEDS input, command meanings and arguments, artifact envelopes,
-final predictions, measurements, MEDS-DEV packaging, and operational interfaces. The model owns every
+final predictions, measurements, MEDS-DEV packaging, and operational interfaces. The algorithm owns every
 computational choice and every intermediate payload.
 
-## Model profile commands
+## Algorithm profile commands
 
 {% if 'supervised' in profiles %}- `supervised`: `preprocess_data → train_supervised → predict_supervised`
 {% endif %}{% if 'finetune' in profiles %}- `finetune`: `preprocess_data → pretrain → train_finetune → predict_finetune`
@@ -17,12 +36,12 @@ computational choice and every intermediate payload.
 {% endif %}{% if 'predict_only' in profiles %}- `predict_only`: `preprocess_data → predict_only`
 {% endif %}
 ```bash
-meds-model profiles
-meds-model commands --profile {{ profiles[0] }}
-meds-model <step> --profile <profile> key=value ...
+meds-algorithm profiles
+meds-algorithm commands --profile {{ profiles[0] }}
+meds-algorithm <step> --profile <profile> key=value ...
 ```
 
-Each profile has `models/<profile>/model.yaml`. Multiple profiles share one Python package and one
+Each profile has `algorithms/<profile>/model.yaml`. Multiple profiles share one Python package and one
 registry; select one explicitly for each run. `STUB_PROFILES` tracks implementation status separately.
 Read [Software contract](SPEC.md) for exact class responsibilities and step inputs.
 
@@ -42,7 +61,7 @@ must not assume batches, Lightning, PyTorch, Parquet intermediate data, or itera
 A command that consumes predicates records their absolute path and SHA-256 digest in its manifest.
 Predicates do not imply a standard feature representation.
 
-## Implementing the model
+## Implementing the algorithm
 
 Read [AGENTS.md](AGENTS.md), [SPEC.md](SPEC.md), and
 [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md) completely before changing implementation
@@ -52,23 +71,23 @@ files. The implementation source recorded when this repository was generated is:
 {{ implementation_source if implementation_source else 'Not supplied during generation.' }}
 ```
 
-The model-owned surface is `src/{{ model_slug }}/commands.py` (the typed algorithm), `src/{{ model_slug }}/config.py`
-(its immutable configuration), `models/<profile>/model.yaml`, and
+The algorithm-owned surface is `src/{{ algorithm_slug }}/{{ algorithm_slug }}.py` (the typed algorithm), `src/{{ algorithm_slug }}/config.py`
+(its immutable configuration), `algorithms/<profile>/model.yaml`, and
 `tests/e2e.py`. Implement the selected profile methods, define exact intermediate compatibility checks in
 `validate_inputs`,
 finalize MEDS-DEV command strings, and complete the report. Remove a profile from `STUB_PROFILES` only after it runs end to end. Complete every declared profile.
 
 ## Configuration and execution ownership
 
-Declare typed fields/defaults in `Config`, with `validate()` for constraints. Pass
+Declare typed fields/defaults in `{{ algorithm_class }}Config`, with `validate()` for constraints. Pass
 `config_file=/path/config.yaml` to a step for a JSON/YAML values mapping; unknown fields fail. Core saves
 the complete resolved config and original typed request as `config.json` and `request.json` in each
 published artifact. These JSON envelopes can be reloaded with the corresponding explicit classes.
 
-Model methods receive typed requests, write payloads into `request.output.directory` (staging), and
+Algorithm methods receive typed requests, write payloads into `request.output.directory` (staging), and
 return `PayloadMetadata`. `create_repository().run(...)` constructs a fresh algorithm and delegates to
 core's runner. It owns measurements, prediction validation, optional post-score truth attachment,
-metadata and publication. Never publish from inside model methods or write the reserved metadata files.
+metadata and publication. Never publish from inside algorithm methods or write the reserved metadata files.
 Reopen fitted artifacts on each step. Test config/request round trips and execution in a fresh process.
 
 ## Verification
@@ -80,20 +99,20 @@ uv run pytest -m real_data -rs
 ```
 
 - The default suite runs the local end-to-end adapter and contract tests.
-- `meds_dev` registers `models/<profile>/model.yaml`, installs this repository from `requirements.txt` in an isolated
+- `meds_dev` registers `algorithms/<profile>/model.yaml`, installs this repository from `requirements.txt` in an isolated
   environment, and executes MEDS-DEV's real command slots.
-- `real_data` runs the full selected model profile on the MEDS-DEV MIMIC-IV demo, the pinned
+- `real_data` runs the full selected algorithm profile on the MEDS-DEV MIMIC-IV demo, the pinned
   `mortality/in_icu/first_24h` task, and MEDS-DEV's
   MIMIC predicates. Set `MEDS_DEMO_DIR` to reuse an existing demo and `MEDS_DEV_DIR` to reuse a checkout.
 
 Automatic provisioning pins MEDS-DEV PR #330's tested commit, which has the `{predicates_path}`
 passthrough (PR #325){% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %} and the
-`{task_criteria_path}` passthrough this zero-shot model needs{% endif %}. Set `MEDS_DEV_REF` to use another
+`{task_criteria_path}` passthrough this zero-shot algorithm needs{% endif %}. Set `MEDS_DEV_REF` to use another
 revision containing those capabilities. A checkout supplied through `MEDS_DEV_DIR` is checked and fails
 clearly if it cannot populate them.
 
-Both integration tiers explicitly `model_stub`-skip until implementation is complete. A completed port
-must have zero `model_stub` skips and must account for every other skip using `-rs` output.
+Both integration tiers explicitly `algorithm_stub`-skip until implementation is complete. A completed port
+must have zero `algorithm_stub` skips and must account for every other skip using `-rs` output.
 
 These commands are gates, not an unordered checklist. Follow the canonical staged workflow in
 [docs/IMPLEMENTATION_GUIDE.md](docs/IMPLEMENTATION_GUIDE.md): local, MEDS-DEV, pre-demo report and human
@@ -123,7 +142,7 @@ PROFILE={{ profiles[0] }} ./slurm/submit.sh
 scripts/github-sync.sh <run-id>
 ```
 
-SLURM follows the selected model profile and chains stages by successful dependencies. Structured evidence belongs
+SLURM follows the selected algorithm profile and chains stages by successful dependencies. Structured evidence belongs
 under `runs/<run-id>/`; raw logs, datasets, checkpoints, and credentials do not. GitHub synchronization
-pushes a `runs/{{ model_slug }}/<run-id>` branch and optionally opens a draft PR. A failed push leaves the
+pushes a `runs/{{ algorithm_slug }}/<run-id>` branch and optionally opens a draft PR. A failed push leaves the
 result committed and recoverable locally.

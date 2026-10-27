@@ -1,27 +1,27 @@
 # Agent instructions
 
 Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` completely.
-`SPEC.md` points to the pinned core contract: run `meds-model-core-spec` and read that specification too.
+`SPEC.md` points to the pinned core contract: run `meds-algorithm-core-spec` and read that specification too.
 
-- `meds-model-core` is an installed dependency. Do not copy its implementations into this repository.
-  Keep framework, batching, preprocessing-format and model assumptions in the model package.
-- `src/{{ model_slug }}/`, `models/<profile>/model.yaml`, command configuration, and `tests/e2e.py` are model-owned.
-- Implement typed profile methods on `ModelAlgorithm`; keep source-defined settings in frozen `Config`.
+- `meds-algorithm-core` is an installed dependency. Do not copy its implementations into this repository.
+  Keep framework, batching, preprocessing-format and algorithm assumptions in the algorithm package.
+- `src/{{ algorithm_slug }}/`, `algorithms/<profile>/model.yaml`, command configuration, and `tests/e2e.py` are algorithm-owned.
+- Implement typed profile methods on `{{ algorithm_class }}`; keep source-defined settings in frozen `{{ algorithm_class }}Config`.
 - Use core's runner for CLI and test execution. Methods write payloads into staging and return
   `PayloadMetadata`; core owns publication, measurements and reserved manifest/config/request files.
 - Keep object-oriented code minimalist and auditable: cohesive components, explicit dependencies,
   no unnecessary mutable globals/singletons, import-time computation or duplicated contract definitions.
 - Test configuration/request serialization and step execution in a fresh process. Reopen fitted artifacts;
   do not rely on training having run on the same Python object.
-- Preserve the `{{ profiles | join(', ') }}` model profile and established command argument names.
+- Preserve the `{{ profiles | join(', ') }}` algorithm profile and established command argument names.
 - Intermediate payloads are opaque. Generic tests validate their envelopes, not their contents.
-- MEDS-DEV owns dataset-specific predicates; the model owns their interpretation.
+- MEDS-DEV owns dataset-specific predicates; the algorithm owns their interpretation.
 - Never associate outputs with prediction keys by row order.
 - Keep `STUB_PROFILES = set(PROFILES)` until every registered command and the real end-to-end adapter work.
 - Replace the intentional failure in `tests/test_primary_behavior.py`. Prove that a known signal reaches
-  the model's real selected codes/features and produces the expected behavior, with a shuffled-label
+  the algorithm's real selected codes/features and produces the expected behavior, with a shuffled-label
   negative control; adapt the example signal dataset rather than forcing an incompatible representation.
-- Run pytest with `-rs`, account for every skip, and require zero `model_stub` skips before completion.
+- Run pytest with `-rs`, account for every skip, and require zero `algorithm_stub` skips before completion.
 - Follow the ordered gates in `docs/IMPLEMENTATION_GUIDE.md`. Stop for human approval before the MIMIC-IV
   demo and again before the selected full-data run; do not infer data access or cluster authorization.
 - Submit cluster jobs only from the recorded SHA of a clean, committed, pushed revision. Use the approved

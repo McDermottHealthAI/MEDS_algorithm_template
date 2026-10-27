@@ -27,7 +27,7 @@ if [[ -n "$tree_status" ]]; then
   fi
 fi
 
-declared_text="$(meds-model commands --profile "$PROFILE")"
+declared_text="$(meds-algorithm commands --profile "$PROFILE")"
 mapfile -t declared <<< "$declared_text"
 if [[ -z "${declared[0]:-}" ]]; then
   echo "No commands declared" >&2
@@ -57,12 +57,12 @@ fi
 
 run_id="${RUN_ID:-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:-local}}"
 RUN_DIR="${RUN_DIR:-$RUN_ROOT/$run_id/$PROFILE/artifacts}"
-# Task-independent artifacts (data/, pretrained/) live in SHARED_DIR; per-run artifacts (model/, inference/,
+# Task-independent artifacts (data/, pretrained/) live in SHARED_DIR; per-run artifacts (algorithm/, inference/,
 # predictions/) in RUN_DIR. Unset, both are the same directory, which is what a single-task run wants.
 SHARED_DIR="${SHARED_DIR:-$RUN_DIR}"
 export RUN_DIR SHARED_DIR
 dependency=""
-# ARGS_<command> appends model-owned key=value arguments to one command without editing config.sh (which would
+# ARGS_<command> appends algorithm-owned key=value arguments to one command without editing config.sh (which would
 # leave the tree dirty), e.g. ARGS_infer_trajectories="n_trajectories=8 max_new_tokens=4096". They are recorded in the
 # command's args file like every other argument. SBATCH_EXTRA adds sbatch flags to every job, e.g.
 # SBATCH_EXTRA="--exclude=node1,node2".
@@ -96,10 +96,10 @@ for command in "${commands[@]}"; do
     submit+=(--dependency="afterok:$dependency")
   fi
   submit+=(${sbatch_extra[@]+"${sbatch_extra[@]}"})
-  submit+=("${gres[@]}" --export="ALL,PROFILE=$PROFILE,MEDS_MODEL_COMMAND=$command,MEDS_MODEL_ARGS_FILE=$args_file,RUN_ID=$run_id" "$SCRIPT_DIR/job.sbatch")
+  submit+=("${gres[@]}" --export="ALL,PROFILE=$PROFILE,MEDS_ALGORITHM_COMMAND=$command,MEDS_ALGORITHM_ARGS_FILE=$args_file,RUN_ID=$run_id" "$SCRIPT_DIR/job.sbatch")
   if $dry_run; then
-    # Print what the model will be told to do, not only the sbatch wrapper. Without this
-    # a --dry-run review cannot show the model's arguments at all, so grepping it for a
+    # Print what the algorithm will be told to do, not only the sbatch wrapper. Without this
+    # a --dry-run review cannot show the algorithm's arguments at all, so grepping it for a
     # misrouted input directory returns nothing -- which is also what a correct run looks
     # like, making the review unfalsifiable for the thing it exists to check. Written to
     # stdout only: dry-run stays non-mutating, so no args file is produced.

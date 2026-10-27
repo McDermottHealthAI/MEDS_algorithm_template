@@ -1,4 +1,4 @@
-"""Contract-level tests for the minimal MEDS model Copier template."""
+"""Contract-level tests for the minimal MEDS algorithm Copier template."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import yaml
 REPO = Path(__file__).resolve().parents[1]
 TEMPLATE_REPO = REPO
 
-MODEL_PROFILES = {
+ALGORITHM_PROFILES = {
     "supervised": ["preprocess_data", "train_supervised", "predict_supervised"],
     "finetune": ["preprocess_data", "pretrain", "train_finetune", "predict_finetune"],
     "probe": ["preprocess_data", "pretrain", "infer_embeddings", "train_probe", "predict_probe"],
@@ -38,8 +38,8 @@ def render(dst: Path, profile: str, *, uses_predicates: bool = False) -> str:
         str(TEMPLATE_REPO),
         str(dst),
         data={
-            "model_name": f"V2 {profile}",
-            "model_slug": slug,
+            "algorithm_name": f"V2 {profile}",
+            "algorithm_slug": slug,
             "profiles": [profile],
             "uses_predicates": uses_predicates,
         },
@@ -51,17 +51,17 @@ def render(dst: Path, profile: str, *, uses_predicates: bool = False) -> str:
 
 
 def load_integration_module(rendered: Path):
-    from meds_model_core.conformance import meds_dev
+    from meds_algorithm_core.conformance import meds_dev
 
     return meds_dev
 
 
-@pytest.mark.parametrize("profile", MODEL_PROFILES)
-def test_renders_six_model_profiles(tmp_path, profile):
+@pytest.mark.parametrize("profile", ALGORITHM_PROFILES)
+def test_renders_six_algorithm_profiles(tmp_path, profile):
     dst = tmp_path / profile
     slug = render(dst, profile, uses_predicates=True)
     required = [
-        f"models/{profile}/model.yaml",
+        f"algorithms/{profile}/model.yaml",
         ".copier-answers.yml",
         "AGENTS.md",
         "SPEC.md",
@@ -77,22 +77,22 @@ def test_renders_six_model_profiles(tmp_path, profile):
         "tests/test_meds_dev_e2e.py",
         "tests/test_mimic_demo_e2e.py",
         "tests/e2e.py",
-        f"src/{slug}/commands.py",
+        f"src/{slug}/{slug}.py",
     ]
     assert all((dst / path).is_file() for path in required)
-    assert not (dst / "src/meds_model_contract").exists()
-    assert not (dst / "src/meds_model_core").exists()
+    assert not (dst / "src/meds_algorithm_contract").exists()
+    assert not (dst / "src/meds_algorithm_core").exists()
     assert compileall.compile_dir(dst, quiet=1, force=True)
-    assert yaml.safe_load((dst / "models" / profile / "model.yaml").read_text())["commands"]["supervised"][
-        "predict"
-    ]
-    assert "{predicates_path}" in (dst / "models" / profile / "model.yaml").read_text()
+    assert yaml.safe_load((dst / "algorithms" / profile / "model.yaml").read_text())["commands"][
+        "supervised"
+    ]["predict"]
+    assert "{predicates_path}" in (dst / "algorithms" / profile / "model.yaml").read_text()
 
     env = {**os.environ, "PYTHONPATH": str(dst / "src")}
     command_list = subprocess.run(
         ["python", "-m", slug, "commands"], env=env, text=True, capture_output=True, check=True
     ).stdout.splitlines()
-    assert command_list == MODEL_PROFILES[profile]
+    assert command_list == ALGORITHM_PROFILES[profile]
 
     syntax = subprocess.run(
         ["bash", "-n", "slurm/config.sh", "slurm/job.sbatch", "slurm/submit.sh", "scripts/github-sync.sh"],
@@ -108,7 +108,7 @@ def test_copier_answers_record_portable_update_metadata(tmp_path):
     render(dst, "supervised")
     answers = yaml.safe_load((dst / ".copier-answers.yml").read_text())
     assert answers["_src_path"]
-    assert answers["model_slug"] == "v2_supervised"
+    assert answers["algorithm_slug"] == "v2_supervised"
     assert answers["profiles"] == ["supervised"]
 
 
@@ -117,7 +117,7 @@ def test_mimic_task_prepends_pinned_meds_dev_venv_only_for_task(tmp_path, monkey
     render(dst, "supervised")
     calls = []
 
-    from meds_model_core.conformance import meds_dev as module
+    from meds_algorithm_core.conformance import meds_dev as module
 
     monkeypatch.setattr(module, "venv_bin", lambda checkout: checkout / ".venv" / "bin")
     monkeypatch.setattr(
@@ -142,7 +142,7 @@ def test_example_signal_dataset_has_no_length_or_position_leak(tmp_path):
 
     dst = tmp_path / "signal-example"
     render(dst, "supervised")
-    from meds_model_core.conformance import signal
+    from meds_algorithm_core.conformance import signal
 
     root = signal.build_signal_dataset(tmp_path / "cohort", n_train=40, n_tuning=10, n_held_out=10)
     events = pl.scan_parquet(root / "data" / "*" / "*.parquet").collect()
@@ -174,7 +174,7 @@ def test_predicates_are_external_not_a_rendered_semantic_format(tmp_path):
     dst = tmp_path / "without-predicates"
     render(dst, "supervised", uses_predicates=False)
     assert not (dst / "semantics.yaml").exists()
-    assert "external_predicates_file" not in (dst / "models/supervised/model.yaml").read_text()
+    assert "external_predicates_file" not in (dst / "algorithms/supervised/model.yaml").read_text()
 
 
 def test_implementation_prompt_belongs_to_template_readme_not_rendered_repo(tmp_path):
@@ -183,7 +183,7 @@ def test_implementation_prompt_belongs_to_template_readme_not_rendered_repo(tmp_
     prompt_token = "<PAPER_PATH_OR_URL_AND_OR_REPOSITORY_PATH_OR_URL>"
     assert prompt_token in (TEMPLATE_REPO / "README.md").read_text()
     assert prompt_token not in (dst / "README.md").read_text()
-    assert "Copyable model-implementation prompt" not in (dst / "README.md").read_text()
+    assert "Copyable algorithm-implementation prompt" not in (dst / "README.md").read_text()
 
 
 def test_spec_has_one_template_source_and_renders_to_root(tmp_path):
@@ -257,7 +257,7 @@ def test_meds_dev_predicates_capability_is_explicit(tmp_path):
     integration.assert_meds_dev_task_criteria_capability(checkout)
 
 
-@pytest.mark.parametrize("profile", MODEL_PROFILES)
+@pytest.mark.parametrize("profile", ALGORITHM_PROFILES)
 def test_only_zero_shot_meds_dev_runs_require_task_criteria(tmp_path, profile):
     dst = tmp_path / profile
     render(dst, profile)
@@ -319,8 +319,8 @@ def test_measurement_manifest_is_plausible(tmp_path, monkeypatch):
     dst = tmp_path / "measurement"
     render(dst, "predict_only")
     monkeypatch.syspath_prepend(str(dst / "src"))
-    from meds_model_core import measured_artifact, read_manifest, write_run_result
-    from meds_model_core.integrations.meds_dev import register
+    from meds_algorithm_core import measured_artifact, read_manifest, write_run_result
+    from meds_algorithm_core.integrations.meds_dev import register
 
     artifact = tmp_path / "artifact"
     with measured_artifact(
@@ -357,7 +357,7 @@ def test_measurement_manifest_is_plausible(tmp_path, monkeypatch):
 
     meds_dev = tmp_path / "MEDS-DEV"
     (meds_dev / "src/MEDS_DEV/models").mkdir(parents=True)
-    registered = register(dst, meds_dev, "measurement-model")
+    registered = register(dst, meds_dev, "measurement-algorithm")
     assert (registered / "model.yaml").is_file()
     assert str(dst.resolve()) in (registered / "requirements.txt").read_text()
 
@@ -365,15 +365,15 @@ def test_measurement_manifest_is_plausible(tmp_path, monkeypatch):
 ZERO_SHOT_PROFILES = ["zero_shot_direct", "zero_shot_materialized"]
 
 
-@pytest.mark.parametrize("profile", MODEL_PROFILES)
+@pytest.mark.parametrize("profile", ALGORITHM_PROFILES)
 def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
     dst = tmp_path / profile
     render(dst, profile)
-    model_yaml = (dst / "models" / profile / "model.yaml").read_text()
-    predict = yaml.safe_load(model_yaml)["commands"]["supervised"]["predict"]
+    algorithm_yaml = (dst / "algorithms" / profile / "model.yaml").read_text()
+    predict = yaml.safe_load(algorithm_yaml)["commands"]["supervised"]["predict"]
     slurm = (dst / "slurm/config.sh").read_text()
     end_to_end = (
-        Path(__import__("meds_model_core.conformance.end_to_end", fromlist=["__file__"]).__file__)
+        Path(__import__("meds_algorithm_core.conformance.end_to_end", fromlist=["__file__"]).__file__)
     ).read_text()
     if profile in ZERO_SHOT_PROFILES:
         assert "external_task_criteria_file={task_criteria_path}" in predict
@@ -382,7 +382,9 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
         assert "Zero-shot: task in, probabilities out" in guide
         assert "ZERO_SHOT_TASK_COMMANDS" in end_to_end and "RelaxationLedger.read" in end_to_end
         predict_line = next(
-            line for line in slurm.splitlines() if line.strip().startswith(MODEL_PROFILES[profile][-1] + ")")
+            line
+            for line in slurm.splitlines()
+            if line.strip().startswith(ALGORITHM_PROFILES[profile][-1] + ")")
         )
         assert "TASK_CRITERIA_FILE" in predict_line
         if profile == "zero_shot_materialized":
@@ -390,13 +392,13 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
             assert "generate futures" in guide
             assert "class ZeroShotTranslator(ABC)" not in guide
             assert "input_trajectories_dir=$RUN_DIR/trajectories" in predict_line
-            assert "input_pretrained_model_dir" not in predict_line
+            assert "input_pretrained_algorithm_dir" not in predict_line
             infer_line = next(
                 line for line in slurm.splitlines() if line.strip().startswith("infer_trajectories)")
             )
             assert "TASK_CRITERIA_FILE" not in infer_line
             infer = predict.splitlines()[0]
-            assert infer.startswith("meds-model infer_trajectories --profile zero_shot_materialized")
+            assert infer.startswith("meds-algorithm infer_trajectories --profile zero_shot_materialized")
             assert "task_criteria_path" not in infer, "materialized infer is task-independent"
             assert "splits=[{split}]" in infer, "materialized infer must score only the evaluated split"
             materialized_predict = predict.splitlines()[1]
@@ -408,10 +410,10 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
             assert "class ZeroShotTranslator(ABC)" in guide, (
                 "the translator shape is guidance, kept in the guide"
             )
-            assert "input_pretrained_model_dir" in predict_line
+            assert "input_pretrained_algorithm_dir" in predict_line
         assert "flipped" not in end_to_end
     else:
-        assert "task_criteria_path" not in model_yaml
+        assert "task_criteria_path" not in algorithm_yaml
         assert "TASK_CRITERIA_FILE" not in slurm
         assert 'if not profile.startswith("zero_shot_"):' in end_to_end
 
@@ -422,9 +424,9 @@ def test_zero_shot_stub_rejects_a_missing_task_before_work(tmp_path, profile):
     slug = render(dst, profile)
     env = {**os.environ, "PYTHONPATH": str(dst / "src")}
     output = tmp_path / "predictions"
-    from meds_model_core import STEP_SPECS
+    from meds_algorithm_core import STEP_SPECS
 
-    step = MODEL_PROFILES[profile][-1]
+    step = ALGORITHM_PROFILES[profile][-1]
     spec = STEP_SPECS[step]
     command = [
         "python",
@@ -449,7 +451,7 @@ def test_zero_shot_stub_rejects_a_missing_task_before_work(tmp_path, profile):
         [*command, f"external_task_criteria_file={criteria}"], env=env, text=True, capture_output=True
     )
     assert stub.returncode != 0 and "/missing/" in stub.stderr
-    assert "NotImplementedError" not in stub.stderr, "invalid inputs must not reach model code"
+    assert "NotImplementedError" not in stub.stderr, "invalid inputs must not reach algorithm code"
 
 
 def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
@@ -458,11 +460,13 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
     dst = tmp_path / "task-contract"
     render(dst, "zero_shot_direct")
     monkeypatch.syspath_prepend(str(dst / "src"))
-    import meds_model_core
-    from meds_model_core import RelaxationLedger, TaskSpec, attach_ground_truth, check_decoded, read_index
+    import meds_algorithm_core
+    from meds_algorithm_core import RelaxationLedger, TaskSpec, attach_ground_truth, check_decoded, read_index
 
-    assert not hasattr(meds_model_core, "ZeroShotTranslator"), "the translator is guidance, not contract"
-    assert {name: {c.value for c in cs} for name, cs in meds_model_core.ZERO_SHOT_TASK_COMMANDS.items()} == {
+    assert not hasattr(meds_algorithm_core, "ZeroShotTranslator"), "the translator is guidance, not contract"
+    assert {
+        name: {c.value for c in cs} for name, cs in meds_algorithm_core.ZERO_SHOT_TASK_COMMANDS.items()
+    } == {
         "zero_shot_direct": {"predict_zero_shot_direct"},
         "zero_shot_materialized": {"predict_zero_shot_materialized"},
     }, "only predict sees the task; materialized infer is task-independent"
@@ -542,13 +546,13 @@ def test_task_spec_ledger_and_label_blind_index(tmp_path, monkeypatch):
     assert final["predicted_boolean_probability"].to_list() == [0.9, 0.2], "probabilities are untouched"
 
 
-@pytest.mark.parametrize("profile", MODEL_PROFILES)
+@pytest.mark.parametrize("profile", ALGORITHM_PROFILES)
 def test_predictions_and_cli_lists_follow_meds_dev(tmp_path, profile):
     dst = tmp_path / profile
     slug = render(dst, profile)
-    predict = yaml.safe_load((dst / "models" / profile / "model.yaml").read_text())["commands"]["supervised"][
-        "predict"
-    ]
+    predict = yaml.safe_load((dst / "algorithms" / profile / "model.yaml").read_text())["commands"][
+        "supervised"
+    ]["predict"]
     assert "output_predictions_dir={output_dir}/predictions" in predict, "never replace MEDS-DEV's output_dir"
     probe = (
         f"import sys; sys.argv = ['x']; from {slug}.__main__ import _value; "
@@ -578,19 +582,19 @@ def test_meds_dev_evaluates_every_parquet_under_predictions(tmp_path):
         integration.assert_prediction_keys(predictions, labels.parent, ["held_out"])
 
 
-@pytest.mark.parametrize("profile", MODEL_PROFILES)
+@pytest.mark.parametrize("profile", ALGORITHM_PROFILES)
 def test_artifacts_are_siblings_and_slurm_lists_only_profile_commands(tmp_path, profile):
     dst = tmp_path / profile
     render(dst, profile)
-    model_yaml = (dst / "models" / profile / "model.yaml").read_text()
-    assert "output_inference_subdir" not in model_yaml and "input_inference_subdir" not in model_yaml
+    algorithm_yaml = (dst / "algorithms" / profile / "model.yaml").read_text()
+    assert "output_inference_subdir" not in algorithm_yaml and "input_inference_subdir" not in algorithm_yaml
     if profile in ("probe", "zero_shot_materialized"):
         kind = "embeddings" if profile == "probe" else "trajectories"
-        assert f"output_{kind}_dir={{output_dir}}/{kind}" in model_yaml
+        assert f"output_{kind}_dir={{output_dir}}/{kind}" in algorithm_yaml
     slurm = (dst / "slurm/config.sh").read_text()
     cases = {line.strip().split(")")[0] for line in slurm.splitlines() if line.strip().endswith(";;")} - {"*"}
-    assert cases == set(MODEL_PROFILES[profile]), "the SLURM config lists exactly the profile's commands"
-    commands = (dst / f"src/v2_{profile}/commands.py").read_text()
+    assert cases == set(ALGORITHM_PROFILES[profile]), "the SLURM config lists exactly the profile's commands"
+    commands = (dst / f"src/v2_{profile}/v2_{profile}.py").read_text()
     assert "AlgorithmRepository" in commands
 
 
@@ -601,8 +605,8 @@ def test_contract_helpers_for_conformance_checks(tmp_path, monkeypatch):
     render(dst, "supervised")
     monkeypatch.syspath_prepend(str(dst / "src"))
     monkeypatch.syspath_prepend(str(dst))
-    from meds_model_core import attach_ground_truth, digest_config
-    from meds_model_core.conformance.signal import add_split_canaries, build_signal_dataset
+    from meds_algorithm_core import attach_ground_truth, digest_config
+    from meds_algorithm_core.conformance.signal import add_split_canaries, build_signal_dataset
 
     assert digest_config({"a": 1, "b": Path("/x")}) == digest_config({"b": "/x", "a": 1})
     assert digest_config({"a": 1}) != digest_config({"a": 2})
@@ -636,7 +640,7 @@ def test_predict_only_reads_context_labels_never_evaluated_ones(tmp_path, monkey
     guide = (dst / "docs/IMPLEMENTATION_GUIDE.md").read_text()
     assert "In-context learners" in guide and "read_context_labels" in guide
     monkeypatch.syspath_prepend(str(dst / "src"))
-    from meds_model_core import read_context_labels, split_files
+    from meds_algorithm_core import read_context_labels, split_files
 
     labels = tmp_path / "labels"
     for split, subject in (("train", 1), ("tuning", 2), ("held_out", 3)):
@@ -653,18 +657,18 @@ def test_predict_only_reads_context_labels_never_evaluated_ones(tmp_path, monkey
         read_context_labels(labels, [], ["held_out"])
 
 
-@pytest.mark.parametrize("profile", MODEL_PROFILES)
+@pytest.mark.parametrize("profile", ALGORITHM_PROFILES)
 def test_label_leakage_check_strips_what_the_profile_may_not_read(tmp_path, profile):
     dst = tmp_path / profile
     render(dst, profile)
     end_to_end = (
-        Path(__import__("meds_model_core.conformance.end_to_end", fromlist=["__file__"]).__file__)
+        Path(__import__("meds_algorithm_core.conformance.end_to_end", fromlist=["__file__"]).__file__)
     ).read_text()
     assert 'None if profile.startswith("zero_shot_") else result.splits' in end_to_end
 
 
 def _dry_run(dst: Path, slug: str, tmp_path: Path, **env: str) -> subprocess.CompletedProcess:
-    shim = tmp_path / "bin" / "meds-model"
+    shim = tmp_path / "bin" / "meds-algorithm"
     shim.parent.mkdir(parents=True, exist_ok=True)
     shim.write_text(f'#!/bin/sh\nexec {sys.executable} -m {slug} "$@"\n')
     shim.chmod(0o755)
@@ -702,7 +706,7 @@ def test_submit_stages_reuse_shared_task_independent_artifacts(tmp_path):
     assert [line.split(":")[0] for line in args if ": " in line] == ["# infer_trajectories"] * 5 + [
         "# predict_zero_shot_materialized"
     ] * 8
-    assert "# infer_trajectories: input_pretrained_model_dir=/runs/shared/artifacts/pretrained" in args
+    assert "# infer_trajectories: input_pretrained_algorithm_dir=/runs/shared/artifacts/pretrained" in args
     assert (
         "# infer_trajectories: output_trajectories_dir="
         "/runs/task-a/zero_shot_materialized/artifacts/trajectories" in args
