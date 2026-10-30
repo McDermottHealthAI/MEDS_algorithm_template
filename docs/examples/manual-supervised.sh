@@ -26,7 +26,7 @@ uses_predicates: true
 implementation_source: This tutorial; not a reproduction of a published clinical algorithm.
 YAML
 uvx --from 'copier==9.17.1' copier copy --defaults --trust \
-  --vcs-ref=fb5a7a89898282bb156d4a73740448512c784baa \
+  --vcs-ref=bbdc307b5c52721a8081acfe6ee299a55f87d0e2 \
   --data-file answers.yaml \
   https://github.com/McDermottHealthAI/MEDS_algorithm_template.git manual-baseline
 cd manual-baseline
