@@ -12,9 +12,9 @@ This is an intentional naming change, with no old-name aliases:
 |---|---|
 | `meds-model-core`, `meds_model_core` | `meds-algorithm`, `meds_algorithm` |
 | `ModelConfig`, `MODEL_PROFILES` | `AlgorithmConfig`, `ALGORITHM_PROFILES` |
-| `ModelRepository` (mapping-based adapter) | `LegacyAlgorithmRepository` |
+| `ModelRepository` (mapping-based adapter) | Replace with typed `AlgorithmRepository` |
 | `SupervisedModelArtifact` (and pretrained/finetuned/probe equivalents) | `SupervisedAlgorithmArtifact` (and corresponding equivalents) |
-| Request field `model` | `algorithm` |
+| Request field `model` or `algorithm` for fitted prediction state | `fitted_algorithm` |
 | `meds-model`, `meds-model-*` helper commands | `meds-algorithm`, `meds-algorithm-*` |
 | `input_*_model_dir`, `output_*_model_dir`, `*_model` artifact types | `input_*_algorithm_dir`, `output_*_algorithm_dir`, `*_algorithm` |
 | Copier `model_name`, `model_slug`, `model_description` | `algorithm_name`, `algorithm_slug`, `algorithm_description` |
@@ -79,9 +79,8 @@ Existing algorithm repositories are not migrated by this template change.
 
 ## From mapping-based commands to typed algorithms
 
-Core 0.4.0a1 introduces the typed API and version 4 names. Mapping-based dispatch remains available as
-`Command`/`LegacyAlgorithmRepository` after updating imports and arguments; it does not automatically
-gain the new runner behavior. Migrate deliberately:
+Core 0.4.0a5 removes `Command` and `LegacyAlgorithmRepository`. The supported execution path is
+`AlgorithmRepository` with typed requests and `StepRunner`. Migrate deliberately:
 
 1. Move command bodies to the selected `Algorithm` profile methods. Use their typed request fields.
 2. Put algorithm settings/defaults in a frozen `AlgorithmConfig` subclass; test validation and JSON round trips.
@@ -93,3 +92,12 @@ gain the new runner behavior. Migrate deliberately:
    requests/configuration and fitted artifacts work in a fresh process.
 
 See [architecture and UML](reference/architecture.md). No private algorithm migration is included here.
+
+
+## Fitted prediction requests in core 0.4.0a5
+
+`PredictSupervisedRequest`, `PredictFinetuneRequest` and `PredictProbeRequest` now name their saved fitted
+artifact `fitted_algorithm`, distinguishing it from the executing Python algorithm instance. Their JSON
+schema version is 2; version 1 envelopes are rejected. Reconstruct requests with the current typed API
+rather than editing version numbers. External `input_*_algorithm_dir` names are unchanged. Fitted input
+manifests must contain the complete resolved config; missing historical fields are no longer filled in.

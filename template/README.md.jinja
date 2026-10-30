@@ -77,6 +77,8 @@ The algorithm-owned surface is `src/{{ algorithm_slug }}/{{ algorithm_slug }}.py
 `validate_inputs`,
 finalize MEDS-DEV command strings, and complete the report. Remove a profile from `STUB_PROFILES` only after it runs end to end. Complete every declared profile.
 
+For each generated test and its purpose, read [the test guide](docs/TESTING.md).
+
 ## Configuration and execution ownership
 
 Declare typed fields/defaults in `{{ algorithm_class }}Config`, with `validate()` for constraints. Pass
