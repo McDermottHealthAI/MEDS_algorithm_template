@@ -10,7 +10,7 @@ This is an intentional naming change, with no old-name aliases:
 
 | Previous name | Current name |
 |---|---|
-| `meds-model-core`, `meds_model_core` | `meds-algorithm-core`, `meds_algorithm_core` |
+| `meds-model-core`, `meds_model_core` | `meds-algorithm`, `meds_algorithm` |
 | `ModelConfig`, `MODEL_PROFILES` | `AlgorithmConfig`, `ALGORITHM_PROFILES` |
 | `ModelRepository` (mapping-based adapter) | `LegacyAlgorithmRepository` |
 | `SupervisedModelArtifact` (and pretrained/finetuned/probe equivalents) | `SupervisedAlgorithmArtifact` (and corresponding equivalents) |
@@ -66,12 +66,12 @@ This revision supplies the interfaces and tests. It does not automatically migra
 implementations or publish a shared runtime package. See the [package assessment](shared-package-assessment.md).
 
 The core package now owns the single normative `CONTRACT.md`. Generated `SPEC.md` is a pointer to the
-installed package version, readable with `meds-algorithm-core-spec`. The template and generated projects
+installed package version, readable with `meds-algorithm-spec`. The template and generated projects
 install the alpha from an immutable Git commit in the separate core repository; no PyPI release is required.
 
-Replace imports from `meds_model_contract` with `meds_algorithm_core` and remove the generated compatibility
+Replace imports from `meds_model_contract` with `meds_algorithm` and remove the generated compatibility
 package. Core supplies the registration/input-resolution CLI entry points; keep only the algorithm's own
-CLI in its project configuration. Import shared fixtures and checks from `meds_algorithm_core.conformance`.
+CLI in its project configuration. Import shared fixtures and checks from `meds_algorithm.conformance`.
 For the typed API, pass algorithm provenance explicitly to `AlgorithmRepository(..., repo=algorithm_root)`.
 Return `E2EResult` from core's `conformance.types`, recording all external inputs;
 the lifecycle checker now reruns every step with forbidden outcomes absent and fresh output paths.

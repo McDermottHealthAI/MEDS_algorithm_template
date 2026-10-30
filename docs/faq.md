@@ -52,7 +52,7 @@ The end-to-end check validates the original run and a fresh full-lifecycle rerun
   zero-shot). Separate input roots remain separate; permitted training/context labels are retained.
   Both runs use the recorded fixture seed and deterministic settings. They must produce the same keyed
   scores within the contract's tolerance. Original and rerun probabilities are checked across every shard.
-- **Transductive fitting:** `meds_algorithm_core.conformance.signal.add_split_canaries` gives every tuning and held-out subject a
+- **Transductive fitting:** `meds_algorithm.conformance.signal.add_split_canaries` gives every tuning and held-out subject a
   canary code that no training subject has. Your `fitted_codes(artifacts)` hook reports every code the
   algorithm fitted a statistic for (vocabulary, frequencies, bins); no canary may appear in it.
 

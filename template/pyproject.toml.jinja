@@ -7,11 +7,11 @@ name = "{{ algorithm_slug | replace('_', '-') }}"
 version = "0.1.0"
 description = "{{ algorithm_description }}"
 requires-python = ">=3.11"
-dependencies = ["pyyaml>=6", "meds-algorithm-core[data] @ git+https://github.com/florian6973/meds-algorithm-core.git@7134bc4370b04b7fbbbfca1017a30ffa07709299"]
+dependencies = ["pyyaml>=6", "meds-algorithm[data] @ git+https://github.com/florian6973/meds-algorithm.git@8c43dcb3f0294ebf0fd4dc698a4a122e889f03da"]
 
 [project.optional-dependencies]
 # meds-evaluation is pinned to the version MEDS-DEV evaluates predictions with.
-test = ["meds-algorithm-core[conformance]"]
+test = ["meds-algorithm[conformance]"]
 
 [project.scripts]
 meds-algorithm = "{{ algorithm_slug }}.__main__:main"

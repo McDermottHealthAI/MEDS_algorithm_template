@@ -2,26 +2,26 @@
 
 from pathlib import Path
 
-from meds_algorithm_core import AlgorithmRepository, PayloadMetadata
-{% if 'supervised' in profiles %}from meds_algorithm_core import SupervisedAlgorithm
-{% endif %}{% if 'finetune' in profiles %}from meds_algorithm_core import FinetuneAlgorithm
-{% endif %}{% if 'probe' in profiles %}from meds_algorithm_core import ProbeAlgorithm
-{% endif %}{% if 'zero_shot_direct' in profiles %}from meds_algorithm_core import ZeroShotDirectAlgorithm
-{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm_core import ZeroShotMaterializedAlgorithm
-{% endif %}{% if 'predict_only' in profiles %}from meds_algorithm_core import PredictOnlyAlgorithm
-{% endif %}{% if 'supervised' in profiles or 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles or 'predict_only' in profiles %}from meds_algorithm_core.requests import PreprocessDataRequest
-{% endif %}{% if 'supervised' in profiles %}from meds_algorithm_core.requests import TrainSupervisedRequest
-{% endif %}{% if 'supervised' in profiles %}from meds_algorithm_core.requests import PredictSupervisedRequest
-{% endif %}{% if 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}from meds_algorithm_core.requests import PretrainRequest
-{% endif %}{% if 'finetune' in profiles %}from meds_algorithm_core.requests import TrainFinetuneRequest
-{% endif %}{% if 'finetune' in profiles %}from meds_algorithm_core.requests import PredictFinetuneRequest
-{% endif %}{% if 'probe' in profiles %}from meds_algorithm_core.requests import InferEmbeddingsRequest
-{% endif %}{% if 'probe' in profiles %}from meds_algorithm_core.requests import TrainProbeRequest
-{% endif %}{% if 'probe' in profiles %}from meds_algorithm_core.requests import PredictProbeRequest
-{% endif %}{% if 'zero_shot_direct' in profiles %}from meds_algorithm_core.requests import PredictZeroShotDirectRequest
-{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm_core.requests import InferTrajectoriesRequest
-{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm_core.requests import PredictZeroShotMaterializedRequest
-{% endif %}{% if 'predict_only' in profiles %}from meds_algorithm_core.requests import PredictOnlyRequest
+from meds_algorithm import AlgorithmRepository, PayloadMetadata
+{% if 'supervised' in profiles %}from meds_algorithm import SupervisedAlgorithm
+{% endif %}{% if 'finetune' in profiles %}from meds_algorithm import FinetuneAlgorithm
+{% endif %}{% if 'probe' in profiles %}from meds_algorithm import ProbeAlgorithm
+{% endif %}{% if 'zero_shot_direct' in profiles %}from meds_algorithm import ZeroShotDirectAlgorithm
+{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm import ZeroShotMaterializedAlgorithm
+{% endif %}{% if 'predict_only' in profiles %}from meds_algorithm import PredictOnlyAlgorithm
+{% endif %}{% if 'supervised' in profiles or 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles or 'predict_only' in profiles %}from meds_algorithm.requests import PreprocessDataRequest
+{% endif %}{% if 'supervised' in profiles %}from meds_algorithm.requests import TrainSupervisedRequest
+{% endif %}{% if 'supervised' in profiles %}from meds_algorithm.requests import PredictSupervisedRequest
+{% endif %}{% if 'finetune' in profiles or 'probe' in profiles or 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}from meds_algorithm.requests import PretrainRequest
+{% endif %}{% if 'finetune' in profiles %}from meds_algorithm.requests import TrainFinetuneRequest
+{% endif %}{% if 'finetune' in profiles %}from meds_algorithm.requests import PredictFinetuneRequest
+{% endif %}{% if 'probe' in profiles %}from meds_algorithm.requests import InferEmbeddingsRequest
+{% endif %}{% if 'probe' in profiles %}from meds_algorithm.requests import TrainProbeRequest
+{% endif %}{% if 'probe' in profiles %}from meds_algorithm.requests import PredictProbeRequest
+{% endif %}{% if 'zero_shot_direct' in profiles %}from meds_algorithm.requests import PredictZeroShotDirectRequest
+{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm.requests import InferTrajectoriesRequest
+{% endif %}{% if 'zero_shot_materialized' in profiles %}from meds_algorithm.requests import PredictZeroShotMaterializedRequest
+{% endif %}{% if 'predict_only' in profiles %}from meds_algorithm.requests import PredictOnlyRequest
 {% endif %}
 from .config import {{ algorithm_class }}Config
 

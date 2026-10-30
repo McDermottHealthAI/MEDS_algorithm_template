@@ -66,6 +66,7 @@ nav:
       - Concepts: concepts.md
       - Choosing a profile: profiles.md
   - Building a algorithm:
+      - Fully manual example: manual-example.md
       - Workflow: workflow.md
       - Running a algorithm: running.md
       - Migrating to version 4: migration-v4.md

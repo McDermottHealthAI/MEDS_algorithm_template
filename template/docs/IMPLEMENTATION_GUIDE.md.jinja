@@ -32,7 +32,20 @@ establish compatibility with another dataset; keep the provided demo code and pr
 Read [installed core contract](../SPEC.md), then implement every selected profile method on `{{ algorithm_class }}` in `{{ algorithm_slug }}.py`.
 Declare source-defined parameters/defaults in the frozen `{{ algorithm_class }}Config` class in `config.py`. Use
 `{{ algorithm_class }}Config.validate()` for constraints, and test strict serialization and reconstruction in a fresh process.
-Read the installed architecture guide with `from meds_algorithm_core.spec import architecture`.
+Read the installed architecture guide with `from meds_algorithm.spec import architecture`.
+
+For neural algorithms with matching semantics, use core `NNConfig` instead of copying its shared settings.
+Supply source-defined defaults and document how the capacity multiplier maps to the reference architecture,
+including dimension rounding and minimums,
+and call `super().validate()` when adding constraints. Test that each field affects the actual algorithm.
+The installed architecture guide contains the canonical example and scaling guidance. Cohort selection
+belongs upstream; actual parameter counts and consumed data must be measured separately.
+
+For dataset-specific feature additions, set inherited `additional_predicates_file` in the selected
+configuration file. Core composes it during preprocessing, rejects duplicate names, and persists
+`resolved_feature_predicates.yaml` with provenance. Read `request.predicates_file`; do not merge again
+or write that reserved output. This does not alter task predicates, labels or cohorts. Use the same
+configuration for every lifecycle step; `ALGORITHM_CONFIG_FILE` forwards it in generated SLURM runs.
 
 Each method receives a typed request, writes its payload into `request.output.directory` (staging), and
 returns `PayloadMetadata(format, version)`. `create_repository().run(...)` invokes core's shared runner:
@@ -87,7 +100,7 @@ from pathlib import Path
 
 import polars as pl
 
-from meds_algorithm_core import RelaxationLedger, TaskSpec
+from meds_algorithm import RelaxationLedger, TaskSpec
 
 
 class ZeroShotTranslator(ABC):
@@ -152,7 +165,7 @@ a `bundle/` subdirectory), so decode choices stay inspectable.
 Nothing is trained on this dataset's labels before `predict_only`. Two kinds of algorithm fit here:
 
 - **In-context learners**, such as prior-data fitted networks (TabPFN-style). `predict_only` reads labelled
-  examples from the training and tuning splits through `meds_algorithm_core.read_context_labels`, passing
+  examples from the training and tuning splits through `meds_algorithm.read_context_labels`, passing
   `evaluation_index_dir=external_index_dir` when the evaluation index is separate. This helper
   refuses the evaluated splits, and predicts the evaluated split's keys in the same forward pass. Record
   the context splits, the number of context rows, and any subsampling in the predictions manifest.
@@ -171,7 +184,7 @@ and the pinned `mortality/in_icu/first_24h` task through MEDS-DEV and reuses its
 `tests/test_end_to_end.py` also checks label leakage and transductive fitting on the same run, so the
 local adapter must:
 
-- return `E2EResult` from `meds_algorithm_core.conformance.types`, recording the integer `seed`, `external_meds_dir` and all task
+- return `E2EResult` from `meds_algorithm.conformance.types`, recording the integer `seed`, `external_meds_dir` and all task
   inputs in `inputs`. The shared checker reruns the full lifecycle with forbidden labels removed and
   fresh output paths. Honor every external input override; preserve permitted training/context labels.
   `attach_ground_truth(predictions, labels_dir, splits)` supports an entirely unlabelled index.
@@ -179,13 +192,13 @@ local adapter must:
   Original and label-blind probabilities must agree by key (`rtol=1e-6`, `atol=1e-8`), and any Boolean
   decisions must agree exactly. Keep training labels, index and evaluation-label paths separate in
   `inputs` when they are separate on disk; the checker sanitizes each independently.
-- apply `meds_algorithm_core.conformance.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
+- apply `meds_algorithm.conformance.signal.add_split_canaries` to its MEDS fixture before running the commands, and return the
   canaries (`E2EResult.canaries`).
 - implement `fitted_codes`: every code the algorithm fitted a population statistic for (vocabulary, frequency
   table, selected features, bins), read from its artifacts. No canary may appear there.
 
 Complete `tests/test_primary_behavior.py`; its initial failure is intentional. The template provides the
-small `meds_algorithm_core.conformance.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
+small `meds_algorithm.conformance.signal.build_signal_dataset` example, in which one code alone predicts a binary label while
 history length and signal position do not leak the label. Use it unchanged, adapt its codes, or replace it
 when the algorithm requires a fixed vocabulary, selected codes, predicates, derived features, numeric values,
 or another valid MEDS construction. The test must explicitly show that the signal survives the algorithm's

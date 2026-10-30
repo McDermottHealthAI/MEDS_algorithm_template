@@ -11,7 +11,7 @@ from {{ algorithm_slug }} import {{ algorithm_class }}, {{ algorithm_class }}Con
 algorithm = {{ algorithm_class }}({{ algorithm_class }}Config())
 ```
 
-Run typed requests through `meds_algorithm_core.StepRunner.run(...)` so validation, measurements and
+Run typed requests through `meds_algorithm.StepRunner.run(...)` so validation, measurements and
 publication apply. Calling an implementation method directly bypasses that execution contract.
 After installation, `{{ algorithm_slug | replace('_', '-') }}` and `meds-algorithm` invoke the same CLI:
 

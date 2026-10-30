@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from meds_algorithm_core import ALGORITHM_PROFILES
-from meds_algorithm_core.conformance.assertions import read_predictions
+from meds_algorithm import ALGORITHM_PROFILES
+from meds_algorithm.conformance.assertions import read_predictions
 from {{ algorithm_slug }}.{{ algorithm_slug }} import STUB_PROFILES, PROFILES
 
-from meds_algorithm_core.conformance.meds_dev import assert_prediction_keys, assert_prediction_schema, provision_meds_dev
+from meds_algorithm.conformance.meds_dev import assert_prediction_keys, assert_prediction_schema, provision_meds_dev
 
 pytestmark = [pytest.mark.slow, pytest.mark.real_data]
 
@@ -24,7 +24,7 @@ def meds_dev(request, tmp_path_factory):
 def test_full_dag_on_mimic_iv_demo(meds_dev: Path, tmp_path: Path, profile):
     if profile in STUB_PROFILES:
         pytest.skip("algorithm_stub: implement this profile")
-    from meds_algorithm_core.conformance.meds_dev import {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}mimic_task_criteria, {% endif %}prepare_mimic_demo
+    from meds_algorithm.conformance.meds_dev import {% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}mimic_task_criteria, {% endif %}prepare_mimic_demo
     from .e2e import run_e2e
 
     dataset_dir, labels_dir, predicates_file = prepare_mimic_demo(meds_dev, tmp_path)

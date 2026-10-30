@@ -104,9 +104,22 @@ def test_all_profiles_coexist_and_selection_is_required(multi):
     assert source.count("def pretrain(") == 1
 
 
+def test_slurm_forwards_dataset_configuration_to_every_step(multi, tmp_path):
+    result = _dry_run(
+        multi,
+        "multi_algorithm",
+        tmp_path,
+        PROFILE="supervised",
+        ALGORITHM_CONFIG_FILE="/configs/dataset settings.yaml",
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.count("config_file=") == len(ALGORITHM_PROFILES["supervised"])
+    assert "dataset" in result.stdout and "settings.yaml" in result.stdout
+
+
 def test_descriptors_dispatch_only_their_profile_with_complete_arguments(multi):
-    from meds_algorithm_core import ALGORITHM_PROFILES as profiles
-    from meds_algorithm_core import STEP_SPECS, CommandName
+    from meds_algorithm import ALGORITHM_PROFILES as profiles
+    from meds_algorithm import STEP_SPECS, CommandName
 
     main = importlib.import_module("multi_algorithm.__main__")
     for profile in profiles:
@@ -136,7 +149,7 @@ def test_descriptors_dispatch_only_their_profile_with_complete_arguments(multi):
 
 
 def test_registration_keeps_profile_descriptors_separate(multi, tmp_path):
-    from meds_algorithm_core.integrations.meds_dev import register
+    from meds_algorithm.integrations.meds_dev import register
 
     dev = tmp_path / "MEDS-DEV"
     (dev / "src/MEDS_DEV/models").mkdir(parents=True)
@@ -214,8 +227,8 @@ def test_generated_acceptance_tests_cover_every_profile(multi):
 
 
 def test_recorded_upstream_inputs_become_explicit_arguments(multi, tmp_path):
-    from meds_algorithm_core import measured_artifact
-    from meds_algorithm_core.artifacts.inputs import resolve_input
+    from meds_algorithm import measured_artifact
+    from meds_algorithm.artifacts.inputs import resolve_input
 
     data = tmp_path / "data"
     with measured_artifact(
@@ -238,13 +251,13 @@ def test_recorded_upstream_inputs_become_explicit_arguments(multi, tmp_path):
 
 
 def test_rendered_spec_points_to_core_and_contract_is_not_copied(multi):
-    from meds_algorithm_core import CommandName
-    from meds_algorithm_core.contracts.commands import CommandName as CoreCommandName
+    from meds_algorithm import CommandName
+    from meds_algorithm.contracts.commands import CommandName as CoreCommandName
 
     assert CommandName is CoreCommandName
     assert not (multi / "src/meds_algorithm_contract").exists()
-    assert not (multi / "src/meds_algorithm_core").exists()
-    assert "meds-algorithm-core-spec" in (multi / "SPEC.md").read_text()
+    assert not (multi / "src/meds_algorithm").exists()
+    assert "meds-algorithm-spec" in (multi / "SPEC.md").read_text()
     assert not (multi / "docs/SOFTWARE_CONTRACT.md").exists()
 
 

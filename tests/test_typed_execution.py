@@ -15,7 +15,7 @@ def test_rendered_algorithm_runs_persisted_lifecycle_with_structured_config(tmp_
     slug = render(dst, "supervised")
     package = dst / "src" / slug
     (package / "config.py").write_text("""from dataclasses import dataclass
-from meds_algorithm_core import AlgorithmConfig
+from meds_algorithm import AlgorithmConfig
 
 @dataclass(frozen=True)
 class V2SupervisedConfig(AlgorithmConfig):
@@ -34,6 +34,8 @@ import polars as pl
 
 class CompletedAlgorithm(V2Supervised):
     def preprocess_data(self, request):
+        import yaml
+        assert set(yaml.safe_load(request.predicates_file.read_text())["predicates"]) == {"base", "extra"}
         (request.output.directory / "payload.txt").write_text("prepared")
         return PayloadMetadata("fixture-data")
 
@@ -63,7 +65,11 @@ IMPLEMENTATIONS["supervised"] = CompletedAlgorithm
             {"subject_id": ids, "prediction_time": [datetime(2020, 1, 1)] * len(ids), "boolean_value": values}
         ).write_parquet(labels / f"{split}.parquet")
     config = tmp_path / "config.yaml"
-    config.write_text("smoothing: 2.0\n")
+    config.write_text("smoothing: 2.0\nadditional_predicates_file: extra.yaml\n")
+    extra = tmp_path / "extra.yaml"
+    extra.write_text("predicates:\n  extra: {code: EXTRA}\n")
+    base = tmp_path / "base.yaml"
+    base.write_text("predicates:\n  base: {code: BASE}\n")
     artifacts = tmp_path / "artifacts"
 
     def run(step, **arguments):
@@ -83,8 +89,12 @@ IMPLEMENTATIONS["supervised"] = CompletedAlgorithm
         )
 
     data, algorithm, predictions = (artifacts / name for name in ("data", "algorithm", "predictions"))
-    result = run("preprocess_data", external_meds_dir=inputs, output_data_dir=data)
+    result = run(
+        "preprocess_data", external_meds_dir=inputs, external_predicates_file=base, output_data_dir=data
+    )
     assert result.returncode == 0, result.stderr
+    assert (data / "resolved_feature_predicates.yaml").is_file()
+    extra.unlink()  # Later CLI processes need only the persisted feature artifacts.
     result = run(
         "train_supervised",
         input_data_dir=data,
@@ -105,11 +115,14 @@ IMPLEMENTATIONS["supervised"] = CompletedAlgorithm
     frame = pl.read_parquet(predictions / "predictions.parquet")
     assert frame["predicted_boolean_probability"].to_list() == pytest.approx([4 / 7])
     assert frame["boolean_value"].to_list() == [False]
-    from meds_algorithm_core import read_manifest
+    from meds_algorithm import read_manifest
 
-    assert read_manifest(algorithm)["algorithm"]["config"] == {"smoothing": 2.0}
+    assert read_manifest(algorithm)["algorithm"]["config"] == {
+        "smoothing": 2.0,
+        "additional_predicates_file": str(extra.resolve()),
+    }
     assert (algorithm / "config.json").is_file() and (predictions / "request.json").is_file()
-    config.write_text("smoothing: 3.0\n")
+    config.write_text("smoothing: 3.0\nadditional_predicates_file: extra.yaml\n")
     mismatch = run("predict_supervised", **{**args, "output_predictions_dir": artifacts / "bad"})
     assert mismatch.returncode != 0 and "configuration mismatch" in mismatch.stderr
     assert not (artifacts / "bad").exists()

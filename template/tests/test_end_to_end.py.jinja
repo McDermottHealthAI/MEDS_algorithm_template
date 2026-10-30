@@ -1,6 +1,6 @@
 """Algorithm-owned execution adapters run shared core conformance for every declared profile."""
 import pytest
-from meds_algorithm_core.conformance.end_to_end import assert_profile_run
+from meds_algorithm.conformance.end_to_end import assert_profile_run
 from {{ algorithm_slug }}.{{ algorithm_slug }} import STUB_PROFILES, PROFILES
 
 @pytest.mark.parametrize("profile", PROFILES)

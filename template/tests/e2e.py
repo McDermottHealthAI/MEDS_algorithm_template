@@ -1,7 +1,7 @@
 """Algorithm-owned profile execution and fitted-feature inspection adapters."""
 from collections.abc import Mapping
 from pathlib import Path
-from meds_algorithm_core.conformance.types import E2EResult, MEDSDevRun
+from meds_algorithm.conformance.types import E2EResult, MEDSDevRun
 
 def run_e2e(tmp_path, *, profile: str, **inputs):
     """Run every selected step into tmp_path, honoring all external inputs and split overrides.
@@ -18,7 +18,7 @@ def run_e2e(tmp_path, *, profile: str, **inputs):
     raise NotImplementedError(
         "Prepare a small MEDS input/task, execute the selected algorithm profile's real commands, and return "
         "E2EResult(artifacts, labels_dir, evaluated splits, external inputs used, "
-        "canaries from meds_algorithm_core.conformance.signal.add_split_canaries applied to the fixture)."
+        "canaries from meds_algorithm.conformance.signal.add_split_canaries applied to the fixture)."
     )
 
 

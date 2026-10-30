@@ -78,6 +78,40 @@ dataset's codes. It is passed as `external_predicates_file` (MEDS-DEV's `{predic
 - A algorithm that relies on particular predicate names declares and validates them in its own configuration.
   The contract deliberately has no generic "predicate features" format.
 
+### Additional feature predicates per dataset
+
+Every generated configuration inherits optional `additional_predicates_file` from `AlgorithmConfig`.
+Select the dataset configuration explicitly, for example `config_file=/repo/dataset_configs/mimic_iv.yaml`:
+
+```yaml
+additional_predicates_file: ../predicates/mimic_iv_additional.yaml
+```
+
+Paths resolve relative to the configuration file. The additional file has the same predicate-only
+shape as MEDS-DEV's dataset file:
+
+```yaml
+predicates:
+  algorithm_specific_event:
+    code: YOUR_DATASET_EVENT_CODE
+```
+
+During `preprocess_data`, core combines this file with `external_predicates_file`, or uses it alone if
+no base was supplied. Duplicate names are errors even if their definitions agree; duplicate YAML keys
+and task/cohort sections are also rejected. Expression semantics and dataset compatibility remain the
+algorithm's responsibility. The runner passes the resolved path as `request.predicates_file` to both
+the compatibility hook and preprocessing. Implementations must read that path rather than merge files.
+
+Core saves `resolved_feature_predicates.yaml` in the prepared-data artifact, records both source paths
+and content digests plus the resolved digest, and includes them in the configuration digest. The source
+additions file can be temporary: later steps use persisted features and do not reopen or merge it.
+Keep the same configuration across the lifecycle; use a separate config file for each dataset.
+
+These are feature additions only. They never modify `TaskSpec`, evaluated labels, or the cohort. Task
+predicates continue to reach only the task-conditioned commands through the original task binding.
+Preprocessing must not include outcome-dependent definitions or read events beyond each permitted cutoff.
+For a changed target or cohort, update the shared upstream task bundle instead.
+
 ## The task specification (zero-shot only)
 
 A supervised algorithm learns *what* to predict from labels. A zero-shot algorithm never sees labels, so the task

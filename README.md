@@ -4,8 +4,8 @@ This repository is a self-contained [Copier](https://copier.readthedocs.io) temp
 contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
-[`meds-algorithm-core`](https://github.com/florian6973/meds-algorithm-core). This template and generated projects pin commit
-`7134bc4370b04b7fbbbfca1017a30ffa07709299` directly from Git, so no PyPI release is required.
+[`meds-algorithm`](https://github.com/florian6973/meds-algorithm). This template and generated projects pin commit
+`8c43dcb3f0294ebf0fd4dc698a4a122e889f03da` directly from Git, so no PyPI release is required.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -14,6 +14,9 @@ leaving preprocessing, featurization, intermediate formats, frameworks, batching
 the generated repository.
 
 ## Documentation
+
+For setup and every command in execution order, see the [fully manual example](docs/manual-example.md).
+It includes a complete tutorial implementation and synthetic data, so it runs without an agent or cluster.
 
 This README is written for coding agents that port algorithms. For a human-oriented explanation of the
 contract (concepts, choosing a profile, zero-shot algorithms, the gate workflow, running, and reference), read
@@ -71,13 +74,13 @@ so the command remains usable if formatting/bootstrap tasks are added later.
 | `algorithm_description` | Short description rendered into README and `algorithms/<profile>/model.yaml`. |
 | `author_name`, `author_email` | MEDS-DEV contact metadata. |
 | `uses_predicates` | Whether generated MEDS-DEV commands pass `external_predicates_file`. The algorithm still owns interpretation. |
+| `implementation_source` | Paper path/URL, source repository path/URL, or both; prefilled into generated guidance and the report. |
 
 For example, `algorithm_slug=retain algorithm_class=RETAIN` generates `retain/retain.py` containing
 `RETAIN`, plus `retain/config.py` containing `RETAINConfig`. Import them with
 `from retain import RETAIN, RETAINConfig` (or `from retain.retain import RETAIN`). The installed
 `retain` and `meds-algorithm` commands share the same dispatcher. Use the core runner for Python
 execution so direct imports retain the same validation/publication path as the CLI.
-| `implementation_source` | Paper path/URL, source repository path/URL, or both; prefilled into generated guidance and the report. |
 
 Profiles are `supervised`, `finetune`, `probe`, `zero_shot_direct`, `zero_shot_materialized`, and
 `predict_only`. A algorithm profile selects required commands, not an architecture or execution backend.
@@ -145,7 +148,7 @@ configuration files, checkpoints, preprocessing code, and evaluation code availa
 source.
 
 Apply the Ponytail principle of the smallest complete change: implement the complete source-defined
-algorithm with the least additional infrastructure. Check meds-algorithm-core, existing algorithm-family code,
+algorithm with the least additional infrastructure. Check meds-algorithm, existing algorithm-family code,
 standard libraries and installed dependencies before creating helpers. Keep shared fixes in their
 owning package; do not copy core utilities into the algorithm repository. Avoid speculative wrappers,
 configuration options and compatibility layers. Trace affected commands, callers, fixtures and
@@ -158,6 +161,16 @@ Write minimalist, auditable, object-oriented algorithm code. Put source-defined 
 in the algorithm-owned frozen <AlgorithmClass>Config class in config.py; validate values and prove
 serialization round trips. Keep the implementation in <algorithm_slug>.py and expose the named algorithm
 and configuration classes from the package, so callers can import them meaningfully.
+For neural algorithms with matching semantics, extend core NNConfig rather than
+duplicating shared capacity, learning_rate, batch_size, weight_decay and dropout settings. Define
+source-backed defaults and the capacity-multiplier mapping (reference architecture, dimensions, rounding
+and minimums); call super().validate() for inherited
+constraints. Test that the settings actually control construction/training. See the installed architecture
+guide for units, extension examples and scaling ownership. Keep cohort selection upstream; record actual
+parameter counts and consumed data separately rather than inferring them from capacity or a data fraction.
+Use inherited additional_predicates_file for dataset-specific feature additions when needed. Read the
+runner-resolved request.predicates_file in preprocessing; do not override base definitions, merge again,
+or change task predicates. Preserve temporal isolation and use the same configuration across steps.
 Implement the selected Algorithm profile methods with their typed request classes. Prefer small cohesive
 components and explicit constructor dependencies; use inheritance for the profile contract and composition
 for algorithm internals. Do not add unnecessary classes, wrappers, mutable module-level runtime state, hidden
@@ -188,7 +201,7 @@ algorithm (generates futures and evaluates the task on them; infer is task-indep
 receives the task): the algorithm receives the original ACES task through
 external_task_criteria_file (with the dataset predicates) and the upstream-built index through
 external_index_dir. Never build, filter, or extend the cohort, and read the index only through
-meds_algorithm_core.read_index. Reuse an existing aces-to-<algorithm> adapter for this algorithm if one exists;
+meds_algorithm.read_index. Reuse an existing aces-to-<algorithm> adapter for this algorithm if one exists;
 otherwise write one on aces-relaxations, pinned to an exact version: reject tasks that are not future-only
 or are degenerate, normalize, then apply only the approximations and assumptions the algorithm's query
 language forces. Publish relaxations.yaml with every step, and report per task whether the answer is exact.
@@ -300,5 +313,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](docs/profiles.md).
-See the [software contract](https://github.com/florian6973/meds-algorithm-core/blob/7134bc4370b04b7fbbbfca1017a30ffa07709299/src/meds_algorithm_core/CONTRACT.md), [migration guide](docs/migration-v4.md),
+See the [software contract](https://github.com/florian6973/meds-algorithm/blob/8c43dcb3f0294ebf0fd4dc698a4a122e889f03da/src/meds_algorithm/CONTRACT.md), [migration guide](docs/migration-v4.md),
 and [shared-package assessment](docs/shared-package-assessment.md).

@@ -3,7 +3,17 @@
 A generated repository exposes one command-line entry point, a MEDS-DEV descriptor, and a SLURM
 interface. All three run the same commands with the same standard arguments.
 
+For a copyable sequence from an empty directory to verified predictions, start with the
+[fully manual example](manual-example.md). It includes setup, implementation code and synthetic inputs.
+
 ## Local commands
+
+Pass `config_file=/absolute/path/dataset_configs/mimic_iv.yaml` to each lifecycle invocation to select
+algorithm settings, including optional `additional_predicates_file`. See [feature additions](concepts.md#additional-feature-predicates-per-dataset).
+For MEDS-DEV, add the same `config_file=...` argument to each command in the selected descriptor; use a
+path accessible inside its execution environment. MEDS-DEV still supplies the base `{predicates_path}`.
+For SLURM, set `ALGORITHM_CONFIG_FILE` to an absolute configuration path; generated `stage_args` passes
+it to every selected step. No dataset is inferred from a directory name, and no upstream file is edited.
 
 ```bash
 uv run meds-algorithm profiles
