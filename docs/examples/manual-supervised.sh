@@ -97,7 +97,7 @@ class ManualBaseline(SupervisedAlgorithm):
         return PayloadMetadata("tutorial-prevalence")
 
     def predict_supervised(self, request: PredictSupervisedRequest) -> PayloadMetadata:
-        probability = json.loads((request.algorithm.directory / "probability.json").read_text())
+        probability = json.loads((request.fitted_algorithm.directory / "probability.json").read_text())
         request.index.read().with_columns(
             pl.lit(probability).alias("predicted_boolean_probability")
         ).write_parquet(request.output.directory / "predictions.parquet")

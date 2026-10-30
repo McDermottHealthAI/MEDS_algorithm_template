@@ -12,8 +12,10 @@ This repository is a self-contained [Copier](https://copier.readthedocs.io) temp
 contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
-[`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). This template and generated projects pin
-`meds-algorithm==0.4.0a4` from PyPI.
+[`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). This development version pins the reviewed core revision
+`99b3b59798d796360d1eff74fa75db58d35c4e90` for the upcoming `meds-algorithm==0.4.0a5` API.
+Before publishing generator `0.4.0a2`, release core `0.4.0a5` and replace these Git requirements with
+matching PyPI pins as described in the release guide.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -37,9 +39,12 @@ uv run --group docs mkdocs serve
 
 ## Render a repository
 
+To use the unreleased typed-API cleanup, render from this checkout as shown below. The currently
+published generator `0.4.0a1` uses the previous core API.
+
 The installable `meds-algorithm-template` command uses the matching `v<package-version>` tag from this
 GitHub repository. It needs Git and network access; it does not bundle a second copy of the template.
-Install and run the generator with:
+For the currently published generator, use:
 
 ```bash
 uvx --from 'meds-algorithm-template==0.4.0a1' meds-algorithm-template ../my-meds-algorithm --trust
@@ -265,6 +270,9 @@ docs/IMPLEMENTATION_GUIDE.md as the authority for the ordered gates and their ev
 ```
 <!-- --8<-- [end:implementation-prompt] -->
 
+See [the test catalogue](TESTING.md) for each template test and its purpose; generated repositories
+include `docs/TESTING.md` describing every acceptance test.
+
 ## Test tiers in a generated repository
 
 ```bash
@@ -334,5 +342,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/profiles.md).
-See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/v0.4.0a4/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
+See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/99b3b59798d796360d1eff74fa75db58d35c4e90/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
 and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/shared-package-assessment.md).

@@ -7,15 +7,18 @@ name = "{{ algorithm_slug | replace('_', '-') }}"
 version = "0.1.0"
 description = "{{ algorithm_description }}"
 requires-python = ">=3.11"
-dependencies = ["pyyaml>=6", "meds-algorithm[data]==0.4.0a4"]
+dependencies = ["pyyaml>=6", "meds-algorithm[data] @ git+https://github.com/McDermottHealthAI/meds-algorithm.git@99b3b59798d796360d1eff74fa75db58d35c4e90"]
 
 [project.optional-dependencies]
 # meds-evaluation is pinned to the version MEDS-DEV evaluates predictions with.
-test = ["meds-algorithm[conformance]==0.4.0a4"]
+test = ["meds-algorithm[conformance] @ git+https://github.com/McDermottHealthAI/meds-algorithm.git@99b3b59798d796360d1eff74fa75db58d35c4e90"]
 
 [project.scripts]
 meds-algorithm = "{{ algorithm_slug }}.__main__:main"
 {{ algorithm_slug | replace('_', '-') }} = "{{ algorithm_slug }}.__main__:main"
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/{{ algorithm_slug }}"]

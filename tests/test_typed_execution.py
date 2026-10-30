@@ -47,7 +47,7 @@ class CompletedAlgorithm(V2Supervised):
         return PayloadMetadata("fixture-algorithm")
 
     def predict_supervised(self, request):
-        probability = float((request.algorithm.directory / "probability.txt").read_text())
+        probability = float((request.fitted_algorithm.directory / "probability.txt").read_text())
         request.index.read().with_columns(
             pl.lit(probability).alias("predicted_boolean_probability")
         ).write_parquet(request.output.directory / "predictions.parquet")

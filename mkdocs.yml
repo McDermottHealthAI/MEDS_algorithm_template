@@ -68,6 +68,7 @@ nav:
   - Building a algorithm:
       - Fully manual example: manual-example.md
       - Workflow: workflow.md
+      - Tests and acceptance: testing.md
       - Running a algorithm: running.md
       - Migrating to version 4: migration-v4.md
       - Template and shared package: shared-package-assessment.md
@@ -80,4 +81,5 @@ nav:
       - Manifest fields: reference/manifest.md
       - Contract API: reference/api.md
       - Architecture and UML: reference/architecture.md
+      - Shared-package tests: reference/tests.md
       - FAQ: faq.md
