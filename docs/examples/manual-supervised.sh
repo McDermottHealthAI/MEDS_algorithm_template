@@ -28,7 +28,7 @@ YAML
 uvx --from 'copier==9.17.1' copier copy --defaults --trust \
   --vcs-ref=fb5a7a89898282bb156d4a73740448512c784baa \
   --data-file answers.yaml \
-  https://github.com/florian6973/MEDS_algorithm_template.git manual-baseline
+  https://github.com/McDermottHealthAI/MEDS_algorithm_template.git manual-baseline
 cd manual-baseline
 # --8<-- [end:setup]
 

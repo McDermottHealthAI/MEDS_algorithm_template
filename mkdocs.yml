@@ -2,8 +2,8 @@ site_name: MEDS algorithm template
 site_description: >-
   A contract for MEDS algorithm repositories: MEDS data and a task in, MEDS predictions out, with every step
   measured and reproducible.
-repo_url: https://github.com/florian6973/MEDS_algorithm_template
-repo_name: florian6973/MEDS_algorithm_template
+repo_url: https://github.com/McDermottHealthAI/MEDS_algorithm_template
+repo_name: McDermottHealthAI/MEDS_algorithm_template
 edit_uri: edit/main/docs/
 hooks:
   - docs/hooks.py
@@ -72,6 +72,7 @@ nav:
       - Migrating to version 4: migration-v4.md
       - Template and shared package: shared-package-assessment.md
       - Core package layout: core-package.md
+      - Publishing to PyPI: releasing.md
   - Zero-shot algorithms:
       - Zero-shot in practice: zero-shot.md
   - Reference:

@@ -12,7 +12,7 @@ algorithm_slug:
   default: "{{ algorithm_name | lower | replace(' ', '_') | replace('-', '_') }}"
   help: Lowercase Python package and module name, for example retain.
   validator: >-
-    {% if not (algorithm_slug | regex_search('^[a-z][a-z0-9_]*$')) or algorithm_slug in ['config', 'meds_algorithm', 'keyword', 'pathlib', 'dataclasses', 'argparse', 'json', 'typing', 'abc', 'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'] %}Choose a non-reserved lowercase Python identifier.{% endif %}
+    {% if not (algorithm_slug | regex_search('^[a-z][a-z0-9_]*$')) or algorithm_slug in ['config', 'meds_algorithm', 'meds_algorithm_template', 'keyword', 'pathlib', 'dataclasses', 'argparse', 'json', 'typing', 'abc', 'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'] %}Choose a non-reserved lowercase Python identifier.{% endif %}
 
 algorithm_class:
   type: str

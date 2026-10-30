@@ -452,7 +452,7 @@ wheels = [
 [[package]]
 name = "meds-algorithm"
 version = "0.4.0a4"
-source = { git = "https://github.com/florian6973/meds-algorithm.git?rev=8c43dcb3f0294ebf0fd4dc698a4a122e889f03da#8c43dcb3f0294ebf0fd4dc698a4a122e889f03da" }
+source = { git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=10be61980262684a979a284b3f5c1577ef188c90#10be61980262684a979a284b3f5c1577ef188c90" }
 dependencies = [
     { name = "pyyaml" },
 ]
@@ -467,10 +467,11 @@ conformance = [
 
 [[package]]
 name = "meds-algorithm-template"
-version = "0.3.0"
-source = { virtual = "." }
+version = "0.4.0a1"
+source = { editable = "." }
 dependencies = [
     { name = "copier" },
+    { name = "pyyaml" },
 ]
 
 [package.dev-dependencies]
@@ -488,11 +489,14 @@ docs = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "copier", specifier = ">=9.17.1" }]
+requires-dist = [
+    { name = "copier", specifier = ">=9.17.1,<10" },
+    { name = "pyyaml", specifier = ">=6" },
+]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-algorithm", extras = ["conformance"], git = "https://github.com/florian6973/meds-algorithm.git?rev=8c43dcb3f0294ebf0fd4dc698a4a122e889f03da" },
+    { name = "meds-algorithm", extras = ["conformance"], git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=10be61980262684a979a284b3f5c1577ef188c90" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },

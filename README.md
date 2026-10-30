@@ -1,11 +1,19 @@
 # Minimal MEDS algorithm template
 
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![PyPI: unreleased](https://img.shields.io/badge/PyPI-unreleased-lightgrey)](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/RELEASING.md)
+[![Tests and code quality](https://github.com/McDermottHealthAI/MEDS_algorithm_template/actions/workflows/ci.yml/badge.svg)](https://github.com/McDermottHealthAI/MEDS_algorithm_template/actions/workflows/ci.yml)
+[![Documentation](https://github.com/McDermottHealthAI/MEDS_algorithm_template/actions/workflows/docs.yml/badge.svg)](https://McDermottHealthAI.github.io/MEDS_algorithm_template/)
+[![Contributors](https://img.shields.io/github/contributors/McDermottHealthAI/MEDS_algorithm_template)](https://github.com/McDermottHealthAI/MEDS_algorithm_template/graphs/contributors)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](https://github.com/McDermottHealthAI/MEDS_algorithm_template/pulls)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/LICENSE)
+
 This repository is a self-contained [Copier](https://copier.readthedocs.io) template for minimal,
 contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
-[`meds-algorithm`](https://github.com/florian6973/meds-algorithm). This template and generated projects pin commit
-`8c43dcb3f0294ebf0fd4dc698a4a122e889f03da` directly from Git, so no PyPI release is required.
+[`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). This template and generated projects pin commit
+`10be61980262684a979a284b3f5c1577ef188c90` directly from Git, so no PyPI release is required.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -15,12 +23,12 @@ the generated repository.
 
 ## Documentation
 
-For setup and every command in execution order, see the [fully manual example](docs/manual-example.md).
+For setup and every command in execution order, see the [fully manual example](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/manual-example.md).
 It includes a complete tutorial implementation and synthetic data, so it runs without an agent or cluster.
 
 This README is written for coding agents that port algorithms. For a human-oriented explanation of the
 contract (concepts, choosing a profile, zero-shot algorithms, the gate workflow, running, and reference), read
-the documentation site: https://florian6973.github.io/MEDS_algorithm_template/ (built from `docs/` by
+the documentation site: https://McDermottHealthAI.github.io/MEDS_algorithm_template/ (built from `docs/` by
 `.github/workflows/docs.yml`). Preview it locally with:
 
 ```bash
@@ -28,6 +36,19 @@ uv run --group docs mkdocs serve
 ```
 
 ## Render a repository
+
+The installable `meds-algorithm-template` command uses the matching `v<package-version>` tag from this
+GitHub repository. It needs Git and network access; it does not bundle a second copy of the template.
+Once the first PyPI release is published, use:
+
+```bash
+uvx --from 'meds-algorithm-template==0.4.0a1' meds-algorithm-template ../my-meds-algorithm --trust
+```
+
+Use `--defaults --data-file answers.yaml` for unattended generation. The answers file records the
+canonical GitHub source and release tag, so subsequent `copier update --trust` uses the same source.
+The package itself uses Copier and PyYAML; generated projects depend on `meds-algorithm`.
+See [publishing both packages in order](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/RELEASING.md) for the first release and dependency cutover.
 
 From the root of this checkout:
 
@@ -90,7 +111,7 @@ The two zero-shot profiles also receive the task itself: an ACES criteria file p
 `relaxations.yaml` ledger stating how the answered task differs from the requested one. They differ in how
 the algorithm answers. `zero_shot_direct` algorithms answer task-derived queries directly (MOTOR, EveryQuery),
 recommended as an `aces-to-<algorithm>` adapter on aces-relaxations. `zero_shot_materialized` algorithms generate
-futures in a task-independent `infer_trajectories`, and `predict_zero_shot_materialized` evaluates the task on them. See [Zero-shot in practice](docs/zero-shot.md) for the design, algorithm examples, and the MEDS-DEV
+futures in a task-independent `infer_trajectories`, and `predict_zero_shot_materialized` evaluates the task on them. See [Zero-shot in practice](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/zero-shot.md) for the design, algorithm examples, and the MEDS-DEV
 passthrough this needs.
 
 ## Work in the generated repository
@@ -312,6 +333,6 @@ The authority is [`template/SPEC.md`](template/SPEC.md), which Copier renders as
 repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
-Profile selection and the distinct version 4 step names are described in [profiles](docs/profiles.md).
-See the [software contract](https://github.com/florian6973/meds-algorithm/blob/8c43dcb3f0294ebf0fd4dc698a4a122e889f03da/src/meds_algorithm/CONTRACT.md), [migration guide](docs/migration-v4.md),
-and [shared-package assessment](docs/shared-package-assessment.md).
+Profile selection and the distinct version 4 step names are described in [profiles](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/profiles.md).
+See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/10be61980262684a979a284b3f5c1577ef188c90/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
+and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/shared-package-assessment.md).

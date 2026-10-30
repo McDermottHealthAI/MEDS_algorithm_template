@@ -1,18 +1,31 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
 [project]
 name = "meds-algorithm-template"
-version = "0.3.0"
+version = "0.4.0a1"
 description = "A minimal, contract-first Copier template for MEDS algorithm repositories."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
-dependencies = ["copier>=9.17.1"]
+dependencies = ["copier>=9.17.1,<10", "pyyaml>=6"]
+
+[project.scripts]
+meds-algorithm-template = "meds_algorithm_template.cli:main"
+
+[project.urls]
+Repository = "https://github.com/McDermottHealthAI/MEDS_algorithm_template"
+Documentation = "https://McDermottHealthAI.github.io/MEDS_algorithm_template/"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/meds_algorithm_template"]
 
 [dependency-groups]
-dev = ["meds-algorithm[conformance] @ git+https://github.com/florian6973/meds-algorithm.git@8c43dcb3f0294ebf0fd4dc698a4a122e889f03da", "polars>=1", "pyarrow>=15", "pytest>=8", "pyyaml>=6", "ruff"]
+dev = ["meds-algorithm[conformance] @ git+https://github.com/McDermottHealthAI/meds-algorithm.git@10be61980262684a979a284b3f5c1577ef188c90", "polars>=1", "pyarrow>=15", "pytest>=8", "pyyaml>=6", "ruff"]
 # MkDocs 2.0 removes the plugin and theme systems Material depends on, so stay on 1.x.
 docs = ["mkdocs>=1.6,<2", "mkdocs-material>=9.5,<10"]
-
-[tool.uv]
-package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
