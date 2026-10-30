@@ -14,14 +14,15 @@ before GitHub exposes its manual dispatch action.
 
 ## 1. Switch generated projects to the published shared package
 
-After `meds-algorithm==0.4.0a4` has been verified on PyPI, make these changes in a reviewed PR:
+The template now pins the published `meds-algorithm==0.4.0a4` release. When updating the shared
+dependency, update these files together in a reviewed PR:
 
 | File | Change |
 |---|---|
-| `pyproject.toml`, development dependencies | Replace the shared Git requirement with `meds-algorithm[conformance]==0.4.0a4` |
+| `pyproject.toml`, development dependencies | Pin the shared conformance dependency to `meds-algorithm[conformance]==0.4.0a4` |
 | `template/pyproject.toml.jinja`, project dependencies | Use `meds-algorithm[data]==0.4.0a4` |
 | `template/pyproject.toml.jinja`, test extra | Use `meds-algorithm[conformance]==0.4.0a4` |
-| `README.md` | Describe the PyPI dependency rather than claiming current projects install the shared package from Git |
+| `README.md` | Document the shared PyPI dependency version |
 | `uv.lock` | Regenerate with `uv lock` |
 
 Do not change the generator's runtime dependencies to require the shared library; it only generates
@@ -48,13 +49,13 @@ uv pip install --python "$wheel_env/bin/python" dist/*.whl
 ```
 
 `check_release.py` enforces matching exact index pins and verifies that the shared release has files on
-PyPI. It intentionally fails while the current Git pins remain. The wheel smoke test uses a temporary
+PyPI. It rejects Git requirements and inconsistent version pins. The wheel smoke test uses a temporary
 local tagged mirror to exercise the installed command, single/all-profile generation and the canonical
 update URL without creating a real release tag or fetching a nonexistent release.
 
 ## 2. Tag and rehearse on TestPyPI
 
-Candidate generator version: **0.4.0a1**. Once the cutover PR is merged and CI passes:
+Candidate generator version: **0.4.0a1**. Once the release changes are merged and CI passes:
 
 ```bash
 git switch main
@@ -107,6 +108,6 @@ uv pip install --python "$pypi_env/bin/python" "$pypi_env/generated[test]"
 uv pip check --python "$pypi_env/bin/python"
 ```
 
-Update the PyPI badge and install wording after verifying the published package. Future versions retain
+Verify the PyPI badge and install commands after publication. Future versions retain
 the same order whenever the template requires a new shared-package version. Pin both generator and
 shared-package versions for reproducible runs.
