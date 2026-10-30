@@ -1,7 +1,7 @@
 # Minimal MEDS algorithm template
 
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue?logo=python&logoColor=white)](https://www.python.org/downloads/)
-[![PyPI: unreleased](https://img.shields.io/badge/PyPI-unreleased-lightgrey)](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/RELEASING.md)
+[![PyPI](https://img.shields.io/pypi/v/meds-algorithm-template)](https://pypi.org/project/meds-algorithm-template/)
 [![Tests and code quality](https://github.com/McDermottHealthAI/MEDS_algorithm_template/actions/workflows/ci.yml/badge.svg)](https://github.com/McDermottHealthAI/MEDS_algorithm_template/actions/workflows/ci.yml)
 [![Documentation](https://github.com/McDermottHealthAI/MEDS_algorithm_template/actions/workflows/docs.yml/badge.svg)](https://McDermottHealthAI.github.io/MEDS_algorithm_template/)
 [![Contributors](https://img.shields.io/github/contributors/McDermottHealthAI/MEDS_algorithm_template)](https://github.com/McDermottHealthAI/MEDS_algorithm_template/graphs/contributors)
@@ -12,8 +12,8 @@ This repository is a self-contained [Copier](https://copier.readthedocs.io) temp
 contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
-[`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). This template and generated projects pin commit
-`10be61980262684a979a284b3f5c1577ef188c90` directly from Git, so no PyPI release is required.
+[`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). This template and generated projects pin
+`meds-algorithm==0.4.0a4` from PyPI.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -39,7 +39,7 @@ uv run --group docs mkdocs serve
 
 The installable `meds-algorithm-template` command uses the matching `v<package-version>` tag from this
 GitHub repository. It needs Git and network access; it does not bundle a second copy of the template.
-Once the first PyPI release is published, use:
+Install and run the generator with:
 
 ```bash
 uvx --from 'meds-algorithm-template==0.4.0a1' meds-algorithm-template ../my-meds-algorithm --trust
@@ -48,7 +48,7 @@ uvx --from 'meds-algorithm-template==0.4.0a1' meds-algorithm-template ../my-meds
 Use `--defaults --data-file answers.yaml` for unattended generation. The answers file records the
 canonical GitHub source and release tag, so subsequent `copier update --trust` uses the same source.
 The package itself uses Copier and PyYAML; generated projects depend on `meds-algorithm`.
-See [publishing both packages in order](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/RELEASING.md) for the first release and dependency cutover.
+See [publishing both packages in order](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/RELEASING.md) for the release process and dependency updates.
 
 From the root of this checkout:
 
@@ -334,5 +334,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/profiles.md).
-See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/10be61980262684a979a284b3f5c1577ef188c90/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
+See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/v0.4.0a4/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
 and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/shared-package-assessment.md).
