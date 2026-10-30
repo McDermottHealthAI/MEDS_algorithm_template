@@ -1,9 +1,9 @@
 # Agent instructions
 
 Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` completely.
-`SPEC.md` points to the pinned core contract: run `meds-algorithm-core-spec` and read that specification too.
+`SPEC.md` points to the pinned core contract: run `meds-algorithm-spec` and read that specification too.
 
-- `meds-algorithm-core` is an installed dependency. Do not copy its implementations into this repository.
+- `meds-algorithm` is an installed dependency. Do not copy its implementations into this repository.
   Keep framework, batching, preprocessing-format and algorithm assumptions in the algorithm package.
 - `src/{{ algorithm_slug }}/`, `algorithms/<profile>/model.yaml`, command configuration, and `tests/e2e.py` are algorithm-owned.
 - Implement typed profile methods on `{{ algorithm_class }}`; keep source-defined settings in frozen `{{ algorithm_class }}Config`.

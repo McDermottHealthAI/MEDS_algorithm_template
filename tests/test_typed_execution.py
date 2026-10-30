@@ -15,7 +15,7 @@ def test_rendered_algorithm_runs_persisted_lifecycle_with_structured_config(tmp_
     slug = render(dst, "supervised")
     package = dst / "src" / slug
     (package / "config.py").write_text("""from dataclasses import dataclass
-from meds_algorithm_core import AlgorithmConfig
+from meds_algorithm import AlgorithmConfig
 
 @dataclass(frozen=True)
 class V2SupervisedConfig(AlgorithmConfig):
@@ -115,7 +115,7 @@ IMPLEMENTATIONS["supervised"] = CompletedAlgorithm
     frame = pl.read_parquet(predictions / "predictions.parquet")
     assert frame["predicted_boolean_probability"].to_list() == pytest.approx([4 / 7])
     assert frame["boolean_value"].to_list() == [False]
-    from meds_algorithm_core import read_manifest
+    from meds_algorithm import read_manifest
 
     assert read_manifest(algorithm)["algorithm"]["config"] == {
         "smoothing": 2.0,

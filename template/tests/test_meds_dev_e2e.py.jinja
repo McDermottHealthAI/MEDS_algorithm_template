@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from meds_algorithm_core.integrations.meds_dev import register
-from meds_algorithm_core.conformance.assertions import read_predictions
+from meds_algorithm.integrations.meds_dev import register
+from meds_algorithm.conformance.assertions import read_predictions
 from {{ algorithm_slug }}.{{ algorithm_slug }} import STUB_PROFILES, PROFILES
 
-from meds_algorithm_core.conformance.meds_dev import RUN_TIMEOUT, assert_prediction_keys, assert_prediction_schema, provision_meds_dev, run, venv_bin
+from meds_algorithm.conformance.meds_dev import RUN_TIMEOUT, assert_prediction_keys, assert_prediction_schema, provision_meds_dev, run, venv_bin
 
 pytestmark = [pytest.mark.slow, pytest.mark.meds_dev]
 ROOT = Path(__file__).parents[1]

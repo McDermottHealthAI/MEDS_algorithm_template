@@ -1,7 +1,7 @@
 # Contract API
 
 The [normative software interfaces](spec.md#9-software-interfaces) define the public classes, arguments,
-label-access rules and artifact compatibility requirements. Import them directly from `meds_algorithm_core`.
+label-access rules and artifact compatibility requirements. Import them directly from `meds_algorithm`.
 There is no generated compatibility package.
 
 | Module | Responsibility |
@@ -26,7 +26,7 @@ artifact. Low-level `measured_artifact` remains for legacy callers; new methods 
 Use explicit `splits` for outcome attachment. Install the `data` extra for dataframe helpers and the
 `conformance` extra for shared tests. The base package does not import data or algorithm frameworks.
 
-`meds-algorithm-core-spec` prints the installed specification. `meds-algorithm-resolve-input <artifact>
+`meds-algorithm-spec` prints the installed specification. `meds-algorithm-resolve-input <artifact>
 <input_argument>` resolves a recorded upstream path and checks its envelope type; the consumer still
 validates scientific compatibility. Core also supplies `meds-algorithm-add-to-meds-dev`.
 

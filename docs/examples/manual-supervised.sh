@@ -38,14 +38,14 @@ uv python install 3.11
 uv sync --python 3.11 --extra test
 uv run manual-baseline profiles
 uv run manual-baseline commands --profile supervised
-uv run meds-algorithm-core-spec > installed-contract.txt
+uv run meds-algorithm-spec > installed-contract.txt
 # --8<-- [end:environment]
 
 # 3. Implement the generated stubs manually. No agent or MEDS-DEV runner is involved.
 # --8<-- [start:configuration]
 cat > src/manual_baseline/config.py <<'PY'
 from dataclasses import dataclass
-from meds_algorithm_core import AlgorithmConfig
+from meds_algorithm import AlgorithmConfig
 
 
 @dataclass(frozen=True)
@@ -66,8 +66,8 @@ from pathlib import Path
 import polars as pl
 import yaml
 
-from meds_algorithm_core import AlgorithmRepository, PayloadMetadata, SupervisedAlgorithm
-from meds_algorithm_core.requests import (
+from meds_algorithm import AlgorithmRepository, PayloadMetadata, SupervisedAlgorithm
+from meds_algorithm.requests import (
     PreprocessDataRequest, TrainSupervisedRequest, PredictSupervisedRequest,
 )
 from .config import ManualBaselineConfig
@@ -190,8 +190,8 @@ uv run python - <<'PY'
 from pathlib import Path
 import polars as pl
 import yaml
-from meds_algorithm_core import read_manifest
-from meds_algorithm_core.conformance.assertions import assert_prediction_schema
+from meds_algorithm import read_manifest
+from meds_algorithm.conformance.assertions import assert_prediction_schema
 from manual_baseline import ManualBaseline, ManualBaselineConfig
 
 root = Path("runs/manual/supervised/artifacts")

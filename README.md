@@ -4,8 +4,8 @@ This repository is a self-contained [Copier](https://copier.readthedocs.io) temp
 contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
-[`meds-algorithm-core`](https://github.com/florian6973/meds-algorithm-core). This template and generated projects pin commit
-`0b2e77b7c24e5eefd44e602a291cef5c78aad66d` directly from Git, so no PyPI release is required.
+[`meds-algorithm`](https://github.com/florian6973/meds-algorithm). This template and generated projects pin commit
+`8c43dcb3f0294ebf0fd4dc698a4a122e889f03da` directly from Git, so no PyPI release is required.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -148,7 +148,7 @@ configuration files, checkpoints, preprocessing code, and evaluation code availa
 source.
 
 Apply the Ponytail principle of the smallest complete change: implement the complete source-defined
-algorithm with the least additional infrastructure. Check meds-algorithm-core, existing algorithm-family code,
+algorithm with the least additional infrastructure. Check meds-algorithm, existing algorithm-family code,
 standard libraries and installed dependencies before creating helpers. Keep shared fixes in their
 owning package; do not copy core utilities into the algorithm repository. Avoid speculative wrappers,
 configuration options and compatibility layers. Trace affected commands, callers, fixtures and
@@ -201,7 +201,7 @@ algorithm (generates futures and evaluates the task on them; infer is task-indep
 receives the task): the algorithm receives the original ACES task through
 external_task_criteria_file (with the dataset predicates) and the upstream-built index through
 external_index_dir. Never build, filter, or extend the cohort, and read the index only through
-meds_algorithm_core.read_index. Reuse an existing aces-to-<algorithm> adapter for this algorithm if one exists;
+meds_algorithm.read_index. Reuse an existing aces-to-<algorithm> adapter for this algorithm if one exists;
 otherwise write one on aces-relaxations, pinned to an exact version: reject tasks that are not future-only
 or are degenerate, normalize, then apply only the approximations and assumptions the algorithm's query
 language forces. Publish relaxations.yaml with every step, and report per task whether the answer is exact.
@@ -313,5 +313,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](docs/profiles.md).
-See the [software contract](https://github.com/florian6973/meds-algorithm-core/blob/0b2e77b7c24e5eefd44e602a291cef5c78aad66d/src/meds_algorithm_core/CONTRACT.md), [migration guide](docs/migration-v4.md),
+See the [software contract](https://github.com/florian6973/meds-algorithm/blob/8c43dcb3f0294ebf0fd4dc698a4a122e889f03da/src/meds_algorithm/CONTRACT.md), [migration guide](docs/migration-v4.md),
 and [shared-package assessment](docs/shared-package-assessment.md).

@@ -51,7 +51,7 @@ the Ponytail implementation principles; installing a separate agent plugin is no
 | Stage | Agent's work | Human's responsibility |
 |---|---|---|
 | Handoff | Read `AGENTS.md`, `SPEC.md`, `README.md` and `docs/IMPLEMENTATION_GUIDE.md`; inspect the paper, source code and configurations; identify missing evidence. | Supply the intended source, profiles and dataset context; resolve scientific choices the source leaves ambiguous. |
-| Implementation | Implement the algorithm and every declared profile's commands, descriptors, fixture adapter and primary-behavior tests. Reuse `meds-algorithm-core` for shared contract behavior. Record source fidelity and deviations in `IMPLEMENTATION_REPORT.md`. | Resolve missing inputs or consequential departures from the source when the agent raises them. |
+| Implementation | Implement the algorithm and every declared profile's commands, descriptors, fixture adapter and primary-behavior tests. Reuse `meds-algorithm` for shared contract behavior. Record source fidelity and deviations in `IMPLEMENTATION_REPORT.md`. | Resolve missing inputs or consequential departures from the source when the agent raises them. |
 | Automated verification | Run the local and MEDS-DEV gates, inspect failures, fix their causes and rerun the affected checks. Report exact commands, results, skips and remaining limitations. | Review the evidence, source fidelity, predicates and demo plan at the pre-demo gate. |
 | Approved demo | After approval, run the MIMIC-IV demo gate and report execution, coverage and resource evidence. | Review the demo results and approve the full dataset, task bundle, access and resource plan separately. |
 | Approved full run | Commit and push the completed implementation, run the approved SLURM job from its immutable commit, and prepare the final report and permitted structured run evidence. | Assess the scientific results and review the implementation and run evidence before merging. |
@@ -83,7 +83,7 @@ copies of core utilities. Test config/request serialization and execution in a f
 
 Implement every command in the union of declared profiles, `tests/e2e.py`, `algorithms/<profile>/model.yaml`, and `slurm/config.sh`. In
 `tests/e2e.py`, `run_e2e` runs the real profile on a small fixture to which it applies
-`meds_algorithm_core.conformance.signal.add_split_canaries`, and returns the artifacts, the evaluated index and splits, the exact
+`meds_algorithm.conformance.signal.add_split_canaries`, and returns the artifacts, the evaluated index and splits, the exact
 external inputs, deterministic fixture seed and the canaries; `fitted_codes` reports every code the algorithm fitted a population
 statistic for; `prepare_meds_dev_run` configures the MEDS-DEV run. Complete `tests/test_primary_behavior.py`,
 which fails on purpose until it shows the algorithm's claimed behavior on a known signal, with a negative

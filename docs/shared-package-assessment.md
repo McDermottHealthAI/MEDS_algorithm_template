@@ -2,7 +2,7 @@
 
 The template should generate repository structure, algorithm command stubs, profile descriptors, test
 adapters, CI and cluster configuration. Executable infrastructure that needs coordinated bug fixes
-belongs in the versioned `meds-algorithm-core` dependency. The [shared core package](core-package.md) now
+belongs in the versioned `meds-algorithm` dependency. The [shared core package](core-package.md) now
 contains the reusable template infrastructure and conformance helpers, and owns the canonical
 specification. It is available from its public Git repository; downstream migrations remain separate.
 
@@ -16,7 +16,7 @@ local `origin/main` snapshots, not verified current remote heads.
 | Destination | Candidates | Qualification |
 |---|---|---|
 | Core runtime | Profile ABCs, typed requests/configuration, shared runner, manifest schema and compatibility checks, provenance, artifact publication, wall-time and process-tree measurements, structured results, MEDS-DEV registration | Core owns these implementations, including replacement rollback and worker-thread child discovery; downstream algorithms still need migration. Keep GPU/framework integrations optional. |
-| Optional conformance package | Prediction schema/key checks, integration provisioning, train-only canaries, generic synthetic signal fixture | `meds_algorithm_core.conformance.meds_dev` and `meds_algorithm_core.conformance.signal` are identical in 11 repositories. Keep algorithm execution and feature inspection as adapters. |
+| Optional conformance package | Prediction schema/key checks, integration provisioning, train-only canaries, generic synthetic signal fixture | `meds_algorithm.conformance.meds_dev` and `meds_algorithm.conformance.signal` are identical in 11 repositories. Keep algorithm execution and feature inspection as adapters. |
 | Shared data-boundary helpers | Explicit split selection, label-blind index reading, uniqueness/conflict validation, keyed prediction writing | Existing helpers disagree on duplicate and split behavior. Specify one fail-closed policy before extraction. |
 | Family repositories | MOTOR FT/LP backend/provenance utilities; MEDS-Tab large/LR tabularization and runtime; MEDS-EIC-AR and supervised variant tokenization/I/O/runtime | Prefer one repository per family with multiple profiles and shared internal modules; keep algorithms outside the generic core. |
 | Template/algorithm repository | Algorithm architectures, objectives, feature semantics, task translators, pooling, trajectory generation, tuned defaults, concrete integration adapters | Their apparent similarity does not make them backend-neutral. |
