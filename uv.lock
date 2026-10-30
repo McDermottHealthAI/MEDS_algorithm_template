@@ -451,8 +451,8 @@ wheels = [
 
 [[package]]
 name = "meds-algorithm-core"
-version = "0.4.0a2"
-source = { git = "https://github.com/florian6973/meds-algorithm-core.git?rev=43cc0298ba71a4fc13b609b26ee4e202d903dead#43cc0298ba71a4fc13b609b26ee4e202d903dead" }
+version = "0.4.0a3"
+source = { git = "https://github.com/florian6973/meds-algorithm-core.git?rev=0b2e77b7c24e5eefd44e602a291cef5c78aad66d#0b2e77b7c24e5eefd44e602a291cef5c78aad66d" }
 dependencies = [
     { name = "pyyaml" },
 ]
@@ -492,7 +492,7 @@ requires-dist = [{ name = "copier", specifier = ">=9.17.1" }]
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-algorithm-core", extras = ["conformance"], git = "https://github.com/florian6973/meds-algorithm-core.git?rev=43cc0298ba71a4fc13b609b26ee4e202d903dead" },
+    { name = "meds-algorithm-core", extras = ["conformance"], git = "https://github.com/florian6973/meds-algorithm-core.git?rev=0b2e77b7c24e5eefd44e602a291cef5c78aad66d" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },

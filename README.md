@@ -5,7 +5,7 @@ contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-algorithm-core`](https://github.com/florian6973/meds-algorithm-core). This template and generated projects pin commit
-`43cc0298ba71a4fc13b609b26ee4e202d903dead` directly from Git, so no PyPI release is required.
+`0b2e77b7c24e5eefd44e602a291cef5c78aad66d` directly from Git, so no PyPI release is required.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -161,6 +161,13 @@ Write minimalist, auditable, object-oriented algorithm code. Put source-defined 
 in the algorithm-owned frozen <AlgorithmClass>Config class in config.py; validate values and prove
 serialization round trips. Keep the implementation in <algorithm_slug>.py and expose the named algorithm
 and configuration classes from the package, so callers can import them meaningfully.
+For neural algorithms with matching semantics, extend core NNConfig rather than
+duplicating shared capacity, learning_rate, batch_size, weight_decay and dropout settings. Define
+source-backed defaults and the capacity-multiplier mapping (reference architecture, dimensions, rounding
+and minimums); call super().validate() for inherited
+constraints. Test that the settings actually control construction/training. See the installed architecture
+guide for units, extension examples and scaling ownership. Keep cohort selection upstream; record actual
+parameter counts and consumed data separately rather than inferring them from capacity or a data fraction.
 Use inherited additional_predicates_file for dataset-specific feature additions when needed. Read the
 runner-resolved request.predicates_file in preprocessing; do not override base definitions, merge again,
 or change task predicates. Preserve temporal isolation and use the same configuration across steps.
@@ -306,5 +313,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](docs/profiles.md).
-See the [software contract](https://github.com/florian6973/meds-algorithm-core/blob/43cc0298ba71a4fc13b609b26ee4e202d903dead/src/meds_algorithm_core/CONTRACT.md), [migration guide](docs/migration-v4.md),
+See the [software contract](https://github.com/florian6973/meds-algorithm-core/blob/0b2e77b7c24e5eefd44e602a291cef5c78aad66d/src/meds_algorithm_core/CONTRACT.md), [migration guide](docs/migration-v4.md),
 and [shared-package assessment](docs/shared-package-assessment.md).

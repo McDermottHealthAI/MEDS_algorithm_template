@@ -34,6 +34,13 @@ Declare source-defined parameters/defaults in the frozen `{{ algorithm_class }}C
 `{{ algorithm_class }}Config.validate()` for constraints, and test strict serialization and reconstruction in a fresh process.
 Read the installed architecture guide with `from meds_algorithm_core.spec import architecture`.
 
+For neural algorithms with matching semantics, use core `NNConfig` instead of copying its shared settings.
+Supply source-defined defaults and document how the capacity multiplier maps to the reference architecture,
+including dimension rounding and minimums,
+and call `super().validate()` when adding constraints. Test that each field affects the actual algorithm.
+The installed architecture guide contains the canonical example and scaling guidance. Cohort selection
+belongs upstream; actual parameter counts and consumed data must be measured separately.
+
 For dataset-specific feature additions, set inherited `additional_predicates_file` in the selected
 configuration file. Core composes it during preprocessing, rejects duplicate names, and persists
 `resolved_feature_predicates.yaml` with provenance. Read `request.predicates_file`; do not merge again
