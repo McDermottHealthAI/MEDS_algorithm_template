@@ -22,7 +22,7 @@ flowchart TD
 
 ```bash
 uv tool install copier
-copier copy --trust https://github.com/florian6973/MEDS_algorithm_template ../my-meds-algorithm
+copier copy --trust https://github.com/McDermottHealthAI/MEDS_algorithm_template ../my-meds-algorithm
 ```
 
 Copier asks for the algorithm name and slug, the **profiles**, whether MEDS-DEV commands should pass

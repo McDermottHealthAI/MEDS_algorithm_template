@@ -51,6 +51,7 @@ def test_algorithm_name_controls_module_classes_exports_and_command(tmp_path):
         {"algorithm_slug": "retain-v2"},
         {"algorithm_slug": "class"},
         {"algorithm_slug": "config"},
+        {"algorithm_slug": "meds_algorithm_template"},
         {"algorithm_class": "bad name"},
         {"algorithm_class": "AlgorithmRepository"},
     ],

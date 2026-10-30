@@ -1,7 +1,7 @@
 # Shared core package
 
-The core lives in its own [repository](https://github.com/florian6973/meds-algorithm), pinned by the template to an immutable commit.
-See its [layout and usage](https://github.com/florian6973/meds-algorithm/blob/8c43dcb3f0294ebf0fd4dc698a4a122e889f03da/README.md) for its artifact, runtime, task, evaluation, integration and conformance APIs.
+The core lives in its own [repository](https://github.com/McDermottHealthAI/meds-algorithm), pinned by the template to an immutable commit.
+See its [layout and usage](https://github.com/McDermottHealthAI/meds-algorithm/blob/10be61980262684a979a284b3f5c1577ef188c90/README.md) for its artifact, runtime, task, evaluation, integration and conformance APIs.
 The [specification](reference/spec.md) below is rendered from the installed dependency, so the site
 and generated algorithms use the same version without copying the contract into this repository.
 The [architecture and UML](reference/architecture.md) are also rendered from the pinned core wheel.
