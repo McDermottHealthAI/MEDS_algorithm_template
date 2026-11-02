@@ -39,6 +39,8 @@ uv lock
 uv sync --locked --group dev --group docs
 uv run ruff check src tests scripts docs/hooks.py
 uv run ruff format --check src tests scripts docs/hooks.py
+npm ci --ignore-scripts
+npm test
 uv run pytest -q
 uv run mkdocs build --strict
 uv run python scripts/check_release.py

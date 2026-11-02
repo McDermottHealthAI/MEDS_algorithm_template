@@ -144,29 +144,75 @@ A completed implementation removes each profile from `STUB_PROFILES` only after 
 <!-- --8<-- [start:implementation-prompt] -->
 ## Copyable algorithm-implementation prompt
 
-Use this after rendering a repository. Replace all placeholders before sending it to a coding agent.
-The full-data evaluation may target any suitable MEDS dataset (for example, MIMIC-IV or NWICU); the
-provided `real_data` test remains the MIMIC-IV demo smoke test.
+Use the [interactive prompt builder](https://McDermottHealthAI.github.io/MEDS_algorithm_template/prompt-builder/)
+or fill in the fields below. The agent inspects sources and selects profiles before generating a new
+local or GitHub repository. The builder runs locally in your browser; it does not launch an agent.
+The provided `real_data` test remains the MIMIC-IV demo smoke test, independent of supplied evaluation tasks.
 
 The prompt adapts [Ponytail's implementation principles](https://github.com/DietrichGebert/ponytail/blob/main/skills/ponytail/SKILL.md)
 to scientific algorithm development. It works with Claude and other coding agents without installing a plugin.
 
 ```text
-Based on the following source:
+Implement a MEDS algorithm from the following inputs.
 
-<PAPER_PATH_OR_URL_AND_OR_REPOSITORY_PATH_OR_URL>
+Paper(s), supplementary material and versions:
+<PAPER_REFERENCES_OR_NOT_SUPPLIED>
 
-implement the algorithm in the generated MEDS algorithm repository at:
+Code/repository source(s), revisions, configurations and checkpoints:
+<CODE_REFERENCES_OR_NOT_SUPPLIED>
 
-<GENERATED_REPOSITORY_PATH>
+Destination (a NEW local repository or a NEW GitHub repository, including visibility):
+<NEW_REPOSITORY_DESTINATION>
 
-For the full-data run, target this dataset in MEDS format (name, revision, and location):
+Local working directory for the new repository:
+<NEW_LOCAL_REPOSITORY_PATH>
 
-<TARGET_DATASET_NAME_REVISION_AND_MEDS_PATH>
+Profile selection (automatic, or an explicit list of one or more profiles):
+<PROFILE_SELECTION>
 
-Use this dataset-specific shared task bundle if already available:
+Dataset context (name, revision and MEDS path, if available):
+<DATASET_CONTEXT_OR_NOT_SUPPLIED>
 
-<FULL_DATA_WORK_DIR_OR_NOT_YET_AVAILABLE>
+Already prepared evaluation tasks (labels location, task-config location, bundle revision and
+optional task subset; or explicitly not supplied):
+<PREPARED_TASK_BUNDLE_OR_NOT_SUPPLIED>
+
+Work scope (implementation/local tests, also MEDS-DEV integration, or preparation for full evaluation):
+<WORK_SCOPE>
+
+Additional implementation constraints:
+<ADDITIONAL_CONSTRAINTS_OR_NONE>
+
+Inspect the supplied sources before generating the repository. If both paper and code are provided,
+compare them, record discrepancies and identify which behavior is implemented; do not silently assume
+one always overrides the other. If only a paper is provided, distinguish source-backed choices from
+necessary assumptions. If only code is provided, inspect its revision, configuration and checkpoint
+requirements; do not claim fidelity to an unavailable paper.
+
+For automatic profile selection, choose one or more profiles supported by documented source behavior:
+supervised, finetune, probe, zero_shot_direct, zero_shot_materialized or predict_only. Record evidence for
+each choice and proceed when the evidence is clear. Do not add speculative capabilities merely because
+a profile exists. For an explicit list, implement that scope; report material incompatibilities before
+implementing unsupported behavior, and do not silently replace or expand it. Shared methods may be
+implemented once through multiple profile inheritance when their semantics match, or through separate
+classes with shared components. Each selected profile gets its own MEDS-DEV YAML and acceptance tests.
+
+Generate the new repository with the MEDS algorithm template at
+https://github.com/McDermottHealthAI/MEDS_algorithm_template using a reviewed immutable revision, and
+record it in .copier-answers.yml. Pass the selected profiles explicitly; do not accidentally accept the
+single-profile default. Never overwrite an existing local directory or GitHub repository. For a local
+destination, initialize Git without creating a remote. For a GitHub destination, create the specified
+repository with the specified visibility and connect the local checkout; report missing access without
+changing the destination or visibility. Respect any more specific workspace repository-routing rules.
+
+Supplied evaluation tasks are already prepared: use their labels and task configs as fixed inputs.
+Verify their dataset/revision, task identities, splits, prediction times and consistency before use.
+An optional task subset selects only tasks already present in that bundle. Do not generate new tasks,
+extract new labels, relabel examples or silently modify the task definitions. Use supplied indices or
+read only the supplied prediction keys through the core index reader; evaluation outcomes must never
+enter scoring. Zero-shot profiles additionally require executable task criteria and matching predicates.
+If the bundle is not supplied, continue implementation and synthetic tests; report evaluation as
+pending. An incomplete bundle blocks only the dependent evaluation, not unrelated implementation.
 
 Read AGENTS.md, SPEC.md, README.md, and docs/IMPLEMENTATION_GUIDE.md in the generated repository
 completely before writing code. Inspect the paper, supplementary material, source repository,
@@ -208,7 +254,7 @@ Implement explicit payload compatibility checks. Prediction outputs contain keys
 only the runner attaches evaluation truth after scoring. Demonstrate that saved configuration and requests
 can be reloaded in a fresh process and executed without an earlier call on the same algorithm instance.
 
-Preserve the selected algorithm profile and standardized command arguments, MEDS input boundary, artifact
+Preserve all selected algorithm profiles and standardized command arguments, MEDS input boundary, artifact
 manifest envelopes, MEDS-DEV model.yaml interface, and final MEDS prediction output. Intermediate payload
 formats and execution mechanisms are algorithm-owned: choose whatever preprocessing, featurization, framework,
 batching or non-batching strategy, external executable, storage format, and algorithm architecture most
@@ -230,7 +276,8 @@ external_index_dir. Never build, filter, or extend the cohort, and read the inde
 meds_algorithm.read_index. Reuse an existing aces-to-<algorithm> adapter for this algorithm if one exists;
 otherwise write one on aces-relaxations, pinned to an exact version: reject tasks that are not future-only
 or are degenerate, normalize, then apply only the approximations and assumptions the algorithm's query
-language forces. Publish relaxations.yaml with every step, and report per task whether the answer is exact.
+language forces. Publish relaxations.yaml with each zero-shot prediction artifact, and report per task whether
+the answer is exact.
 A materialized algorithm evaluates the task on generated futures instead and needs no relaxation beyond
 sampling. Follow the shape for the selected profile in docs/IMPLEMENTATION_GUIDE.md.
 Do not omit source behavior because it is inconvenient for a fixture; adapt the implementation or fixture
@@ -238,13 +285,21 @@ instead.
 
 Record every material source element as ported, adapted, or omitted, with evidence and justification, in
 IMPLEMENTATION_REPORT.md. Implement every selected typed algorithm method, finalize the implementation-specific
-command strings in model.yaml, and implement tests/e2e.py. Keep STUB_PROFILES = set(PROFILES) until the actual selected
-algorithm profile completes and produces standards-conformant predictions.
+command strings in model.yaml, and implement tests/e2e.py. Remove each profile from STUB_PROFILES only
+after that profile completes and produces standards-conformant predictions; complete every selected profile.
 
-Then run:
+Always run:
 
     uv run pytest -rs
+
+If the selected scope includes MEDS-DEV integration or full-evaluation preparation, also run:
+
     uv run pytest -m meds_dev -rs
+
+For implementation/local-tests scope, finish with implementation and local validation evidence. For
+MEDS-DEV integration scope, finish after its integration evidence. Report unavailable dependencies or
+adapters explicitly; do not weaken tests. The following demo and full-data stages apply only when the
+selected scope is preparation for full evaluation; selecting that scope is not execution approval.
 
 Complete the pre-demo sections of IMPLEMENTATION_REPORT.md and ask for human review of source fidelity,
 predicate interpretation, and the proposed MIMIC-IV demo execution. Only after approval, run:
@@ -256,16 +311,17 @@ Update IMPLEMENTATION_REPORT.md with the demo cohort, final-output coverage, pre
 environment, wall time, peak process-tree PSS/RSS, GPU measurements when available, failures, and fixes.
 Ask for a second human review before launching the selected full dataset through the repository's SLURM
 interface. Review target-dataset compatibility, access, and resources separately from the MIMIC-IV demo.
-Use a shared, reviewed task bundle for the target dataset, built once upstream: clinical tasks defined in
-ACES and extracted with the ACES package, or randomly sampled code-by-horizon tasks (generated with
-https://github.com/florian6973/meds-random-task-sampler and selected with https://github.com/florian6973/meds-task-selection).
-It must contain each task's definition and its generated index/labels; zero-shot algorithms also need each
-task's ACES criteria. If a compatible bundle is not yet available, report that blocker before the
-full-data run. Record the dataset name/revision, predicate provenance, bundle location, the commit of the
-tool that built it, and a digest of its task definitions. Keep the bundle external to Git. Commit and push the implementation,
-configuration, and report-so-far; run the cluster job from that exact clean commit. After the authorized
-run, complete the report with full-data evidence, scientific deviations, and known limitations, then
-synchronize structured results through the GitHub workflow. Treat
+Use the supplied, already prepared task bundle for the selected dataset. It must contain task configs,
+per-task labels/keys and split assignments; zero-shot runs additionally require the original ACES criteria
+and matching predicates. Do not generate or extract replacement evaluation tasks. Canonical synthetic
+fixtures and the built-in MIMIC-IV demo smoke task remain separate from this supplied evaluation bundle. If the bundle is absent
+or inconsistent, report the evaluation blocker and the exact missing inputs.
+Record the dataset name/revision, predicate provenance, bundle location, supplied bundle revision and
+available upstream build provenance, and a digest of its task definitions. Keep the bundle external to Git.
+Commit the implementation, configuration and report-so-far; push when a remote is configured. Run the
+cluster job from that exact clean commit. After the authorized run, complete the report with full-data evidence, scientific deviations, and known limitations, then
+synchronize structured results through the GitHub workflow when the destination has a GitHub remote.
+For a local-only repository, retain the committed report and run evidence locally. Treat
 docs/IMPLEMENTATION_GUIDE.md as the authority for the ordered gates and their evidence.
 ```
 <!-- --8<-- [end:implementation-prompt] -->

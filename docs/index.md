@@ -58,6 +58,7 @@ the right artifacts and publishes the right one.
 
 ## Where to go next
 
+- Preparing agent instructions? Use the [implementation prompt builder](prompt-builder.md).
 - New to the template? Read [Concepts](concepts.md), then [Choosing a profile](profiles.md).
 - Want to run everything by hand? Follow the [fully manual example](manual-example.md).
 - Porting a zero-shot algorithm? Read [Zero-shot in practice](zero-shot.md).

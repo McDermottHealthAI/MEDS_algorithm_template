@@ -7,7 +7,7 @@ what each gate is for.
 
 ```mermaid
 flowchart TD
-    r[1. Human: render and supply sources] --> i[2. Agent: implement commands,<br/>tests/e2e.py, model.yaml, slurm/config.sh]
+    r[1. Supply sources and choose profiles<br/>manually or through the agent] --> i[2. Agent: implement commands,<br/>tests/e2e.py, model.yaml, slurm/config.sh]
     i --> g1[3. Agent: local gate<br/>uv run pytest -rs]
     g1 --> g2[4. Agent: MEDS-DEV gate<br/>uv run pytest -m meds_dev -rs]
     g2 --> h1{{5. Pre-demo human review<br/>source fidelity, predicates, demo plan}}
@@ -19,6 +19,11 @@ flowchart TD
 ```
 
 ## 1. Render
+
+The [implementation prompt builder](prompt-builder.md) can ask the agent to create a **new local or
+GitHub repository**. Supply paper/code references, choose profiles automatically or explicitly, and
+optionally identify an already prepared task bundle with labels and configs. The agent inspects sources
+and selects profiles before rendering. To render manually instead:
 
 ```bash
 uv tool install copier
@@ -36,13 +41,17 @@ end-to-end tests skip with an explicit `algorithm_stub` reason until the real al
 
 ### Using an agent for automated implementation
 
-Open a coding agent, such as Claude, in the **generated algorithm repository** and give it the
-[copyable algorithm-implementation prompt](#copyable-algorithm-implementation-prompt) below. Replace every
-placeholder with the source paper or repository, generated repository path, target dataset and revision,
-and reviewed task-bundle location (or explicitly state that the bundle is not yet available). Supply
-relevant source configurations and checkpoint references as well. Select the repository's profiles
-when rendering; a single implementation can support several profiles through their separate
-`algorithms/<profile>/model.yaml` files.
+Use the [implementation prompt builder](prompt-builder.md) to prepare input for a coding agent such
+as Claude. The prompt supports paper references, code/repositories, or both. Its destination is a new
+local repository or a new GitHub repository with an explicit local checkout and visibility.
+Automatic profile selection must follow source evidence; manual selection may include several profiles.
+The agent records the choice before generation, then implements every selected profile.
+
+Evaluation tasks, when supplied, are already ready: labels plus task configs, bundle identity and dataset
+context. The builder does not ask the agent to invent tasks or extract new labels. Missing tasks defer
+only the corresponding evaluation. Choose the intended work scope explicitly; demo and full-data runs
+still require their existing human approvals. The [static prompt](#copyable-algorithm-implementation-prompt)
+below is the same maintained source used by the builder.
 
 The template supplies instructions, interfaces and executable checks. It does **not** launch an agent
 or run an unattended implementation service. The prompt works as ordinary agent input and includes

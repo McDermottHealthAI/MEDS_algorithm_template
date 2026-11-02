@@ -7,6 +7,9 @@ in one package. Choose them with Copier's `profiles` multiselect, or supply a da
 profiles: [finetune, probe, zero_shot_direct]
 ```
 
+The [prompt builder](prompt-builder.md) supports automatic selection from paper/code evidence or an
+explicit selection of several profiles before repository generation.
+
 The [canonical lifecycle table](reference/spec.md#3-commands-and-algorithm-profiles) lists the exact steps.
 
 Only preprocessing and pretraining share command names. They may share artifacts when input identities,

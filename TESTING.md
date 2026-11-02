@@ -12,6 +12,8 @@ Generated algorithm acceptance tests are documented separately in the next secti
 uv sync --group dev --group docs
 uv run ruff check src tests scripts docs/hooks.py
 uv run ruff format --check src tests scripts docs/hooks.py
+npm ci --ignore-scripts
+npm test
 uv run pytest -q
 uv run pytest tests/test_profiles.py -q
 uv run mkdocs build --strict
@@ -22,6 +24,28 @@ exercised through capability fixtures in this suite; passing it does not mean a 
 run. Parametrized functions produce several pytest cases. Helper fixtures are not separate acceptance tests.
 
 ## Test inventory
+
+### test_docs.py
+
+| Test | What it checks | Why it exists |
+|---|---|---|
+| `test_prompt_builder_embeds_the_canonical_readme_prompt` | Decodes the embedded browser prompt and compares it with the README's canonical block. | Prevent the static prompt and interactive builder from drifting apart. |
+| `test_prompt_source_cannot_close_its_json_script_element` | Embeds source text containing HTML script closers and checks the decoded value and element boundary. | Keep prompt text inert when included in the documentation HTML. |
+
+### prompt_builder.test.cjs
+
+Run with `npm test` on Node 24 after `npm ci --ignore-scripts`. jsdom is development-only; the shipped
+builder uses plain JavaScript without runtime dependencies, network calls or persisted form inputs.
+
+| Test | What it checks | Why it exists |
+|---|---|---|
+| All choice combinations | Exercises all 72 source/destination/profile/task/scope combinations and common instructions. | Preserve the shared scientific requirements and review gates for every configuration. |
+| Invalid plans | Rejects missing sources, destination, manual profiles or prepared-bundle metadata. | Avoid an apparently ready prompt with incomplete required inputs. |
+| Task subsets and literal text | Retains existing task identifiers and arbitrary input text without recursive replacement. | Keep the user's supplied scope and constraints intact. |
+| Conditional form fields | Exercises visibility, required fields and multi-profile generation in a DOM. | Prevent hidden fields or single-profile defaults from overriding the selected options. |
+| Edits, copy, download and reset | Copies/downloads the exact edited text, invalidates stale output after input changes and clears state on reset. | Avoid handing the agent outdated or unreviewed prompt text. |
+| Clipboard fallback | Simulates denied clipboard access and checks that the complete prompt is selected. | Keep the offline preview usable when browser clipboard permissions are unavailable. |
+| Inert HTML and repeated initialization | Supplies HTML-like source text and initializes the form again. | Prevent text injection and avoid losing edits when docs navigation reinitializes scripts. |
 
 ### test_generator.py
 

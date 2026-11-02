@@ -37,3 +37,6 @@ lightning_logs/
 mlruns/
 wandb/
 site/
+
+# Documentation JavaScript tests
+node_modules/
