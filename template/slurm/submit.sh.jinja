@@ -27,7 +27,7 @@ if [[ -n "$tree_status" ]]; then
   fi
 fi
 
-declared_text="$(meds-algorithm commands --profile "$PROFILE")"
+declared_text="$({{ algorithm_slug | replace('_', '-') }} commands --profile "$PROFILE")"
 mapfile -t declared <<< "$declared_text"
 if [[ -z "${declared[0]:-}" ]]; then
   echo "No commands declared" >&2

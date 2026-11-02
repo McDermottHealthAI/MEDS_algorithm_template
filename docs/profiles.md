@@ -33,8 +33,8 @@ Each descriptor lives at `algorithms/<profile>/model.yaml` and is registered as 
 MEDS-DEV. Each invocation selects exactly one declared profile. Examples:
 
 ```bash
-meds-algorithm profiles
-meds-algorithm commands --profile probe
+example profiles
+example commands --profile probe
 meds-algorithm-add-to-meds-dev --meds-dev /path/to/MEDS-DEV --name example --profile probe
 PROFILE=probe ./slurm/submit.sh --dry-run
 ```

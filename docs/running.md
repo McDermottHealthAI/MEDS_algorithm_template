@@ -16,9 +16,9 @@ For SLURM, set `ALGORITHM_CONFIG_FILE` to an absolute configuration path; genera
 it to every selected step. No dataset is inferred from a directory name, and no upstream file is edited.
 
 ```bash
-uv run meds-algorithm profiles
-uv run meds-algorithm commands --profile zero_shot_direct
-uv run meds-algorithm predict_zero_shot_direct --profile zero_shot_direct \
+uv run <algorithm-command> profiles
+uv run <algorithm-command> commands --profile zero_shot_direct
+uv run <algorithm-command> predict_zero_shot_direct --profile zero_shot_direct \
   input_data_dir=runs/x/data input_pretrained_algorithm_dir=runs/x/pretrained \
   external_index_dir=/task/index external_task_criteria_file=/task/criteria.yaml \
   splits=[held_out] output_predictions_dir=runs/x/predictions

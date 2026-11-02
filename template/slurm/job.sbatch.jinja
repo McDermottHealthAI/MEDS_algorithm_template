@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=meds-algorithm
+#SBATCH --job-name={{ algorithm_slug | replace('_', '-') }}
 set -euo pipefail
 
 : "${MEDS_ALGORITHM_COMMAND:?MEDS_ALGORITHM_COMMAND is required}"
@@ -7,4 +7,4 @@ set -euo pipefail
 : "${MEDS_ALGORITHM_ARGS_FILE:?MEDS_ALGORITHM_ARGS_FILE is required}"
 
 mapfile -t algorithm_args < "$MEDS_ALGORITHM_ARGS_FILE"
-meds-algorithm "$MEDS_ALGORITHM_COMMAND" --profile "${PROFILE:?PROFILE is required}" "${algorithm_args[@]}" "$@"
+{{ algorithm_slug | replace('_', '-') }} "$MEDS_ALGORITHM_COMMAND" --profile "${PROFILE:?PROFILE is required}" "${algorithm_args[@]}" "$@"
