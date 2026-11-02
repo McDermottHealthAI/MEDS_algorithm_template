@@ -14,7 +14,6 @@ dependencies = ["pyyaml>=6", "meds-algorithm[data] @ git+https://github.com/McDe
 test = ["meds-algorithm[conformance] @ git+https://github.com/McDermottHealthAI/meds-algorithm.git@99b3b59798d796360d1eff74fa75db58d35c4e90"]
 
 [project.scripts]
-meds-algorithm = "{{ algorithm_slug }}.__main__:main"
 {{ algorithm_slug | replace('_', '-') }} = "{{ algorithm_slug }}.__main__:main"
 
 [tool.hatch.metadata]

@@ -87,7 +87,7 @@ uv pip install --python "$check_env/bin/python" --no-deps \
 "$check_env/bin/meds-algorithm-template" --version
 "$check_env/bin/meds-algorithm-template" "$check_env/generated" --defaults --trust
 uv pip install --python "$check_env/bin/python" "$check_env/generated[test]"
-"$check_env/bin/meds-algorithm" profiles
+"$check_env/bin/minimal-meds-algorithm" profiles
 uv pip check --python "$check_env/bin/python"
 ```
 
@@ -108,7 +108,7 @@ uv venv "$pypi_env"
 uv pip install --python "$pypi_env/bin/python" 'meds-algorithm-template==0.4.0a2'
 "$pypi_env/bin/meds-algorithm-template" "$pypi_env/generated" --defaults --trust
 uv pip install --python "$pypi_env/bin/python" "$pypi_env/generated[test]"
-"$pypi_env/bin/meds-algorithm" profiles
+"$pypi_env/bin/minimal-meds-algorithm" profiles
 uv pip check --python "$pypi_env/bin/python"
 ```
 

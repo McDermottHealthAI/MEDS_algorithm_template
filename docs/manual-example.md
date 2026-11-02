@@ -23,7 +23,7 @@ Run the numbered sections below **in order, in the same Bash session**. Alternat
 `bash manual-supervised.sh /absolute/path/to/a/new/tutorial-directory`.
 
 The generated package is `manual_baseline`, its class is `ManualBaseline`, and its named command is
-`manual-baseline`. `meds-algorithm` is an equivalent entry point. Each lifecycle command starts a fresh
+`manual-baseline`. Each lifecycle command starts a fresh
 process, using the same `config_file`. There are three training outcomes (`true, true, false`) and a
 smoothing value of 1, so the resulting probability is `(2 + 1) / (3 + 2) = 0.6` for both held-out rows.
 

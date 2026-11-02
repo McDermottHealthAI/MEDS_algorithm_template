@@ -27,7 +27,7 @@ def test_algorithm_name_controls_module_classes_exports_and_command(tmp_path):
     assert (dst / "src/retain/retain.py").is_file()
     assert not (dst / "src/retain/commands.py").exists()
     scripts = tomllib.loads((dst / "pyproject.toml").read_text())["project"]["scripts"]
-    assert scripts["retain"] == scripts["meds-algorithm"] == "retain.__main__:main"
+    assert scripts == {"retain": "retain.__main__:main"}
     result = subprocess.run(
         [
             sys.executable,
@@ -131,7 +131,7 @@ def test_descriptors_dispatch_only_their_profile_with_complete_arguments(multi):
             for block in group.values():
                 for line in (block or "").splitlines():
                     argv = shlex.split(line)
-                    assert argv[:1] == ["meds-algorithm"]
+                    assert argv[:1] == ["multi-algorithm"]
                     assert argv[2:4] == ["--profile", profile]
                     step = CommandName(argv[1])
                     assert step in profiles[profile]

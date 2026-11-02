@@ -398,7 +398,9 @@ def test_only_zero_shot_profiles_receive_the_task(tmp_path, profile):
             )
             assert "TASK_CRITERIA_FILE" not in infer_line
             infer = predict.splitlines()[0]
-            assert infer.startswith("meds-algorithm infer_trajectories --profile zero_shot_materialized")
+            assert infer.startswith(
+                "v2-zero-shot-materialized infer_trajectories --profile zero_shot_materialized"
+            )
             assert "task_criteria_path" not in infer, "materialized infer is task-independent"
             assert "splits=[{split}]" in infer, "materialized infer must score only the evaluated split"
             materialized_predict = predict.splitlines()[1]
@@ -666,7 +668,7 @@ def test_label_leakage_check_strips_what_the_profile_may_not_read(tmp_path, prof
 
 
 def _dry_run(dst: Path, slug: str, tmp_path: Path, **env: str) -> subprocess.CompletedProcess:
-    shim = tmp_path / "bin" / "meds-algorithm"
+    shim = tmp_path / "bin" / slug.replace("_", "-")
     shim.parent.mkdir(parents=True, exist_ok=True)
     shim.write_text(f'#!/bin/sh\nexec {sys.executable} -m {slug} "$@"\n')
     shim.chmod(0o755)

@@ -13,7 +13,7 @@ algorithm = {{ algorithm_class }}({{ algorithm_class }}Config())
 
 Run typed requests through `meds_algorithm.StepRunner.run(...)` so validation, measurements and
 publication apply. Calling an implementation method directly bypasses that execution contract.
-After installation, `{{ algorithm_slug | replace('_', '-') }}` and `meds-algorithm` invoke the same CLI:
+After installation, the algorithm's own `{{ algorithm_slug | replace('_', '-') }}` command runs the CLI:
 
 ```bash
 {{ algorithm_slug | replace('_', '-') }} commands --profile {{ profiles[0] }}
@@ -36,9 +36,9 @@ computational choice and every intermediate payload.
 {% endif %}{% if 'predict_only' in profiles %}- `predict_only`: `preprocess_data → predict_only`
 {% endif %}
 ```bash
-meds-algorithm profiles
-meds-algorithm commands --profile {{ profiles[0] }}
-meds-algorithm <step> --profile <profile> key=value ...
+{{ algorithm_slug | replace('_', '-') }} profiles
+{{ algorithm_slug | replace('_', '-') }} commands --profile {{ profiles[0] }}
+{{ algorithm_slug | replace('_', '-') }} <step> --profile <profile> key=value ...
 ```
 
 Each profile has `algorithms/<profile>/model.yaml`. Multiple profiles share one Python package and one

@@ -105,7 +105,7 @@ so the command remains usable if formatting/bootstrap tasks are added later.
 For example, `algorithm_slug=retain algorithm_class=RETAIN` generates `retain/retain.py` containing
 `RETAIN`, plus `retain/config.py` containing `RETAINConfig`. Import them with
 `from retain import RETAIN, RETAINConfig` (or `from retain.retain import RETAIN`). The installed
-`retain` and `meds-algorithm` commands share the same dispatcher. Use the core runner for Python
+`retain` command is the algorithm's CLI; each algorithm has its own command, so several can share an environment. Use the core runner for Python
 execution so direct imports retain the same validation/publication path as the CLI.
 
 Profiles are `supervised`, `finetune`, `probe`, `zero_shot_direct`, `zero_shot_materialized`, and
@@ -124,7 +124,7 @@ passthrough this needs.
 ```bash
 cd ../my-meds-algorithm
 uv sync --extra test
-uv run meds-algorithm commands
+uv run my-meds-algorithm commands
 uv run pytest -rs
 ```
 
