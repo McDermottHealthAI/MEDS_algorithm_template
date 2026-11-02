@@ -227,6 +227,38 @@ def test_generated_acceptance_tests_cover_every_profile(multi):
             assert f"{test}[{profile}]" in result.stdout
 
 
+def test_generated_shared_suite_runs_and_primary_behavior_still_fails(multi, tmp_path):
+    shim = tmp_path / "bin" / "meds-algorithm"
+    shim.parent.mkdir()
+    shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" -m multi_algorithm "$@"\n')
+    shim.chmod(0o755)
+    environment = {
+        **os.environ,
+        "PYTHONPATH": str(multi / "src"),
+        "PATH": f"{shim.parent}{os.pathsep}{os.environ['PATH']}",
+    }
+    shared = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "-k", "not primary_behavior", "--strict-markers"],
+        cwd=multi,
+        env=environment,
+        text=True,
+        capture_output=True,
+        timeout=120,
+    )
+    assert shared.returncode == 0, shared.stdout + shared.stderr
+    assert "20 passed, 18 skipped, 6 deselected" in shared.stdout
+    scientific = subprocess.run(
+        [sys.executable, "-m", "pytest", "-q", "-k", "primary_behavior"],
+        cwd=multi,
+        env=environment,
+        text=True,
+        capture_output=True,
+        timeout=60,
+    )
+    assert scientific.returncode == 1, scientific.stdout + scientific.stderr
+    assert "6 failed, 38 deselected" in scientific.stdout
+
+
 def test_recorded_upstream_inputs_become_explicit_arguments(multi, tmp_path):
     from meds_algorithm import measured_artifact
     from meds_algorithm.artifacts.inputs import resolve_input
@@ -264,15 +296,14 @@ def test_rendered_spec_points_to_core_and_contract_is_not_copied(multi):
 
 def test_rendered_report_gate_checks_completed_profile_with_other_stubs(multi):
     script = """
-import importlib.util
 from pathlib import Path
-from multi_algorithm.multi_algorithm import STUB_PROFILES
-spec = importlib.util.spec_from_file_location('report_gate', Path('tests/test_report.py'))
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-module.test_completed_algorithm_has_a_completed_report()
-STUB_PROFILES.remove('supervised')
-module.test_completed_algorithm_has_a_completed_report()
+from tests.conftest import algorithm_case
+from meds_algorithm.conformance.suite import AlgorithmConformanceTests
+case = algorithm_case.__wrapped__()
+suite = AlgorithmConformanceTests()
+suite.test_completed_algorithm_has_a_completed_report(case)
+case.stub_profiles.remove('supervised')
+suite.test_completed_algorithm_has_a_completed_report(case)
 """
     result = subprocess.run(
         [sys.executable, "-c", script],

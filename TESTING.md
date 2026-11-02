@@ -72,6 +72,7 @@ builder uses plain JavaScript without runtime dependencies, network calls or per
 | `test_generated_requests_reject_unknown_arguments` | Dispatches generated CLI requests with unknown arguments. | Fail configuration typos instead of silently ignoring them. |
 | `test_slurm_selects_one_profile_and_isolates_default_outputs` | Checks profile selection and default artifact/run destinations. | Prevent cross-profile artifact collisions during cluster execution. |
 | `test_generated_acceptance_tests_cover_every_profile` | Collects generated acceptance tests and checks their profile parametrization. | Ensure an implemented family cannot leave a declared profile untested. |
+| `test_generated_shared_suite_runs_and_primary_behavior_still_fails` | Executes inherited acceptance for a six-profile generated repository, then executes scientific placeholders. | Verify shared checks work after rendering and unfinished science still fails for every profile. |
 | `test_recorded_upstream_inputs_become_explicit_arguments` | Resolves recorded upstream inputs and rejects nonexistent artifact-input roles. | Make reused artifacts supply the correct explicit downstream inputs. |
 | `test_rendered_spec_points_to_core_and_contract_is_not_copied` | Checks shared imports and absence of generated copies of the contract package. | Keep fixes and normative specifications owned by the shared package. |
 | `test_rendered_report_gate_checks_completed_profile_with_other_stubs` | Completes one profile while others remain stubs and checks the report gate. | Require evidence for completed profiles even in partly implemented families. |
@@ -92,7 +93,7 @@ builder uses plain JavaScript without runtime dependencies, network calls or per
 | `test_spec_has_one_template_source_and_renders_to_root` | Checks the generated SPEC uses the single template source. | Prevent competing copies of generated specification guidance. |
 | `test_prediction_keys_are_compared_directly` | Parametrizes reordered, missing, extra and duplicate prediction rows. | Judge cohort coverage by keys rather than row count or row order. |
 | `test_meds_dev_predicates_capability_is_explicit` | Checks MEDS-DEV capability detection for predicate passthrough. | Fail unsupported integrations instead of silently dropping dataset semantics. |
-| `test_only_zero_shot_meds_dev_runs_require_task_criteria` | Checks which profile adapters require task-criteria capability. | Require task support where needed without imposing it on other profiles. |
+| `test_generated_suite_uses_registered_profiles` | Checks the inherited suite and repository-derived profile fixture are rendered. | Keep acceptance logic shared and avoid a second test profile registry. |
 | `test_meds_dev_ref_is_checked_out_in_clone` | Inspects the configured revision used when provisioning MEDS-DEV. | Keep integration runs reproducible rather than following an implicit default branch. |
 | `test_measurement_manifest_is_plausible` | Exercises measured publication and inspects recorded resources/provenance. | Catch missing or implausible run evidence at the integration boundary. |
 | `test_only_zero_shot_profiles_receive_the_task` | Checks task arguments in generated zero-shot versus other profile wiring. | Keep task-independent preprocessing/inference independent of the evaluation task. |

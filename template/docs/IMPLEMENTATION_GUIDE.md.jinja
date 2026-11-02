@@ -177,11 +177,13 @@ the training split only (SPEC section 2.1).
 
 {% endif %}## 5. Complete operational interfaces
 
-Finalize `algorithms/<profile>/model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`. The local adapter runs the
+Finalize `algorithms/<profile>/model.yaml`, `requirements.txt`, `tests/e2e.py`, and `slurm/config.sh`.
+Configure representative config instances in `tests/conftest.py`; the acceptance suite is inherited from
+`meds-algorithm[conformance]`, so its test bodies must not be copied or overridden. The local adapter runs the
 real selected profile via `run_e2e(tmp_path, profile=..., **inputs)`. The MEDS-DEV adapter supplies its isolated invocation. The MIMIC adapter locates/builds the demo
 and the pinned `mortality/in_icu/first_24h` task through MEDS-DEV and reuses its predicates.
 
-`tests/test_end_to_end.py` also checks label leakage and transductive fitting on the same run, so the
+`tests/test_conformance.py::TestConformance::test_end_to_end` also checks label leakage and transductive fitting on the same run, so the
 local adapter must:
 
 - return `E2EResult` from `meds_algorithm.conformance.types`, recording the integer `seed`, `external_meds_dir` and all task

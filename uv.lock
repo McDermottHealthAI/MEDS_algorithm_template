@@ -452,7 +452,7 @@ wheels = [
 [[package]]
 name = "meds-algorithm"
 version = "0.4.0a5"
-source = { git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=99b3b59798d796360d1eff74fa75db58d35c4e90#99b3b59798d796360d1eff74fa75db58d35c4e90" }
+source = { git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=b41f0b1fbe9181b49cf4ae268a60120c08124972#b41f0b1fbe9181b49cf4ae268a60120c08124972" }
 dependencies = [
     { name = "pyyaml" },
 ]
@@ -496,7 +496,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-algorithm", extras = ["conformance"], git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=99b3b59798d796360d1eff74fa75db58d35c4e90" },
+    { name = "meds-algorithm", extras = ["conformance"], git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=b41f0b1fbe9181b49cf4ae268a60120c08124972" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },

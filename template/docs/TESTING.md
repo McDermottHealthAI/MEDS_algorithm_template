@@ -19,23 +19,29 @@ in the implementation guide before the demo or a full-data run. Marked integrati
 not explicitly selected. Every `algorithm_stub` skip identifies unfinished implementation, not success.
 The primary-behavior placeholder intentionally **fails**, including in a freshly generated repository.
 
-## Acceptance inventory
+## Shared acceptance suite and local adapters
 
-| File and test | What it checks | Why it exists |
-|---|---|---|
-| `test_contract.py::test_profile_implementations_match_contract` | Compares each registered profile's commands with the core lifecycle. | Detect incorrect profile registration or dispatch wiring. |
-| `test_contract.py::test_algorithm_configuration_roundtrips` | Saves and reloads the concrete config. | Preserve exact settings across independent processes; extend with algorithm-specific invalid-value tests. |
-| `test_end_to_end.py::test_end_to_end` | Runs the algorithm-owned adapter for every profile and shared lifecycle checks, including fresh outputs and label-blind reruns. | Verify persisted artifacts, prediction coverage and permitted label use through the whole pipeline. |
-| `test_primary_behavior.py::test_primary_behavior` | Starts as a required failure; replace it with real positive-signal execution and a shuffled-label negative control, proving that the signal reaches actual algorithm features. | Require evidence of the algorithm's intended scientific behavior rather than only valid output files. |
-| `test_report.py::test_completed_algorithm_has_a_completed_report` | Validates implementation-report evidence for completed profiles. | Keep completion claims tied to source-fidelity and validation evidence. |
-| `test_operations.py::test_algorithm_yaml_is_a_meds_dev_descriptor` | Checks each profile descriptor's required structure. | Catch packaging errors before launching an integration run. |
-| `test_operations.py::test_slurm_dry_run_is_non_mutating` | Runs each profile's launcher in dry-run mode and checks files and listed commands. | Make execution plans inspectable without submitting a job or modifying the repository. |
-| `test_meds_dev_e2e.py::test_meds_dev_runs_algorithm_yaml` | Registers each completed profile, executes it through MEDS-DEV, and checks output schema, keys, manifest and memory evidence. | Prove the declared descriptor works in the isolated integration environment. Requires explicit `meds_dev` selection. |
-| `test_mimic_demo_e2e.py::test_full_dag_on_mimic_iv_demo` | Executes each completed profile on the prepared MIMIC-IV demo task and checks prediction schema/keys, artifacts and recorded evidence. | Exercise the complete real-data boundary before a full dataset. Requires explicit `real_data` selection and the implementation-guide approval gate. |
+`tests/test_conformance.py` inherits eight acceptance checks from
+`meds_algorithm.conformance.suite.AlgorithmConformanceTests`. Their implementation and
+[what/why inventory](https://mcdermotthealthai.github.io/MEDS_algorithm_template/reference/tests/#downstream-acceptance-suite)
+live in the shared package. The matching installed inventory is available in Python through
+`meds_algorithm.spec.validation_guide()`.
 
-Tests with a `profile` parameter run for every declared profile. `tests/e2e.py` supplies algorithm-owned
-adapters, not additional pytest tests: it defines how to run the implementation and inspect fitted
-features. Implement these adapters instead of modifying shared checks to accommodate an error.
+`tests/conftest.py` supplies an `AlgorithmCase` fixture and a `profile` fixture parametrized from
+`create_repository().profiles`. Supply representative concrete configurations, including required
+constructor arguments. Reuse `profile` in local scientific tests. There is no second profile list
+in the test wiring and no automatically loaded pytest plugin.
+
+`tests/e2e.py` remains algorithm-owned: implement `run_e2e`, `fitted_codes` and
+`prepare_meds_dev_run`. Honor external input overrides and read fitted features from saved artifacts.
+Keep the shared acceptance methods inherited rather than overriding them to suppress failures.
+Updating the pinned `meds-algorithm[conformance]` dependency updates their checks without regenerating
+this repository; rerun acceptance after every such update.
+
+`tests/test_primary_behavior.py::test_primary_behavior` remains a required failing placeholder.
+Replace it with positive-signal and shuffled-label control runs of the real algorithm, proving that
+the signal reaches its actual features. It runs for every registered profile, including stubs.
+Structural conformance cannot establish scientific behavior or fidelity to a paper.
 
 ## Algorithm-specific tests to add
 
