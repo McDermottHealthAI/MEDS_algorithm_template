@@ -6,7 +6,9 @@ Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` 
 - `meds-algorithm` is an installed dependency. Do not copy its implementations into this repository.
   Keep framework, batching, preprocessing-format and algorithm assumptions in the algorithm package.
 - Depend on the source's own package or executable, pinned to the reviewed revision, and write only contract
-  glue. Reimplement only when it is unresolvable or cannot meet the contract, and record why in
+  glue. If it breaks `meds-algorithm` within core's declared ranges, fix core; for a genuine conflict, run it from a
+  separate environment this package creates and manages (committed lockfile, digest in manifests), never via MEDS-DEV.
+  Reimplement only when it cannot run even in isolation or cannot meet the contract, and record why in
   `IMPLEMENTATION_REPORT.md`; local hardware alone is not a reason. `{{ algorithm_slug }}` must not shadow its name.
 - `src/{{ algorithm_slug }}/`, `algorithms/<profile>/model.yaml`, command configuration, and `tests/e2e.py` are algorithm-owned.
 - Implement typed profile methods on `{{ algorithm_class }}`; keep source-defined settings in frozen `{{ algorithm_class }}Config`.

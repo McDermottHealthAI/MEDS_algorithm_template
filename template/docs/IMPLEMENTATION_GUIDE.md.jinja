@@ -10,9 +10,16 @@ architecture.
 
 Prefer reuse over reimplementation. If the source ships an installable package or executable, add it as a
 dependency pinned to the exact reviewed revision and call it; write only contract glue (label-free
-preprocessing, cohort/key adaptation, explicit key association, coverage). Reimplement only when its
-dependencies are unresolvable or its code cannot meet the contract even with glue, and record the reason in
-`IMPLEMENTATION_REPORT.md`. Local hardware is not by itself a reason: running on CPU or other hardware is
+preprocessing, cohort/key adaptation, explicit key association, coverage). Resolve dependencies in this order:
+
+1. Install the source in this repository's environment. If its pins resolve but `meds-algorithm` then fails
+   within core's declared dependency ranges, that is a core bug: fix it in `meds-algorithm`, not here.
+2. If the source genuinely conflicts with core, run it as an external executable from a separate environment
+   that this package creates and manages: a committed lockfile, built at install or first use (prebuild it for
+   offline cluster nodes), with its digest recorded in manifests. MEDS-DEV installs only `requirements.txt`
+   and must not need to know about it.
+3. Reimplement only when the source cannot run even in isolation, or its code cannot meet the contract even
+   with glue, and record the reason in `IMPLEMENTATION_REPORT.md`. Local hardware is not by itself a reason: running on CPU or other hardware is
 acceptable. The package name `{{ algorithm_slug }}` must not shadow the source's distribution or import name
 (for example `genhpf_meds`, not `genhpf`); otherwise both cannot be installed together.
 
