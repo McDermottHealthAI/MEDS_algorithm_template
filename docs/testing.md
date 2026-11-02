@@ -1,4 +1,4 @@
-# Test documentation
+# Tests and acceptance
 
 The following catalogues separate template checks from algorithm acceptance checks.
 The [shared acceptance inventory](reference/tests.md#downstream-acceptance-suite) describes the eight

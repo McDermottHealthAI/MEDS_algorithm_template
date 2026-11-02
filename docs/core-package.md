@@ -16,10 +16,10 @@ Family-specific sharing belongs in one algorithm-family repository with multiple
 modules. Tokenizers, neural architectures, objectives and algorithm-specific task translators stay there.
 
 Generated repositories import `meds_algorithm` directly. Their package contains a typed algorithm
-implementation and a algorithm-owned immutable configuration. `tests/e2e.py` invokes the same shared runner
+implementation and an algorithm-owned immutable configuration. `tests/e2e.py` invokes the same shared runner
 as the CLI and supplies fitted-feature inspection hooks.
 Reusable assertions, fixtures and MEDS-DEV provisioning live in core. No compatibility package is copied.
 
 Publication uses exclusive writers and overwrite rollback. Algorithm provenance must be supplied explicitly;
-the installed package cannot infer a algorithm checkout. See the core README for crash recovery, reader
+the installed package cannot infer an algorithm checkout. See the core README for crash recovery, reader
 visibility during overwrite, optional dependencies, and measurement limits.

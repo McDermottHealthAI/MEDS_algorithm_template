@@ -90,7 +90,7 @@ recommended step vocabulary separates three kinds of difference:
 | `approximation` | a task rewrite with a known effect (`simplify_constraints`, `last_link_target`, a value threshold mapped onto bins) | changes labels in a stated direction | `weakening` (more positives) or `strengthening` (fewer) |
 | `algorithm_assumption` | what the query language forces (vocabulary restriction, dropping criteria, independence between codes) | depends on the data | usually `unknown` |
 
-Rules: a algorithm **must not** omit a step because it is expected to be small, and it **must raise** rather
+Rules: an algorithm **must not** omit a step because it is expected to be small, and it **must raise** rather
 than answer a task it cannot pose — the command fails and writes no predictions.
 
 Two cases deserve particular scrutiny: a criterion sharing codes with the label cannot simply be
@@ -168,7 +168,7 @@ Materialized algorithms can evaluate the original task on real history plus gene
 
 ## Adapters are algorithm-specific
 
-Translating an ACES task into a algorithm's query language is algorithm-specific, so it lives with the algorithm, not
+Translating an ACES task into an algorithm's query language is algorithm-specific, so it lives with the algorithm, not
 in the template:
 
 - **Task rewriting library**, such as aces-relaxations: provides structural checks and rewrites with
@@ -184,19 +184,19 @@ on it.
 
 Each zero-shot descriptor in `algorithms/<profile>/model.yaml` uses `{task_criteria_path}` and
 `{predicates_path}`. The MEDS-DEV revision used to execute it must support these placeholders and pass
-the original task definition, not a algorithm-specific relaxation. Check that capability before launching
+the original task definition, not an algorithm-specific relaxation. Check that capability before launching
 the run; the template's integration helper records the revision used by its tests.
 
 `{labels_dir}` can also supply `external_index_dir`: the algorithm reads only its key columns for scoring.
 This does not require generating a second physical dataset. The evaluation-only truth join happens
 after scores are fixed, as specified in the [core contract](reference/spec.md#step-arguments-and-artifacts).
 For SLURM, supply `TASK_CRITERIA_FILE` and the task predicate binding through the generated configuration;
-see [running a algorithm](running.md).
+see [running an algorithm](running.md).
 
 ## Reading zero-shot results
 
 - Predictions are scored against the **requested** task's labels; the relaxation is part of the algorithm.
-- Compare algorithms on the same task with their ledgers side by side: a algorithm that answers an easier,
+- Compare algorithms on the same task with their ledgers side by side: an algorithm that answers an easier,
   relaxed question can look better or worse for reasons unrelated to its quality.
 - A useful extra analysis for direct algorithms: extract the *relaxed* task's labels with
   `aces_relaxations.extract_at` on the same index and report performance against both label sets.

@@ -127,6 +127,6 @@ demo.
 `scripts/github-sync.sh <run-id>` pushes only the run's structured evidence (`spec.yaml`, `result.yaml` and
 the command manifests) on a `runs/<algorithm>/<run-id>` branch and opens a draft PR. Predictions, labels, data,
 checkpoints, raw logs and metrics are never pushed; metrics come from MEDS-DEV's evaluation step. See
-[Running a algorithm](running.md#run-results-and-github-sync) for the exact list.
+[Running an algorithm](running.md#run-results-and-github-sync) for the exact list.
 
 --8<-- "README.md:implementation-prompt"

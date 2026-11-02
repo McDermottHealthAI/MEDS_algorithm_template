@@ -70,15 +70,15 @@ nav:
       - Overview: index.md
       - Concepts: concepts.md
       - Choosing a profile: profiles.md
-  - Building a algorithm:
-      - Fully manual example: manual-example.md
       - Workflow: workflow.md
+  - Building an algorithm:
       - Implementation prompt builder: prompt-builder.md
-      - Tests and acceptance: testing.md
-      - Running a algorithm: running.md
-      - Migrating to version 4: migration-v4.md
-      - Template and shared package: shared-package-assessment.md
+      - Running an algorithm: running.md
+      - Fully manual example: manual-example.md
+  - Development:
       - Core package layout: core-package.md
+      - Template and shared package: shared-package-assessment.md
+      - Migrating to version 4: migration-v4.md
       - Publishing to PyPI: releasing.md
   - Zero-shot algorithms:
       - Zero-shot in practice: zero-shot.md
@@ -87,5 +87,6 @@ nav:
       - Manifest fields: reference/manifest.md
       - Contract API: reference/api.md
       - Architecture and UML: reference/architecture.md
+      - Tests and acceptance: testing.md
       - Shared-package tests: reference/tests.md
       - FAQ: faq.md

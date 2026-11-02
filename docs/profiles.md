@@ -1,6 +1,6 @@
 # Choosing profiles
 
-A profile describes a algorithm's lifecycle. A repository may declare several profiles and implement them
+A profile describes an algorithm's lifecycle. A repository may declare several profiles and implement them
 in one package. Choose them with Copier's `profiles` multiselect, or supply a data file:
 
 ```yaml
@@ -29,15 +29,33 @@ make their artifacts compatible.
 read explicitly selected train/tuning examples; fixed scores need no labels. Neither may read evaluated
 labels before its probabilities are final.
 
-Each descriptor lives at `algorithms/<profile>/model.yaml` and is registered as `<algorithm-name>__<profile>` in
-MEDS-DEV. Each invocation selects exactly one declared profile. Examples:
+## Select a profile when running commands
+
+Each invocation selects one of the repository's declared profiles. The executable is named after your
+algorithm's slug, with underscores replaced by hyphens: `algorithm_slug: my_algorithm` creates the
+command `my-algorithm`. Substitute your own command name below.
+
+From the generated repository's root, with the `probe` profile declared:
 
 ```bash
-example profiles
-example commands --profile probe
-meds-algorithm-add-to-meds-dev --meds-dev /path/to/MEDS-DEV --name example --profile probe
-PROFILE=probe ./slurm/submit.sh --dry-run
+uv sync --extra test
+
+# List the profiles implemented by this repository.
+uv run my-algorithm profiles
+
+# List the commands in the probe lifecycle.
+uv run my-algorithm commands --profile probe
+
+# Register its descriptor in an existing MEDS-DEV checkout.
+uv run meds-algorithm-add-to-meds-dev \
+  --meds-dev /path/to/MEDS-DEV --name my-algorithm --profile probe
 ```
+
+Replace `/path/to/MEDS-DEV` with your checkout. Registration copies
+`algorithms/probe/model.yaml` into MEDS-DEV under `my-algorithm__probe`.
+Here `--name my-algorithm` chooses the registration name; it does not rename the executable.
+For SLURM, select the profile with `PROFILE=probe`; see [Running an algorithm](running.md)
+for input paths, dry runs and execution settings.
 
 The probe's `infer_embeddings` stage materializes keyed representations without labels. `train_probe`
 fits a head on training representations, and `predict_probe` applies it to explicit evaluated embeddings.

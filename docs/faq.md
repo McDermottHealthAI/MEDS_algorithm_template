@@ -4,7 +4,7 @@
 
 Because then two algorithms could be evaluated on different patients and nobody would notice. The index and
 its labels come from one extraction run upstream (MEDS-DEV's `meds-dev-task` for the demo, a shared,
-reviewed task bundle for full data). A algorithm predicts every requested row; rows can be left out
+reviewed task bundle for full data). An algorithm predicts every requested row; rows can be left out
 only under a declared exclusion policy that lists them.
 
 ## My algorithm needs a statistic over the whole dataset. Can I compute it on all splits?
@@ -14,7 +14,7 @@ transductive leakage: it uses held-out patients' data even though it never touch
 
 ## Why do some algorithms run in two Python environments?
 
-Because their dependencies cannot coexist. A algorithm's training stack may pin an older `meds` (for example
+Because their dependencies cannot coexist. An algorithm's training stack may pin an older `meds` (for example
 femr 0.2.4 requires `meds==0.3.3`), while the ACES tooling a zero-shot adapter uses for task translation
 (aces-relaxations, es-aces ≥ 0.7.3) requires `meds ≥ 0.4`. The two sides can run in separate environments
 and exchange only files. The contract does not care how a command
