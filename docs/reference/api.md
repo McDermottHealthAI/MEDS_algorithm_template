@@ -37,3 +37,8 @@ record and apply the fixture seed, and produce reproducible keyed scores. Use `r
 `conformance.assertions` to validate all shards. For separate context/evaluation directories, supply
 `evaluation_index_dir` to `read_context_labels`. `conformance.reports.assert_implementation_report`
 validates shared evidence and completed profiles independently of unfinished profiles.
+
+`conformance.cases.AlgorithmCase` connects those adapters and representative configurations to
+`conformance.suite.AlgorithmConformanceTests`. Generated tests inherit the suite, with a session-scoped
+`algorithm_case` fixture and a `profile` fixture parametrized from repository registration. See the
+[canonical acceptance inventory](tests.md#downstream-acceptance-suite) for each check and its purpose.

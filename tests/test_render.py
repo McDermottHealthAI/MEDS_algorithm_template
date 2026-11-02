@@ -72,10 +72,9 @@ def test_renders_six_algorithm_profiles(tmp_path, profile):
         "slurm/job.sbatch",
         "slurm/submit.sh",
         "scripts/github-sync.sh",
-        "tests/test_end_to_end.py",
+        "tests/test_conformance.py",
+        "tests/conftest.py",
         "tests/test_primary_behavior.py",
-        "tests/test_meds_dev_e2e.py",
-        "tests/test_mimic_demo_e2e.py",
         "tests/e2e.py",
         f"src/{slug}/{slug}.py",
     ]
@@ -258,11 +257,14 @@ def test_meds_dev_predicates_capability_is_explicit(tmp_path):
 
 
 @pytest.mark.parametrize("profile", ALGORITHM_PROFILES)
-def test_only_zero_shot_meds_dev_runs_require_task_criteria(tmp_path, profile):
+def test_generated_suite_uses_registered_profiles(tmp_path, profile):
     dst = tmp_path / profile
     render(dst, profile)
-    meds_dev_test = (dst / "tests/test_meds_dev_e2e.py").read_text()
-    assert ("task_criteria=True" in meds_dev_test) == (profile in ZERO_SHOT_PROFILES)
+    fixtures = (dst / "tests/conftest.py").read_text()
+    assert "params=create_repository().profiles" in fixtures
+    assert "AlgorithmCase(" in fixtures
+    assert "AlgorithmConformanceTests" in (dst / "tests/test_conformance.py").read_text()
+    assert not (dst / "tests/test_meds_dev_e2e.py").exists()
 
 
 def test_meds_dev_ref_is_checked_out_in_clone(tmp_path, monkeypatch):

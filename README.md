@@ -13,7 +13,7 @@ contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). This development version pins the reviewed core revision
-`99b3b59798d796360d1eff74fa75db58d35c4e90` for the upcoming `meds-algorithm==0.4.0a5` API.
+`b41f0b1fbe9181b49cf4ae268a60120c08124972` for the upcoming `meds-algorithm==0.4.0a5` API.
 Before publishing generator `0.4.0a2`, release core `0.4.0a5` and replace these Git requirements with
 matching PyPI pins as described in the release guide.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
@@ -285,7 +285,9 @@ instead.
 
 Record every material source element as ported, adapted, or omitted, with evidence and justification, in
 IMPLEMENTATION_REPORT.md. Implement every selected typed algorithm method, finalize the implementation-specific
-command strings in model.yaml, and implement tests/e2e.py. Remove each profile from STUB_PROFILES only
+command strings in model.yaml, and implement tests/e2e.py. Configure representative config instances
+in tests/conftest.py. Keep TestConformance inheriting the shared meds-algorithm acceptance suite;
+do not copy its test bodies or override its checks to suppress failures. Remove each profile from STUB_PROFILES only
 after that profile completes and produces standards-conformant predictions; complete every selected profile.
 
 Always run:
@@ -398,5 +400,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/profiles.md).
-See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/99b3b59798d796360d1eff74fa75db58d35c4e90/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
+See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/b41f0b1fbe9181b49cf4ae268a60120c08124972/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
 and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/shared-package-assessment.md).
