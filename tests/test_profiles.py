@@ -228,7 +228,7 @@ def test_generated_acceptance_tests_cover_every_profile(multi):
 
 
 def test_generated_shared_suite_runs_and_primary_behavior_still_fails(multi, tmp_path):
-    shim = tmp_path / "bin" / "meds-algorithm"
+    shim = tmp_path / "bin" / "multi-algorithm"  # the slug command generated submit.sh calls
     shim.parent.mkdir()
     shim.write_text(f'#!/bin/sh\nexec "{sys.executable}" -m multi_algorithm "$@"\n')
     shim.chmod(0o755)
