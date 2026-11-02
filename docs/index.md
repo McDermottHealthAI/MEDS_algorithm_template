@@ -52,18 +52,21 @@ what makes results comparable.
 | Final predictions in the meds-evaluation schema, keyed and complete | How probabilities are computed |
 | `algorithms/<profile>/model.yaml` for MEDS-DEV, SLURM scripts, GitHub result sync | The command strings inside them, once finalized |
 
-The contract fixes **boundaries**, not methods. A algorithm can be a PyTorch transformer, a gradient-boosted
+The contract fixes **boundaries**, not methods. An algorithm can be a PyTorch transformer, a gradient-boosted
 tree, an external executable or a call to a service; the template only cares that each command consumes
 the right artifacts and publishes the right one.
 
 ## Where to go next
 
-- Preparing agent instructions? Use the [implementation prompt builder](prompt-builder.md).
-- New to the template? Read [Concepts](concepts.md), then [Choosing a profile](profiles.md).
-- Want to run everything by hand? Follow the [fully manual example](manual-example.md).
-- Porting a zero-shot algorithm? Read [Zero-shot in practice](zero-shot.md).
-- Running or reviewing a port? Read [Workflow](workflow.md) and [Running a algorithm](running.md).
-- Need the exact rule? Go to the [specification](reference/spec.md).
+- **Getting started:** read [Concepts](concepts.md), [Choosing a profile](profiles.md), then the
+  [Workflow](workflow.md) from implementation to validation.
+- **Building an algorithm:** prepare instructions with the [prompt builder](prompt-builder.md),
+  learn the [run commands](running.md), or follow the [fully manual example](manual-example.md).
+- **Development:** explore the [core package](core-package.md) and
+  [what belongs in the template or shared package](shared-package-assessment.md). Use the
+  [migration guide](migration-v4.md) and [publishing guide](releasing.md) when maintaining packages.
+- **Reference:** consult the [specification](reference/spec.md),
+  [tests and acceptance](testing.md), or [zero-shot guide](zero-shot.md) for the details.
 
 ## Preview this site locally
 

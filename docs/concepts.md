@@ -1,6 +1,6 @@
 # Concepts
 
-This page walks through the objects the contract talks about, in the order data flows through a algorithm:
+This page walks through the objects the contract talks about, in the order data flows through an algorithm:
 the dataset, the task, the predicates, the task specification (zero-shot only), the artifacts each
 command publishes, the final predictions, and the measurements attached to all of them.
 
@@ -8,7 +8,7 @@ command publishes, the final predictions, and the measurements attached to all o
 
 The input data is a split-sharded [MEDS](https://medical-event-data-standard.github.io/) dataset, passed
 as `external_meds_dir`. MEDS fixes what `subject_id`, `time`, `code`, the value columns, static events
-(`time = null`) and code metadata mean; a algorithm may not reinterpret them.
+(`time = null`) and code metadata mean; an algorithm may not reinterpret them.
 
 The dataset comes with three splits: `train`, `tuning` and `held_out`. They are a **boundary**:
 
@@ -16,7 +16,7 @@ The dataset comes with three splits: `train`, `tuning` and `held_out`. They are 
     Anything fitted over a population — vocabularies, code frequencies, quantile bins, normalization
     constants, feature selections — must be fitted on the training split alone. Fitting over all splits is
     *transductive leakage*. It is easy to miss because it is not label leakage: code frequencies do not
-    depend on labels, so a algorithm can pass every label-leakage check and still carry it. If preprocessing
+    depend on labels, so an algorithm can pass every label-leakage check and still carry it. If preprocessing
     is delegated upstream and the scope is not yours to control, declare which quantity was fitted over
     which population.
 
@@ -53,7 +53,7 @@ trigger, inclusion/exclusion criteria and splits, so every algorithm scores exac
 Every algorithm compared on a dataset uses the same bundle. Zero-shot runs additionally need each task's ACES
 criteria file.
 
-A algorithm repository must not re-extract, filter or extend the index. If a algorithm rebuilt the cohort itself,
+An algorithm repository must not re-extract, filter or extend the index. If an algorithm rebuilt the cohort itself,
 two algorithms could silently be evaluated on different patients, and a zero-shot algorithm would read the labels
 it is supposed to be blind to.
 
@@ -75,7 +75,7 @@ dataset's codes. It is passed as `external_predicates_file` (MEDS-DEV's `{predic
 - The algorithm decides whether and how to use them: selecting tokens, building SQL or columns, matching
   events directly, or not at all.
 - Any command that consumes the file records its digest and origin in its manifest.
-- A algorithm that relies on particular predicate names declares and validates them in its own configuration.
+- An algorithm that relies on particular predicate names declares and validates them in its own configuration.
   The contract deliberately has no generic "predicate features" format.
 
 ### Additional feature predicates per dataset

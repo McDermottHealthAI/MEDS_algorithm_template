@@ -1,4 +1,4 @@
-# Running a algorithm
+# Running an algorithm
 
 A generated repository exposes one command-line entry point, a MEDS-DEV descriptor, and a SLURM
 interface. All three run the same commands with the same standard arguments.
@@ -8,6 +8,10 @@ For a copyable sequence from an empty directory to verified predictions, start w
 
 ## Local commands
 
+Run these commands from the generated repository after `uv sync --extra test`. The examples assume
+`algorithm_slug: my_algorithm`, which installs the command `my-algorithm`; replace it with your own
+algorithm's command (the slug with underscores changed to hyphens).
+
 Pass `config_file=/absolute/path/dataset_configs/mimic_iv.yaml` to each lifecycle invocation to select
 algorithm settings, including optional `additional_predicates_file`. See [feature additions](concepts.md#additional-feature-predicates-per-dataset).
 For MEDS-DEV, add the same `config_file=...` argument to each command in the selected descriptor; use a
@@ -16,9 +20,9 @@ For SLURM, set `ALGORITHM_CONFIG_FILE` to an absolute configuration path; genera
 it to every selected step. No dataset is inferred from a directory name, and no upstream file is edited.
 
 ```bash
-uv run <algorithm-command> profiles
-uv run <algorithm-command> commands --profile zero_shot_direct
-uv run <algorithm-command> predict_zero_shot_direct --profile zero_shot_direct \
+uv run my-algorithm profiles
+uv run my-algorithm commands --profile zero_shot_direct
+uv run my-algorithm predict_zero_shot_direct --profile zero_shot_direct \
   input_data_dir=runs/x/data input_pretrained_algorithm_dir=runs/x/pretrained \
   external_index_dir=/task/index external_task_criteria_file=/task/criteria.yaml \
   splits=[held_out] output_predictions_dir=runs/x/predictions
