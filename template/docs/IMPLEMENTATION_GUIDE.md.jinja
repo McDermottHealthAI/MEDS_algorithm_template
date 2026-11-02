@@ -8,6 +8,14 @@ Read the paper, supplement, repository, configs, data preparation, checkpoints, 
 Build a source-element inventory before implementation; do not infer the algorithm solely from its headline
 architecture.
 
+Prefer reuse over reimplementation. If the source ships an installable package or executable, add it as a
+dependency pinned to the exact reviewed revision and call it; write only contract glue (label-free
+preprocessing, cohort/key adaptation, explicit key association, coverage). Reimplement only when its
+dependencies are unresolvable or its code cannot meet the contract even with glue, and record the reason in
+`IMPLEMENTATION_REPORT.md`. Local hardware is not by itself a reason: running on CPU or other hardware is
+acceptable. The package name `{{ algorithm_slug }}` must not shadow the source's distribution or import name
+(for example `genhpf_meds`, not `genhpf`); otherwise both cannot be installed together.
+
 ## 2. Justify the algorithm profile
 
 This repository declares `{{ profiles | join(', ') }}`. Justify each profile separately. Confirm that its commands match the source's actual
