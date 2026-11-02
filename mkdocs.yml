@@ -8,6 +8,11 @@ edit_uri: edit/main/docs/
 hooks:
   - docs/hooks.py
 
+extra_css:
+  - assets/prompt-builder.css
+extra_javascript:
+  - assets/prompt-builder.js
+
 docs_dir: docs
 strict: true
 validation:
@@ -68,6 +73,7 @@ nav:
   - Building a algorithm:
       - Fully manual example: manual-example.md
       - Workflow: workflow.md
+      - Implementation prompt builder: prompt-builder.md
       - Tests and acceptance: testing.md
       - Running a algorithm: running.md
       - Migrating to version 4: migration-v4.md

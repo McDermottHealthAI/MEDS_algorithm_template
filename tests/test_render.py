@@ -180,7 +180,7 @@ def test_predicates_are_external_not_a_rendered_semantic_format(tmp_path):
 def test_implementation_prompt_belongs_to_template_readme_not_rendered_repo(tmp_path):
     dst = tmp_path / "prompt-location"
     render(dst, "supervised")
-    prompt_token = "<PAPER_PATH_OR_URL_AND_OR_REPOSITORY_PATH_OR_URL>"
+    prompt_token = "<PAPER_REFERENCES_OR_NOT_SUPPLIED>"
     assert prompt_token in (TEMPLATE_REPO / "README.md").read_text()
     assert prompt_token not in (dst / "README.md").read_text()
     assert "Copyable algorithm-implementation prompt" not in (dst / "README.md").read_text()
