@@ -114,7 +114,7 @@ builder uses plain JavaScript without runtime dependencies, network calls or per
 
 | Test | What it checks | Why it exists |
 |---|---|---|
-| `test_rendered_algorithm_runs_persisted_lifecycle_with_structured_config` | Implements a tiny rendered algorithm, runs its lifecycle and reloads fitted state with structured configuration. | Demonstrate the generated API works beyond empty stubs and records resolved settings. |
+| `test_rendered_algorithm_runs_persisted_lifecycle_with_structured_config` | Implements a tiny rendered algorithm, runs its per-step CLI and Hydra local lifecycle, checks dry-run purity, persisted predictions and configuration. | Demonstrate the generated API works beyond empty stubs and records resolved settings. |
 
 ## Release checks outside pytest
 

@@ -130,3 +130,10 @@ checkpoints, raw logs and metrics are never pushed; metrics come from MEDS-DEV's
 [Running an algorithm](running.md#run-results-and-github-sync) for the exact list.
 
 --8<-- "README.md:implementation-prompt"
+
+## Optional profile-runner prototype
+
+After implementation and the required review gates, the [profile runner](running.md#profile-runner-prototype)
+can orchestrate local or SLURM execution from `configs/runs/run.yaml`. Start with `--dry-run` to inspect
+all step arguments and resources. It changes how steps are launched; it does not bypass acceptance tests,
+source-fidelity reviews or dataset/cluster approvals. Per-step commands remain the MEDS-DEV interface.

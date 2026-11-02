@@ -4,10 +4,12 @@ import json
 import re
 from pathlib import Path
 
-from meds_algorithm.spec import architecture, specification, validation_guide
+from meds_algorithm.spec import architecture, orchestration_guide, specification, validation_guide
 
 
 def on_page_markdown(markdown, page, **kwargs):
+    if page.file.src_uri == "running.md":
+        return markdown.replace("<!-- orchestration-guide -->", orchestration_guide())
     if page.file.src_uri == "reference/spec.md":
         return markdown + "\n\n" + specification()
     if page.file.src_uri == "reference/architecture.md":

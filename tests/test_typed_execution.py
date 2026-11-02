@@ -1,5 +1,6 @@
 """A rendered implementation trains and predicts via its real CLI in separate processes."""
 
+import json
 import os
 import subprocess
 import sys
@@ -122,6 +123,48 @@ IMPLEMENTATIONS["supervised"] = CompletedAlgorithm
         "additional_predicates_file": str(extra.resolve()),
     }
     assert (algorithm / "config.json").is_file() and (predictions / "request.json").is_file()
+
+    # The shared coordinator calls this unchanged per-step CLI in three fresh subprocesses.
+    import yaml
+
+    extra.write_text("predicates:\n  extra: {code: EXTRA}\n")
+    runs = dst / "configs" / "runs"
+    run_root = tmp_path / "hydra-run"
+    (runs / "baseline.yaml").write_text(
+        yaml.safe_dump(
+            {
+                "defaults": ["meds_run", "_self_"],
+                "profile": "supervised",
+                "output_dir": str(run_root),
+                "inputs": {
+                    "meds_dir": str(inputs),
+                    "labels_dir": str(labels),
+                    "index_dir": str(labels),
+                    "predicates_file": str(base),
+                    "evaluation_labels_dir": str(labels),
+                },
+                "algorithm": {"smoothing": 2.0, "additional_predicates_file": str(extra)},
+            }
+        )
+    )
+    command = [sys.executable, "-m", slug, "run", "--config-name", "baseline"]
+    environment = {**os.environ, "PYTHONPATH": str(dst / "src")}
+    planned = subprocess.run(
+        [*command, "--dry-run"], cwd=dst, env=environment, text=True, capture_output=True
+    )
+    assert planned.returncode == 0, planned.stderr
+    plan = json.loads(planned.stdout)
+    assert len(plan["stages"]) == 3 and not run_root.exists()
+    assert plan["configuration"]["algorithm"]["smoothing"] == 2.0
+    completed = subprocess.run(command, cwd=dst, env=environment, text=True, capture_output=True)
+    assert completed.returncode == 0, completed.stdout + completed.stderr
+    scored = run_root / "artifacts" / "predictions"
+    assert pl.read_parquet(scored / "predictions.parquet")[
+        "predicted_boolean_probability"
+    ].to_list() == pytest.approx([4 / 7])
+    assert read_manifest(scored)["algorithm"]["config"]["smoothing"] == 2.0
+    assert len(list((run_root / "logs").glob("*.log"))) == 3
+
     config.write_text("smoothing: 3.0\nadditional_predicates_file: extra.yaml\n")
     mismatch = run("predict_supervised", **{**args, "output_predictions_dir": artifacts / "bad"})
     assert mismatch.returncode != 0 and "configuration mismatch" in mismatch.stderr

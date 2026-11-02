@@ -13,7 +13,7 @@ contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). This development version pins the reviewed core revision
-`b41f0b1fbe9181b49cf4ae268a60120c08124972` for the upcoming `meds-algorithm==0.4.0a5` API.
+`69c994d5921521132b60a528aab86a2b1641d05a` for the upcoming `meds-algorithm==0.4.0a5` API.
 Before publishing generator `0.4.0a2`, release core `0.4.0a5` and replace these Git requirements with
 matching PyPI pins as described in the release guide.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
@@ -410,5 +410,5 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/profiles.md).
-See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/b41f0b1fbe9181b49cf4ae268a60120c08124972/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
+See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/69c994d5921521132b60a528aab86a2b1641d05a/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
 and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/shared-package-assessment.md).

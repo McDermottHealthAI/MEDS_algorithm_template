@@ -265,6 +265,10 @@ def test_generated_suite_uses_registered_profiles(tmp_path, profile):
     assert "AlgorithmCase(" in fixtures
     assert "AlgorithmConformanceTests" in (dst / "tests/test_conformance.py").read_text()
     assert not (dst / "tests/test_meds_dev_e2e.py").exists()
+    run_config = yaml.safe_load((dst / "configs/runs/run.yaml").read_text())
+    assert run_config["defaults"] == ["meds_run", "_self_"]
+    assert run_config["profile"] == profile
+    assert "resources" not in run_config  # shared defaults are owned by core
 
 
 def test_meds_dev_ref_is_checked_out_in_clone(tmp_path, monkeypatch):

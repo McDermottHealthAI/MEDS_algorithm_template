@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import sys
 
 from .{{ algorithm_slug }} import create_repository
 
@@ -18,8 +19,15 @@ def _value(text: str):
 
 def main() -> None:
     repository = create_repository()
+    if len(sys.argv) > 1 and sys.argv[1] == "run":
+        try:
+            from meds_algorithm.orchestration.cli import main as run_profile
+        except ImportError as error:
+            raise SystemExit("Install the prototype runner with: uv sync --extra orchestration") from error
+        run_profile(repository, module="{{ algorithm_slug }}", argv=sys.argv[2:])
+        return
     parser = argparse.ArgumentParser(description="Run one declared MEDS algorithm profile")
-    parser.add_argument("command", help="profiles, commands, or a step name")
+    parser.add_argument("command", help="run (prototype), profiles, commands, or a step name")
     parser.add_argument("--profile", choices=repository.profiles)
     parser.add_argument("arguments", nargs="*", metavar="key=value")
     args = parser.parse_intermixed_args()

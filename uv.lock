@@ -452,7 +452,7 @@ wheels = [
 [[package]]
 name = "meds-algorithm"
 version = "0.4.0a5"
-source = { git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=b41f0b1fbe9181b49cf4ae268a60120c08124972#b41f0b1fbe9181b49cf4ae268a60120c08124972" }
+source = { git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=69c994d5921521132b60a528aab86a2b1641d05a#69c994d5921521132b60a528aab86a2b1641d05a" }
 dependencies = [
     { name = "pyyaml" },
 ]
@@ -463,6 +463,10 @@ conformance = [
     { name = "polars" },
     { name = "pyarrow" },
     { name = "pytest" },
+]
+orchestration = [
+    { name = "hydra-core" },
+    { name = "submitit" },
 ]
 
 [[package]]
@@ -476,7 +480,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "meds-algorithm", extra = ["conformance"] },
+    { name = "meds-algorithm", extra = ["conformance", "orchestration"] },
     { name = "polars" },
     { name = "pyarrow" },
     { name = "pytest" },
@@ -496,7 +500,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-algorithm", extras = ["conformance"], git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=b41f0b1fbe9181b49cf4ae268a60120c08124972" },
+    { name = "meds-algorithm", extras = ["conformance", "orchestration"], git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=69c994d5921521132b60a528aab86a2b1641d05a" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },
@@ -1424,6 +1428,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
+name = "submitit"
+version = "1.5.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cloudpickle" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/47/86/497018fb3b74e71bef45df82762b176e6b3d159f29941c20d2f141ec4096/submitit-1.5.4.tar.gz", hash = "sha256:7100848bd1cdda79c7196e54ee830793ae75fd7adde0c5bef738d72360a07508", size = 81538, upload-time = "2025-12-17T19:20:03.396Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ea/bb/711e1c2ebd18a21202c972dd5d5c8e09a921f2d3560e3a53d6350c808ab7/submitit-1.5.4-py3-none-any.whl", hash = "sha256:c26f3a7c8d4150eaf70b1da71e2023e9e9936c93e8342ed7db910f29158561c5", size = 76043, upload-time = "2025-12-17T19:20:01.941Z" },
 ]
 
 [[package]]
