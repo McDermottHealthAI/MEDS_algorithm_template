@@ -223,9 +223,13 @@ Apply the Ponytail principle of the smallest complete change: implement the comp
 algorithm with the least additional infrastructure. Check meds-algorithm, existing algorithm-family code,
 standard libraries and installed dependencies before creating helpers. If the source ships an installable
 package or executable, depend on it pinned to the exact reviewed revision and call it; write only contract
-glue (label-free preprocessing, cohort/key adaptation, explicit key association, coverage). Reimplement only
-when its dependencies are unresolvable or its code cannot meet the contract even with glue, and record why in
-IMPLEMENTATION_REPORT.md; local hardware alone is not a reason, since CPU or other hardware is acceptable.
+glue (label-free preprocessing, cohort/key adaptation, explicit key association, coverage). Install it in the
+algorithm environment; if it breaks meds-algorithm within core's declared dependency ranges, fix core. For a
+genuine conflict with core, run the source as an external executable from a separate environment that the
+algorithm package creates and manages (committed lockfile, built at install or first use, digest recorded in
+manifests; MEDS-DEV installs only requirements.txt). Reimplement only when the source cannot run even in
+isolation or its code cannot meet the contract even with glue, and record why in IMPLEMENTATION_REPORT.md;
+local hardware alone is not a reason, since CPU or other hardware is acceptable.
 Choose an algorithm_slug that does not shadow the source's distribution or import name (for example
 genhpf_meds, not genhpf), so both can be installed together. Keep shared fixes in their
 owning package; do not copy core utilities into the algorithm repository. Avoid speculative wrappers,
