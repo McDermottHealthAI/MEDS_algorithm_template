@@ -12,8 +12,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --group dev
-      - run: uv run ruff check src tests scripts docs/hooks.py
-      - run: uv run ruff format --check src tests scripts docs/hooks.py
+      - run: uv run ruff check src tests scripts docs/hooks.py docs/catalogue.py
+      - run: uv run ruff format --check src tests scripts docs/hooks.py docs/catalogue.py
+      - run: uv run python docs/catalogue.py
       - uses: actions/setup-node@v4
         with:
           node-version: "24"

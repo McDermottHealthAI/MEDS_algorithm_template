@@ -419,6 +419,9 @@ and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algori
 
 ### Unreleased
 
+- Add a curated algorithm catalogue with reviewed PyPI install pins and separate implementation/validation states.
+- Check public release metadata weekly and propose observation updates without automatically changing evidence.
+
 - Generate an algorithm release guide, Trusted Publishing workflow, and installed-distribution checks.
 - Configure PyPI metadata separately from Python names and bundle portable run/profile YAMLs once at build time.
 

@@ -7,6 +7,7 @@ repo_name: McDermottHealthAI/MEDS_algorithm_template
 edit_uri: edit/main/docs/
 hooks:
   - docs/hooks.py
+  - docs/catalogue.py
 
 extra_css:
   - assets/prompt-builder.css
@@ -70,6 +71,7 @@ nav:
       - Overview: index.md
       - Concepts: concepts.md
       - Choosing a profile: profiles.md
+      - Implemented algorithms: implemented-algorithms.md
       - Workflow: workflow.md
   - Building an algorithm:
       - Implementation prompt builder: prompt-builder.md

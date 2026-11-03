@@ -85,6 +85,18 @@ files using Trusted Publishing. Rehearsal and production runs each build and che
 from the same tag. After success, install `{{ package_name }}==$version` in a fresh environment and
 repeat the smoke check. Never move a published tag or reuse a published version; increment it for fixes.
 
+## Registering your algorithm
+
+After publication, register the package in the template documentation's
+[algorithm catalogue](https://mcdermotthealthai.github.io/MEDS_algorithm_template/implemented-algorithms/).
+Open a PR against `catalogue/algorithms.yaml` with the PyPI name `{{ package_name }}`, exact published
+version, immutable implementation commit, declared profiles and links to validation evidence. The site
+generates the installation command from that reviewed pin. An implementation under review can be listed
+earlier with `pypi_version: null`; do not advertise an install command for an unpublished name.
+For a private repository, authorize only metadata intended for public listing and mark access private.
+Update the entry when a new release has been reviewed; automated release discovery does not establish
+scientific validation. Keep dataset contents and private run details out of the public catalogue.
+
 ## What installation includes
 
 `configs/runs/` and `algorithms/` are the single editable source for portable run defaults and MEDS-DEV
