@@ -14,9 +14,8 @@ before GitHub exposes its manual dispatch action.
 
 ## 1. Switch generated projects to the published shared package
 
-This development version pins core revision `99b3b59798d796360d1eff74fa75db58d35c4e90`.
-First publish `meds-algorithm==0.4.0a5`, then replace the development Git requirements with the exact
-PyPI requirements below before tagging generator `0.4.0a2`:
+Generator `0.4.0a2` pins the published `meds-algorithm==0.4.0a5` release. For future updates,
+release the shared package first, then keep all dependency pins and install examples aligned:
 
 | File | Change |
 |---|---|

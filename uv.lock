@@ -452,9 +452,13 @@ wheels = [
 [[package]]
 name = "meds-algorithm"
 version = "0.4.0a5"
-source = { git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=69c994d5921521132b60a528aab86a2b1641d05a#69c994d5921521132b60a528aab86a2b1641d05a" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/69/70/4895cdb8642beef30a1417ad34917a13fc717d0e2f9278dbf0641b268bf8/meds_algorithm-0.4.0a5.tar.gz", hash = "sha256:7eaa2a58a2691d6d6907e5588cc97f4dfa5e73675cbffec4fa3aead65217a7ea", size = 150624, upload-time = "2026-11-03T13:10:21.533Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d4/1d/e7871e650b6a5019ec3d72d0328980538ff65cdb17a5e0cc12e2201582e9/meds_algorithm-0.4.0a5-py3-none-any.whl", hash = "sha256:4cd83f2531aec02553794295a24c13dc2482d3a52b685b9cafc4aac3e9c3ebad", size = 100591, upload-time = "2026-11-03T13:10:20.079Z" },
 ]
 
 [package.optional-dependencies]
@@ -500,7 +504,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-algorithm", extras = ["conformance", "orchestration"], git = "https://github.com/McDermottHealthAI/meds-algorithm.git?rev=69c994d5921521132b60a528aab86a2b1641d05a" },
+    { name = "meds-algorithm", extras = ["conformance", "orchestration"], specifier = "==0.4.0a5" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },

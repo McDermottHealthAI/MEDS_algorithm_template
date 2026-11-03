@@ -12,10 +12,8 @@ This repository is a self-contained [Copier](https://copier.readthedocs.io) temp
 contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
-[`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). This development version pins the reviewed core revision
-`69c994d5921521132b60a528aab86a2b1641d05a` for the upcoming `meds-algorithm==0.4.0a5` API.
-Before publishing generator `0.4.0a2`, release core `0.4.0a5` and replace these Git requirements with
-matching PyPI pins as described in the release guide.
+[`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). Generated repositories pin its PyPI release
+`meds-algorithm==0.4.0a5` for reproducible installations.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -39,15 +37,12 @@ uv run --group docs mkdocs serve
 
 ## Render a repository
 
-To use the unreleased typed-API cleanup, render from this checkout as shown below. The currently
-published generator `0.4.0a1` uses the previous core API.
-
 The installable `meds-algorithm-template` command uses the matching `v<package-version>` tag from this
 GitHub repository. It needs Git and network access; it does not bundle a second copy of the template.
-For the currently published generator, use:
+Install the pinned generator with:
 
 ```bash
-uvx --from 'meds-algorithm-template==0.4.0a1' meds-algorithm-template ../my-meds-algorithm --trust
+uvx --from 'meds-algorithm-template==0.4.0a2' meds-algorithm-template ../my-meds-algorithm --trust
 ```
 
 Use `--defaults --data-file answers.yaml` for unattended generation. The answers file records the
@@ -410,5 +405,15 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/profiles.md).
-See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/69c994d5921521132b60a528aab86a2b1641d05a/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
+See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/v0.4.0a5/src/meds_algorithm/CONTRACT.md), [migration guide](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/migration-v4.md),
 and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/shared-package-assessment.md).
+
+## Changes
+
+### 0.4.0a2 (2026-11-03)
+
+- Generate projects using the published `meds-algorithm==0.4.0a5` dependency.
+- Inherit shared acceptance tests and keep algorithm-specific adapters and scientific tests local.
+- Add the optional Hydra profile runner, local subprocess and Submitit execution, and resolved dry-run plans.
+- Add the implementation prompt builder and reorganize documentation, including typed request UML and test guides.
+- Use each algorithm's own executable name. Conformance and orchestration remain optional extras.

@@ -122,7 +122,7 @@ builder uses plain JavaScript without runtime dependencies, network calls or per
 single-profile and all-profile generation, compilation, canonical source URL and recorded release tag.
 It detects packaging and version/source mistakes without requiring a real release tag to exist yet.
 
-`scripts/check_release.py` requires matching exact PyPI pins for runtime, conformance and development
+`scripts/check_release.py` requires matching exact PyPI pins for runtime, conformance, orchestration and development
 uses of the shared package, then checks that the pinned version has downloadable files on PyPI. A Git
 pin used to review unreleased core changes deliberately fails this release gate. Strict MkDocs checks
 links/builds; Twine checks built distribution metadata. Neither proves scientific correctness.
