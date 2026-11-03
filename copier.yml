@@ -14,6 +14,25 @@ algorithm_slug:
   validator: >-
     {% if not (algorithm_slug | regex_search('^[a-z][a-z0-9_]*$')) or algorithm_slug in ['config', 'meds_algorithm', 'meds_algorithm_template', 'keyword', 'pathlib', 'dataclasses', 'argparse', 'json', 'typing', 'abc', 'False', 'None', 'True', 'and', 'as', 'assert', 'async', 'await', 'break', 'class', 'continue', 'def', 'del', 'elif', 'else', 'except', 'finally', 'for', 'from', 'global', 'if', 'import', 'in', 'is', 'lambda', 'nonlocal', 'not', 'or', 'pass', 'raise', 'return', 'try', 'while', 'with', 'yield'] %}Choose a non-reserved lowercase Python identifier.{% endif %}
 
+package_name:
+  type: str
+  default: "{{ algorithm_slug | replace('_', '-') }}"
+  help: PyPI distribution name; the Python import and CLI still use algorithm_slug.
+  validator: >-
+    {% if not (package_name | regex_search('^[a-z0-9]([a-z0-9._-]*[a-z0-9])?$')) %}Use a lowercase Python distribution name.{% endif %}
+
+repository_url:
+  type: str
+  default: ""
+  help: Canonical HTTPS repository URL. May be left blank during implementation; required before publishing.
+  validator: >-
+    {% if repository_url and not (repository_url | regex_search('^https://[^\\s]+$')) %}Use an HTTPS URL.{% endif %}
+
+license_expression:
+  type: str
+  default: ""
+  help: SPDX license expression, e.g. MIT, only after choosing a compatible license. Add its LICENSE file before publishing.
+
 algorithm_class:
   type: str
   default: "{{ algorithm_slug | replace('_', ' ') | title | replace(' ', '') }}"

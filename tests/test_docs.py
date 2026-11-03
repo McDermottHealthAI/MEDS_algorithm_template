@@ -30,6 +30,16 @@ def test_prompt_builder_embeds_the_canonical_readme_prompt():
     assert "<!-- prompt-template -->" not in result
 
 
+def test_algorithm_release_guide_uses_generated_source():
+    hooks = load_hooks()
+    page = SimpleNamespace(file=SimpleNamespace(src_uri="publishing-algorithms.md"))
+    result = hooks.on_page_markdown((ROOT / "docs/publishing-algorithms.md").read_text(), page)
+    assert "<!-- algorithm-release-guide -->" not in result
+    assert "{{" not in result
+    assert "scripts/check_distribution.sh" in result
+    assert "my-algorithm==$version" in result
+
+
 def test_prompt_source_cannot_close_its_json_script_element(tmp_path, monkeypatch):
     hooks = load_hooks()
     monkeypatch.setattr(hooks, "__file__", str(tmp_path / "docs/hooks.py"))

@@ -69,6 +69,12 @@ for stage subsets, artifact reuse, resource configuration and prototype limitati
 per-step CLI and shell launcher remain available for comparison. This prototype does not implement
 Hydra multirun, multi-node training or checkpoint/resume.
 
+## Publishing this algorithm
+
+Follow [the release guide](RELEASING.md) for package metadata, one-time PyPI Trusted Publisher setup,
+installed-wheel checks, and version-tag publication. All profiles ship in the `{{ package_name }}`
+distribution. Tests run in CI; publishing is an explicit workflow dispatch after implementation.
+
 ## Inputs and predicates
 
 - `external_meds_dir` is the standard MEDS dataset boundary.

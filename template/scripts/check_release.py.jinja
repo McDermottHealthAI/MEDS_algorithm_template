@@ -1,0 +1,32 @@
+"""Reject incomplete metadata, unfinished profiles, and mismatched release tags."""
+
+import os
+import tomllib
+from pathlib import Path
+
+from {{ algorithm_slug }}.{{ algorithm_slug }} import STUB_PROFILES
+
+
+def main():
+    root = Path(__file__).resolve().parents[1]
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    if not project.get("license") or not any(root.glob("LICENSE*")):
+        raise SystemExit("Choose an SPDX license expression and add its LICENSE file before publishing.")
+    repository = project.get("urls", {}).get("Repository", "")
+    if not repository.startswith("https://"):
+        raise SystemExit("Set project.urls.Repository to the canonical HTTPS repository URL.")
+    if STUB_PROFILES:
+        raise SystemExit(f"Finish declared profiles before publishing: {sorted(STUB_PROFILES)}")
+    dependencies = [*project.get("dependencies", [])]
+    for extra in project.get("optional-dependencies", {}).values():
+        dependencies.extend(extra)
+    if any("@" in dependency for dependency in dependencies):
+        raise SystemExit("Use index-installable dependencies rather than direct URL or Git requirements.")
+    ref = os.environ.get("GITHUB_REF")
+    if ref is not None and ref != f"refs/tags/v{project['version']}":
+        raise SystemExit("Dispatch publication from the matching v<project.version> tag.")
+    print(f"Release metadata and profile completion verified: {project['name']} {project['version']}")
+
+
+if __name__ == "__main__":
+    main()

@@ -118,6 +118,17 @@ builder uses plain JavaScript without runtime dependencies, network calls or per
 
 ## Release checks outside pytest
 
+### Generated algorithm release tests
+
+| Test | What it checks | Why it exists |
+|---|---|---|
+| `test_generated_distribution_installs_without_checkout` | Builds single- and multiple-profile projects through their generated distribution script, installs base and orchestration wheels, runs commands/dry-run outside the checkout, and inspects wheel/sdist resources. | Catch missing runtime files and dependencies, preserve distinct PyPI/import names, and ensure the source archive can build the shipped wheel. |
+| `test_generated_release_gate_rejects_incomplete_projects_and_wrong_tags` | Rejects missing licenses/repository URLs, stubs, direct URL dependencies and incorrect tags; accepts a completed matching-tag fixture. | Keep incomplete or incorrectly versioned distributions out of publication. |
+| `test_algorithm_release_guide_uses_generated_source` | Renders the generated release guide into the documentation site with example names. | Keep website and per-algorithm release instructions in sync. |
+
+The generated distribution smoke test checks packaging only; its synthetic empty-input dry-run never
+trains an algorithm. Algorithm CI still runs the scientific acceptance tests separately.
+
 `tests/wheel_smoke.py` installs/executes the generator against a local tagged template mirror. It checks
 single-profile and all-profile generation, compilation, canonical source URL and recorded release tag.
 It detects packaging and version/source mistakes without requiring a real release tag to exist yet.

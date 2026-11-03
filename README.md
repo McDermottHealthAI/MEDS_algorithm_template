@@ -90,6 +90,8 @@ so the command remains usable if formatting/bootstrap tasks are added later.
 |---|---|
 | `algorithm_name` | Human-readable algorithm name. |
 | `algorithm_slug` | Importable Python package and MEDS-DEV algorithm identifier. |
+| `package_name` | PyPI distribution name; defaults to the slug with hyphens, independently of the import/CLI. |
+| `repository_url`, `license_expression` | Canonical HTTPS URL and chosen SPDX license; may be blank initially but required for release, together with a LICENSE file. |
 | `algorithm_class` | Public class name; defaults to CamelCase from the slug. Set `RETAIN` explicitly to preserve that spelling. |
 | `profiles` | Nonempty list of supported profiles; each gets its own MEDS-DEV YAML. |
 | `algorithm_description` | Short description rendered into README and `algorithms/<profile>/model.yaml`. |
@@ -299,6 +301,11 @@ Always run:
 
     uv run pytest -rs
 
+Also run `bash scripts/check_distribution.sh` to verify installed imports, CLI commands and bundled
+defaults outside the checkout. Extend `tests/wheel_smoke.py` for required algorithm configuration or
+resources. Follow RELEASING.md for publication readiness; package publication itself requires an explicit
+user request. Do not choose a license on the user's behalf or bundle datasets, credentials or fitted weights.
+
 If the selected scope includes MEDS-DEV integration or full-evaluation preparation, also run:
 
     uv run pytest -m meds_dev -rs
@@ -409,6 +416,11 @@ See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/
 and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algorithm_template/blob/main/docs/shared-package-assessment.md).
 
 ## Changes
+
+### Unreleased
+
+- Generate an algorithm release guide, Trusted Publishing workflow, and installed-distribution checks.
+- Configure PyPI metadata separately from Python names and bundle portable run/profile YAMLs once at build time.
 
 ### 0.4.0a2 (2026-11-03)
 
