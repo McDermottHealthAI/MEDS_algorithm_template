@@ -7,7 +7,6 @@ repo_name: McDermottHealthAI/MEDS_algorithm_template
 edit_uri: edit/main/docs/
 hooks:
   - docs/hooks.py
-  - docs/catalogue.py
 
 extra_css:
   - assets/prompt-builder.css

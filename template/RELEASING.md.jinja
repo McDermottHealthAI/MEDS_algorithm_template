@@ -87,9 +87,10 @@ repeat the smoke check. Never move a published tag or reuse a published version;
 
 ## Registering your algorithm
 
-After publication, register the package in the template documentation's
-[algorithm catalogue](https://mcdermotthealthai.github.io/MEDS_algorithm_template/implemented-algorithms/).
-Open a PR against `catalogue/algorithms.yaml` with the PyPI name `{{ package_name }}`, exact published
+After publication, register the package in the shared ecosystem's
+[algorithm catalogue](https://mcdermotthealthai.github.io/meds-algorithm/implemented-algorithms/).
+Open a PR against `catalogue/algorithms.yaml` in `McDermottHealthAI/meds-algorithm`
+with the PyPI name `{{ package_name }}`, exact published
 version, immutable implementation commit, declared profiles and links to validation evidence. The site
 generates the installation command from that reviewed pin. An implementation under review can be listed
 earlier with `pypi_version: null`; do not advertise an install command for an unpublished name.
