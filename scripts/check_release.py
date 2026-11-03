@@ -17,12 +17,13 @@ def main():
             "Publish meds-algorithm first, then replace template and dev Git pins with PyPI pins."
         )
     pins = re.findall(r"meds-algorithm\[[^\]]+\]==([0-9A-Za-z.]+)", generated)
-    if len(pins) != 2 or len(set(pins)) != 1:
+    if len(pins) != 3 or len(set(pins)) != 1:
         raise SystemExit(
-            "Generated data and conformance dependencies must pin the same meds-algorithm version."
+            "Generated data, conformance and orchestration dependencies must pin "
+            "the same meds-algorithm version."
         )
     release = pins[0]
-    if f"meds-algorithm[conformance]=={release}" not in development:
+    if f"meds-algorithm[conformance,orchestration]=={release}" not in development:
         raise SystemExit(
             "The template dev dependency must use the same released version as generated projects."
         )

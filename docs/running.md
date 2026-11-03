@@ -6,7 +6,9 @@ interface. All three run the same commands with the same standard arguments.
 For a copyable sequence from an empty directory to verified predictions, start with the
 [fully manual example](manual-example.md). It includes setup, implementation code and synthetic inputs.
 
-## Local commands
+<!-- orchestration-guide -->
+
+## Individual step commands
 
 Run these commands from the generated repository after `uv sync --extra test`. The examples assume
 `algorithm_slug: my_algorithm`, which installs the command `my-algorithm`; replace it with your own

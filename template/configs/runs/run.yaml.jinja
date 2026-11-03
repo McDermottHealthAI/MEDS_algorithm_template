@@ -1,0 +1,27 @@
+# Prototype: one config for local subprocesses or dependent Submitit SLURM jobs.
+# Shared field/resource defaults come from meds-algorithm, not a copied schema.
+defaults:
+  - meds_run
+  - _self_
+
+{% if profiles | length == 1 %}profile: {{ profiles[0] }}{% else %}profile: ???  # Choose one of: {{ profiles | join(', ') }}{% endif %}
+execution: local
+output_dir: ???  # New directory for this run; relative paths use the invocation's working directory.
+
+inputs:
+  meds_dir: null  # Required by preprocessing and materialized zero-shot prediction.
+  index_dir: null  # Required by inference and prediction.
+{% if 'supervised' in profiles or 'finetune' in profiles or 'probe' in profiles %}  labels_dir: null  # Required by supervised/finetune/probe training.
+{% endif %}{% if uses_predicates %}  predicates_file: null  # Supply the dataset predicates expected by this algorithm.
+{% endif %}{% if 'zero_shot_direct' in profiles or 'zero_shot_materialized' in profiles %}  task_criteria_file: null  # Required when selecting a zero-shot profile.
+{% endif %}
+# Add only algorithm settings that differ from the concrete Config class's defaults.
+algorithm: {}
+
+# Optional overrides, e.g. resources.compute.gpus_per_node=1 and its partition/account.
+# Both resource presets default to CPUs; choose resources appropriate for this algorithm.
+# resources:
+#   compute:
+#     gpus_per_node: 1
+#     partition: gpu
+#     timeout_min: 240
