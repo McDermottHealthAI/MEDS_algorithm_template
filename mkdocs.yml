@@ -70,6 +70,7 @@ nav:
       - Overview: index.md
       - Concepts: concepts.md
       - Choosing a profile: profiles.md
+      - Implemented algorithms: implemented-algorithms.md
       - Workflow: workflow.md
   - Building an algorithm:
       - Implementation prompt builder: prompt-builder.md
