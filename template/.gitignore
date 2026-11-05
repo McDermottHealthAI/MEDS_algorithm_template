@@ -2,6 +2,8 @@ __pycache__/
 .pytest_cache/
 .venv/
 *.egg-info/
+dist/
+build/
 runs/**/logs/
 runs/**/artifacts/
 runs/**/checkpoints/

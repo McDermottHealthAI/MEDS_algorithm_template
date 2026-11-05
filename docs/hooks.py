@@ -4,10 +4,19 @@ import json
 import re
 from pathlib import Path
 
+from jinja2 import Environment, StrictUndefined
 from meds_algorithm.spec import architecture, orchestration_guide, specification, validation_guide
 
 
 def on_page_markdown(markdown, page, **kwargs):
+    if page.file.src_uri == "publishing-algorithms.md":
+        source = Path(__file__).resolve().parents[1] / "template" / "RELEASING.md.jinja"
+        guide = (
+            Environment(undefined=StrictUndefined)
+            .from_string(source.read_text(encoding="utf-8"))
+            .render(algorithm_name="My Algorithm", algorithm_slug="my_algorithm", package_name="my-algorithm")
+        )
+        return markdown.replace("<!-- algorithm-release-guide -->", guide)
     if page.file.src_uri == "running.md":
         return markdown.replace("<!-- orchestration-guide -->", orchestration_guide())
     if page.file.src_uri == "reference/spec.md":

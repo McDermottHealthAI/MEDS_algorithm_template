@@ -1,0 +1,101 @@
+# Publishing {{ algorithm_name }}
+
+One PyPI distribution, `{{ package_name }}`, contains all declared profiles. Its Python import is
+`{{ algorithm_slug }}` and its executable is `{{ algorithm_slug | replace('_', '-') }}`. Publishing the
+algorithm does not require another release of the shared core or template.
+
+## Prepare once
+
+1. Choose an available PyPI name; edit `[project].name` in `pyproject.toml` if needed. The import and CLI
+   names need not match it. Update this guide and the CLI installation hint if changing the name later.
+2. Set `project.urls.Repository`, choose an SPDX `project.license` expression compatible with your
+   implementation and upstream sources, and add the actual `LICENSE` file. Review the authors,
+   description and README. The template deliberately does not choose a license for you.
+3. Declare every runtime dependency in `pyproject.toml`; release dependencies must be installable
+   from the package index, without Git/direct URL requirements. Commit `uv.lock` after `uv lock`.
+4. Complete every declared profile and its scientific tests; remove completed profiles from
+   `STUB_PROFILES`. Publication rejects remaining stubs. Passing packaging checks does not establish
+   scientific correctness. Extend `tests/wheel_smoke.py` for required algorithm resources/configuration.
+5. Merge `.github/workflows/publish.yml` into `main`. Create GitHub environments `testpypi` and `pypi`;
+   configure release reviewers/tag restrictions as appropriate for your repository.
+6. On [PyPI](https://pypi.org/manage/account/publishing/) and separately on
+   [TestPyPI](https://test.pypi.org/manage/account/publishing/), register a pending GitHub publisher:
+
+   | Field | Value |
+   |---|---|
+   | PyPI project name | `{{ package_name }}` |
+   | Owner | Your GitHub user or organization |
+   | Repository | This algorithm's GitHub repository name |
+   | Workflow filename | `publish.yml` |
+   | Environment | `pypi` on PyPI; `testpypi` on TestPyPI |
+
+   For an existing PyPI project, add the publisher in its Publishing settings instead. No API token
+   is needed. See the [official setup guide](https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/).
+
+## Check each release
+
+Update `[project].version` and `CHANGELOG.md`, then run these commands from the repository root
+(Bash, with Git and uv installed):
+
+```bash
+uv lock
+uv sync --locked --extra test
+uv run --no-sync pytest -rs
+uv run --no-sync python scripts/check_release.py
+bash scripts/check_distribution.sh
+```
+
+The distribution check builds a wheel from the source archive, validates metadata, installs the base
+wheel in a fresh environment, checks imports/commands/resources from a temporary working directory,
+then installs orchestration and checks a preprocessing dry-run. It runs no training or SLURM jobs.
+It leaves the checked files in `dist/`; move old `dist/` contents elsewhere before repeating it.
+Commit the version, lockfile, changelog and implementation changes; merge passing CI into `main`.
+
+## Tag, rehearse, publish
+
+Replace `OWNER/REPOSITORY` below. Set `version` to the exact version in `pyproject.toml`:
+
+```bash
+repository=OWNER/REPOSITORY
+version=0.1.0
+git switch main
+git pull --ff-only
+git tag -a "v$version" -m "Release $version"
+git push origin "v$version"
+gh workflow run publish.yml --repo "$repository" --ref "v$version" -f index=testpypi
+gh run list --repo "$repository" --workflow publish.yml
+```
+
+Wait for success and verify installation from TestPyPI. Install dependencies from PyPI first, then
+replace only this package from TestPyPI, avoiding mixed-index dependency resolution:
+
+```bash
+uv venv /tmp/algorithm-release-check
+uv pip install --python /tmp/algorithm-release-check/bin/python dist/*.whl
+uv pip install --python /tmp/algorithm-release-check/bin/python --reinstall --no-deps \
+  --index-url https://test.pypi.org/simple/ "{{ package_name }}==$version"
+/tmp/algorithm-release-check/bin/python -I tests/wheel_smoke.py
+gh workflow run publish.yml --repo "$repository" --ref "v$version" -f index=pypi
+gh run list --repo "$repository" --workflow publish.yml
+```
+
+The workflow requires the matching version tag on `main` history, a committed lockfile, complete
+profiles, passing tests, and valid installed distributions. A separate job uploads those exact checked
+files using Trusted Publishing. Rehearsal and production runs each build and check their own artifacts
+from the same tag. After success, install `{{ package_name }}==$version` in a fresh environment and
+repeat the smoke check. Never move a published tag or reuse a published version; increment it for fixes.
+
+## What installation includes
+
+`configs/runs/` and `algorithms/` are the single editable source for portable run defaults and MEDS-DEV
+YAMLs. The wheel copies them to `{{ algorithm_slug }}/resources/` during its build; the source archive
+includes the originals. No second copy is maintained in Git.
+
+The runner uses `./configs/runs` when present, otherwise its installed defaults. `--config-dir` explicitly
+selects user configuration. Supply dataset paths and run settings as overrides or external configuration;
+do not put dataset-specific paths, credentials, labels, datasets or fitted weights in bundled defaults.
+The source archive uses an explicit file allowlist; review its contents before publishing.
+
+Access installed profile YAMLs with `importlib.resources.files("{{ algorithm_slug }}") / "resources" /
+"algorithms"`. SLURM shell scripts and implementation reports remain checkout tooling. Large pretrained
+weights should be retrieved as separately versioned artifacts, not silently embedded in a wheel.

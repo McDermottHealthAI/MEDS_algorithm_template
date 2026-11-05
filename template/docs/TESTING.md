@@ -43,6 +43,19 @@ Replace it with positive-signal and shuffled-label control runs of the real algo
 the signal reaches its actual features. It runs for every registered profile, including stubs.
 Structural conformance cannot establish scientific behavior or fidelity to a paper.
 
+## Distribution checks
+
+`bash scripts/check_distribution.sh` builds a wheel from the source archive, checks its metadata and
+installs it in an isolated environment. `tests/wheel_smoke.py` verifies public imports, CLI profile/command
+discovery and packaged run/profile YAMLs outside the checkout. With `--orchestration`, it also verifies
+the installed runner resolves a preprocessing plan without creating outputs. Extend it with representative
+config overrides when the concrete algorithm has required configuration fields. These checks catch missing
+files/dependencies; they do not execute or validate the scientific algorithm.
+
+`scripts/check_release.py` additionally rejects missing license/repository metadata, direct URL
+dependencies, unfinished declared profiles and mismatched GitHub release tags. The publication workflow
+also requires a committed lockfile and a tag on main history. See the generated `RELEASING.md` guide.
+
 ## Algorithm-specific tests to add
 
 Add source-backed tests for numerical behavior, temporal cutoffs, feature selection, frozen pretrained

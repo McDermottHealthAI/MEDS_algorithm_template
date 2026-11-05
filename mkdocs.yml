@@ -79,7 +79,8 @@ nav:
       - Core package layout: core-package.md
       - Template and shared package: shared-package-assessment.md
       - Migrating to version 4: migration-v4.md
-      - Publishing to PyPI: releasing.md
+      - Publishing an algorithm: publishing-algorithms.md
+      - Releasing core and template: releasing.md
   - Zero-shot algorithms:
       - Zero-shot in practice: zero-shot.md
   - Reference:

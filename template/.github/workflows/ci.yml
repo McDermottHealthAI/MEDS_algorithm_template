@@ -13,3 +13,4 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uv sync --extra test
       - run: uv run pytest -rs
+      - run: bash scripts/check_distribution.sh

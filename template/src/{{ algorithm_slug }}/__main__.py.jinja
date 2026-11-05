@@ -3,6 +3,7 @@
 import argparse
 import json
 import sys
+from pathlib import Path
 
 from .{{ algorithm_slug }} import create_repository
 
@@ -23,8 +24,12 @@ def main() -> None:
         try:
             from meds_algorithm.orchestration.cli import main as run_profile
         except ImportError as error:
-            raise SystemExit("Install the prototype runner with: uv sync --extra orchestration") from error
-        run_profile(repository, module="{{ algorithm_slug }}", argv=sys.argv[2:])
+            raise SystemExit('Install the runner with: pip install "{{ package_name }}[orchestration]" (or uv sync --extra orchestration in a checkout)') from error
+        arguments = sys.argv[2:]
+        explicit_directory = any(arg == "--config-dir" or arg.startswith("--config-dir=") for arg in arguments)
+        if not explicit_directory and not (Path.cwd() / "configs" / "runs").is_dir():
+            arguments = ["--config-dir", str(Path(__file__).parent / "resources" / "runs"), *arguments]
+        run_profile(repository, module="{{ algorithm_slug }}", argv=arguments)
         return
     parser = argparse.ArgumentParser(description="Run one declared MEDS algorithm profile")
     parser.add_argument("command", help="run (prototype), profiles, commands, or a step name")
