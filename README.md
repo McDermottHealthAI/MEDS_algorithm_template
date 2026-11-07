@@ -269,6 +269,13 @@ Write minimalist, auditable, object-oriented algorithm code. Put source-defined 
 in the algorithm-owned frozen <AlgorithmClass>Config class in config.py; validate values and prove
 serialization round trips. Keep the implementation in <algorithm_slug>.py and expose the named algorithm
 and configuration classes from the package, so callers can import them meaningfully.
+Keep the public API intentional and small. Classes, functions and modules used only inside the implementation
+should use a single leading underscore (for example _FeatureEncoder or _features.py) and should not be
+re-exported from the package __init__.py. List only intended public exports in __all__. Keep contract-required
+methods and integration hooks publicly named where required. A leading underscore signals an internal,
+unstable interface in Python; it does not enforce access control. Prefer it over double-underscore name
+mangling unless avoiding a specific inheritance collision. Do not create extra classes just to organize
+private helpers, and do not hide the algorithm/configuration classes callers are expected to import.
 For neural algorithms with matching semantics, extend core NNConfig rather than
 duplicating shared capacity, learning_rate, batch_size, weight_decay and dropout settings. Define
 source-backed defaults and the capacity-multiplier mapping (reference architecture, dimensions, rounding

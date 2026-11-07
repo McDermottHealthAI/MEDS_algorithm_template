@@ -100,6 +100,19 @@ Keep code minimalist and auditable: small cohesive classes, typed immutable conf
 dependencies and persisted fitted state. Avoid speculative abstractions, mutable global runtime state,
 hidden singletons, import-time computation and duplicated core behavior. Use the same runner from the
 CLI and `tests/e2e.py`; demonstrate independent execution after reopening serialized inputs.
+
+### Public API and internal helpers
+
+Expose the named algorithm and configuration classes for callers. Give implementation-only classes,
+functions and modules a single leading underscore, such as `_FeatureEncoder` or `_features.py`, and keep
+them out of package-level re-exports in `__init__.py`. Keep `__all__` limited to intentional public exports.
+Preserve the required names of public profile methods and integration hooks. The underscore marks an
+internal, unstable interface; Python does not enforce private access, and `__all__` does not prevent explicit
+imports. Use double-underscore name mangling only for a specific inheritance collision, not as the default
+privacy mechanism. Introduce helper classes only when their responsibilities justify a class.
+
+### Payloads and lifecycle independence
+
 Keep shared preprocessing/pretraining task-independent. Prediction must receive its prepared data or embeddings explicitly and check compatibility with
 the fitted algorithm. Probe prediction applies the head; it does not rerun the encoder. Preserve standard external arguments. Choose and version
 intermediate payload formats, reject incompatible inputs before expensive work, let the runner publish with rollback, and

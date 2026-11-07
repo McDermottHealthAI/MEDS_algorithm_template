@@ -22,6 +22,9 @@ for material unresolved choices; exploratory assumptions require explicit opt-in
   `PayloadMetadata`; core owns publication, measurements and reserved manifest/config/request files.
 - Keep object-oriented code minimalist and auditable: cohesive components, explicit dependencies,
   no unnecessary mutable globals/singletons, import-time computation or duplicated contract definitions.
+- Keep the public API small: export the intended algorithm/configuration classes, use a single leading
+  underscore for implementation-only helpers/modules, and omit internals from package re-exports and `__all__`.
+  Preserve required public contract methods/hooks; follow the API guidance in `docs/IMPLEMENTATION_GUIDE.md`.
 - Test configuration/request serialization and step execution in a fresh process. Reopen fitted artifacts;
   do not rely on training having run on the same Python object.
 - Preserve the `{{ profiles | join(', ') }}` algorithm profile and established command argument names.
