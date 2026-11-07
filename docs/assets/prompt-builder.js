@@ -23,6 +23,9 @@
     const mode = choice(values.profile_mode, ["automatic", "manual"], "profile selection");
     const tasks = choice(values.tasks_mode, ["none", "ready"], "task-input option");
     const scope = choice(values.scope, Object.keys(scopes), "work scope");
+    if (values.exploratory_mode !== undefined && typeof values.exploratory_mode !== "boolean") {
+      throw new Error("Exploratory mode must be an explicit checkbox selection.");
+    }
     let repository = "New local Git repository only; do not create a GitHub repository.";
     if (destination === "github") {
       const name = required(values.github_repo, "the new GitHub repository")
@@ -61,6 +64,9 @@
       DATASET_CONTEXT_OR_NOT_SUPPLIED: clean(values.dataset) || "Not supplied; use synthetic data for local implementation tests.",
       PREPARED_TASK_BUNDLE_OR_NOT_SUPPLIED: bundle,
       WORK_SCOPE: scopes[scope],
+      SCIENTIFIC_AMBIGUITY_MODE: values.exploratory_mode === true
+        ? "Exploratory mode explicitly enabled: provisional algorithm-design assumptions are permitted under the policy below."
+        : "Confirmation required (default): ask before implementing material unresolved scientific choices.",
       ADDITIONAL_CONSTRAINTS_OR_NONE: clean(values.constraints) || "None."
     };
     return template.replace(/<([A-Z][A-Z0-9_]*)>/g, (token, key) => {
@@ -112,6 +118,7 @@
       const data = new FormData(form);
       const values = Object.fromEntries(data.entries());
       values.profiles = data.getAll("profiles");
+      values.exploratory_mode = field("exploratory_mode").checked;
       try {
         output.value = renderPrompt(template, values);
         output.readOnly = false;

@@ -3,6 +3,10 @@
 Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` completely.
 `SPEC.md` points to the pinned core contract: run `meds-algorithm-spec` and read that specification too.
 
+Follow the scientific-ambiguity policy in `docs/IMPLEMENTATION_GUIDE.md`: confirmation is the default
+for material unresolved choices; exploratory assumptions require explicit opt-in. Track decisions in
+`IMPLEMENTATION_REPORT.md`, and preserve the blocking evaluation and execution gates in either mode.
+
 - `meds-algorithm` is an installed dependency. Do not copy its implementations into this repository.
   Keep framework, batching, preprocessing-format and algorithm assumptions in the algorithm package.
 - Depend on the source's own package or executable, pinned to the reviewed revision, and write only contract

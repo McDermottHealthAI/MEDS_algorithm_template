@@ -8,6 +8,33 @@ Read the paper, supplement, repository, configs, data preparation, checkpoints, 
 Build a source-element inventory before implementation; do not infer the algorithm solely from its headline
 architecture.
 
+### Scientific ambiguities and decisions
+
+Default to confirmation-required mode unless the user explicitly enabled exploratory mode in the
+implementation prompt or a later instruction. Consult the paper, supplements, official code and configs
+before deciding a detail is missing. Record conflicting sources; do not silently choose one.
+
+A routine default (such as learning rate or batch size) may be chosen, made configurable where appropriate,
+and documented unless it is central to the scientific claim. If reasonable interpretations would produce
+materially different algorithms or change what evaluation measures, treat the choice as material. Missing
+featurization, temporal aggregation, an architecture component or an objective usually meets this threshold.
+
+In confirmation-required mode, pause the dependent implementation and ask for a decision: state what is
+missing, sources consulted, options, consequences and a recommendation if justified. Continue independent
+work. Reuse an earlier explicit decision unless new evidence or scope invalidates it; silence is not approval.
+
+Explicit exploratory mode permits provisional algorithm-design choices. Record them before use, identify
+affected code/tests/results as exploratory adaptations, and require review before claiming faithful
+reproduction. It does not make assumptions source-backed facts. In both modes, unresolved leakage,
+permitted label access, cohort/target definitions or evaluation validity still block dependent work.
+Existing task constraints, acceptance tests and data/demo/full-data/cluster approval gates still apply.
+
+Maintain the mode and decisions in the existing `IMPLEMENTATION_REPORT.md` section **Scientific assumptions
+and decisions**. Record evidence and rationale for routine defaults, open questions and provisional choices,
+then append the user's decision or source resolution and update the affected implementation/results.
+
+### Reuse the source implementation
+
 Prefer reuse over reimplementation. If the source ships an installable package or executable, add it as a
 dependency pinned to the exact reviewed revision and call it; write only contract glue (label-free
 preprocessing, cohort/key adaptation, explicit key association, coverage). Resolve dependencies in this order:
