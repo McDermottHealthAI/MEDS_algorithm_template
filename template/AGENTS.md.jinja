@@ -3,6 +3,10 @@
 Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` completely.
 `SPEC.md` points to the pinned core contract: run `meds-algorithm-spec` and read that specification too.
 
+Follow the scientific-ambiguity policy in `docs/IMPLEMENTATION_GUIDE.md`: confirmation is the default
+for material unresolved choices; exploratory assumptions require explicit opt-in. Track decisions in
+`IMPLEMENTATION_REPORT.md`, and preserve the blocking evaluation and execution gates in either mode.
+
 - `meds-algorithm` is an installed dependency. Do not copy its implementations into this repository.
   Keep framework, batching, preprocessing-format and algorithm assumptions in the algorithm package.
 - Depend on the source's own package or executable, pinned to the reviewed revision, and write only contract
@@ -18,6 +22,9 @@ Before editing, read `SPEC.md`, `README.md`, and `docs/IMPLEMENTATION_GUIDE.md` 
   `PayloadMetadata`; core owns publication, measurements and reserved manifest/config/request files.
 - Keep object-oriented code minimalist and auditable: cohesive components, explicit dependencies,
   no unnecessary mutable globals/singletons, import-time computation or duplicated contract definitions.
+- Keep the public API small: export the intended algorithm/configuration classes, use a single leading
+  underscore for implementation-only helpers/modules, and omit internals from package re-exports and `__all__`.
+  Preserve required public contract methods/hooks; follow the API guidance in `docs/IMPLEMENTATION_GUIDE.md`.
 - Test configuration/request serialization and step execution in a fresh process. Reopen fitted artifacts;
   do not rely on training having run on the same Python object.
 - Preserve the `{{ profiles | join(', ') }}` algorithm profile and established command argument names.

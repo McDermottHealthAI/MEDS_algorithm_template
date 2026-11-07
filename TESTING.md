@@ -39,7 +39,9 @@ builder uses plain JavaScript without runtime dependencies, network calls or per
 
 | Test | What it checks | Why it exists |
 |---|---|---|
-| All choice combinations | Exercises all 72 source/destination/profile/task/scope combinations and common instructions. | Preserve the shared scientific requirements and review gates for every configuration. |
+| All choice combinations | Exercises all 144 source/destination/profile/task/scope/ambiguity-mode combinations and common instructions. | Preserve scientific review and execution gates in both confirmation-required and exploratory modes. |
+| Ambiguity-mode default and validation | Confirms omitted/false mode requires confirmation and rejects non-boolean opt-ins. | Avoid enabling exploratory assumptions through an absent or truthy string value. |
+| Exploratory checkbox lifecycle | Checks unchecked defaults, explicit opt-in, stale-output invalidation, toggling back and reset in a DOM. | Require an intentional selection and restore confirmation mode on reset. |
 | Invalid plans | Rejects missing sources, destination, manual profiles or prepared-bundle metadata. | Avoid an apparently ready prompt with incomplete required inputs. |
 | Task subsets and literal text | Retains existing task identifiers and arbitrary input text without recursive replacement. | Keep the user's supplied scope and constraints intact. |
 | Conditional form fields | Exercises visibility, required fields and multi-profile generation in a DOM. | Prevent hidden fields or single-profile defaults from overriding the selected options. |

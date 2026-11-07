@@ -27,23 +27,64 @@ function browser() {
   const output = doc.querySelector("[data-prompt-output]");
   return {dom, doc, form, field, set, output};
 }
-test("all source, destination, profile, task and scope combinations preserve the shared contract", () => {
+test("all source, destination, profile, task, scope and ambiguity modes preserve the shared contract", () => {
   for (const source_kind of ["paper", "code", "both"])
     for (const destination_kind of ["local", "github"])
       for (const profile_mode of ["automatic", "manual"])
         for (const tasks_mode of ["none", "ready"])
-          for (const scope of ["local", "integration", "full"]) {
-            const prompt = renderPrompt(template, {...base, source_kind, destination_kind, profile_mode, tasks_mode, scope});
+          for (const scope of ["local", "integration", "full"])
+            for (const exploratory_mode of [false, true]) {
+            const prompt = renderPrompt(template, {...base, source_kind, destination_kind, profile_mode, tasks_mode, scope, exploratory_mode});
             assert(!/<[A-Z][A-Z0-9_]*>/.test(prompt));
             assert(prompt.includes("Only after approval, run:"));
             assert(prompt.includes("minimalist, auditable, object-oriented"));
             assert(prompt.includes("Do not generate new tasks,"));
+            assert(prompt.includes("In BOTH modes, ambiguities about leakage"));
+            assert(prompt.includes("Require review of these decisions before claiming faithful reproduction."));
+            assert.equal(prompt.includes("Exploratory mode explicitly enabled:"), exploratory_mode);
+            assert.equal(prompt.includes("Confirmation required (default):"), !exploratory_mode);
             assert.equal(prompt.includes("paper.pdf"), source_kind !== "code");
             assert.equal(prompt.includes(base.code), source_kind !== "paper");
             assert.equal(prompt.includes("New GitHub repository:"), destination_kind === "github");
             assert.equal(prompt.includes("Explicit profiles: finetune, probe."), profile_mode === "manual");
             assert.equal(prompt.includes("Prepared labels: /data/tasks/labels"), tasks_mode === "ready");
           }
+});
+test("omitted ambiguity mode defaults to confirmation and non-boolean opt-ins are rejected", () => {
+  assert.equal(renderPrompt(template, base), renderPrompt(template, {...base, exploratory_mode: false}));
+  assert(renderPrompt(template, base).includes("Confirmation required (default):"));
+  for (const exploratory_mode of ["false", "true", "on", null, 0, 1]) {
+    assert.throws(() => renderPrompt(template, {...base, exploratory_mode}), /explicit checkbox/);
+  }
+});
+test("exploratory checkbox is opt-in, invalidates the previous prompt and resets to confirmation", () => {
+  const {dom, doc, form, field, set, output} = browser();
+  try {
+    const checkbox = field("exploratory_mode");
+    assert.equal(checkbox.checked, false);
+    assert.equal(checkbox.defaultChecked, false);
+    assert(doc.getElementById(checkbox.getAttribute("aria-describedby")));
+    set("papers", base.papers); set("code", base.code); set("local_path", base.local_path);
+    form.requestSubmit();
+    assert(output.value.includes("Confirmation required (default):"));
+    const original = output.value;
+    checkbox.click();
+    assert.equal(checkbox.checked, true);
+    assert(doc.querySelector("[data-copy]").disabled && doc.querySelector("[data-download]").disabled);
+    assert.equal(output.value, original);
+    form.requestSubmit();
+    assert(output.value.includes("Exploratory mode explicitly enabled:"));
+    assert(!output.value.includes("Confirmation required (default):"));
+    assert(output.value.includes("Only after approval, run:"));
+    checkbox.click();
+    form.requestSubmit();
+    assert.equal(output.value, original);
+    checkbox.click();
+    form.requestSubmit();
+    doc.querySelector("[data-reset]").click();
+    assert.equal(checkbox.checked, false);
+    assert.equal(output.value, "");
+  } finally { dom.window.close(); }
 });
 test("incomplete or invalid plans fail instead of yielding an executable-looking prompt", () => {
   for (const bad of [

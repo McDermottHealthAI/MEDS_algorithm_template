@@ -47,6 +47,13 @@ local repository or a new GitHub repository with an explicit local checkout and 
 Automatic profile selection must follow source evidence; manual selection may include several profiles.
 The agent records the choice before generation, then implements every selected profile.
 
+By default, the agent asks for confirmation before implementing a material unresolved scientific choice
+(for example, unspecified featurization). Routine defaults such as a missing learning rate may proceed
+with a documented rationale unless central to the paper's claim. The builder's **Exploratory mode**
+checkbox is unchecked by default: enabling it permits provisional design assumptions, which must be
+recorded and reviewed before claiming faithful reproduction. In both modes, unresolved leakage,
+cohort/target definitions or evaluation validity block dependent work. Independent work can continue.
+
 Evaluation tasks, when supplied, are already ready: labels plus task configs, bundle identity and dataset
 context. The builder does not ask the agent to invent tasks or extract new labels. Missing tasks defer
 only the corresponding evaluation. Choose the intended work scope explicitly; demo and full-data runs

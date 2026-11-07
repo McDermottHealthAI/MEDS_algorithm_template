@@ -74,6 +74,8 @@ You can edit the result before copying. Demo and full-data execution retain thei
 <label>Requested endpoint
 <select name="scope"><option value="local">Implementation and local tests</option><option value="integration">Also run MEDS-DEV integration</option><option value="full">Prepare for demo and full-data evaluation</option></select></label>
 <p class="pb-hint">Preparing for full evaluation does not authorize a demo, dataset download or cluster run. The existing review gates still apply.</p>
+<label class="pb-check"><input type="checkbox" name="exploratory_mode" aria-describedby="exploratory-mode-help"> Exploratory mode — allow provisional scientific assumptions</label>
+<p class="pb-hint" id="exploratory-mode-help">Off by default. The agent normally asks before implementing a major unresolved scientific choice, such as unspecified feature construction; routine defaults may proceed with documentation. When enabled, provisional design choices must be recorded and reviewed before claiming faithful reproduction. Leakage, cohort/target definitions, evaluation validity and execution approvals still require resolution.</p>
 <label>Additional constraints (optional) <span class="pb-hint">For example: algorithm name, hardware limits, checkpoint requirements or implementation priorities.</span>
 <textarea name="constraints" rows="3"></textarea></label>
 </fieldset>

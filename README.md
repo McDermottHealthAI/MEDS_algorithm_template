@@ -177,6 +177,9 @@ optional task subset; or explicitly not supplied):
 Work scope (implementation/local tests, also MEDS-DEV integration, or preparation for full evaluation):
 <WORK_SCOPE>
 
+Scientific ambiguity mode (confirmation required by default; exploratory only if explicitly enabled):
+<SCIENTIFIC_AMBIGUITY_MODE>
+
 Additional implementation constraints:
 <ADDITIONAL_CONSTRAINTS_OR_NONE>
 
@@ -185,6 +188,32 @@ compare them, record discrepancies and identify which behavior is implemented; d
 one always overrides the other. If only a paper is provided, distinguish source-backed choices from
 necessary assumptions. If only code is provided, inspect its revision, configuration and checkpoint
 requirements; do not claim fidelity to an unavailable paper.
+
+Resolve scientific ambiguities before implementing the affected behavior. Check the paper, supplements,
+official code and available configurations first; record sources and material conflicts. Ask whether two
+reasonable interpretations could produce materially different algorithms or change what evaluation measures.
+A missing learning rate or batch size can usually use a plausible, configurable default with its rationale
+recorded, unless that choice is central to the scientific claim. Missing feature construction, temporal
+aggregation, architecture components or training objectives are material ambiguities, not routine defaults.
+
+In confirmation-required mode (also the default if no mode is supplied), pause dependent implementation
+and request confirmation for a material unresolved ambiguity. Explain what is missing, the evidence
+consulted, plausible interpretations and their consequences; recommend an option when justified. Continue
+independent work while waiting. An earlier explicit decision covering the same choice is sufficient unless
+new evidence or a scope change invalidates it; silence is not confirmation.
+
+Only when exploratory mode is explicitly enabled may you implement provisional interpretations of material
+algorithm-design ambiguities without first obtaining a decision. Record each as provisional before using
+it, expose the choice in configuration where appropriate, and label affected code, tests and results as an
+exploratory adaptation. Require review of these decisions before claiming faithful reproduction. Do not
+present an assumption as source-backed behavior or silently substitute a familiar method for a missing one.
+
+In BOTH modes, ambiguities about leakage, permitted label access, cohort/target definitions or evaluation
+validity remain blocking for dependent work until explicitly resolved. Exploratory mode does not authorize
+changing supplied tasks, weakening acceptance tests, accessing data or running demo/full-data/cluster jobs
+without the existing approvals. Record the mode, routine defaults, unresolved questions, provisional choices
+and explicit decisions in IMPLEMENTATION_REPORT.md under "Scientific assumptions and decisions"; update the
+existing report rather than creating another specification file.
 
 For automatic profile selection, choose one or more profiles supported by documented source behavior:
 supervised, finetune, probe, zero_shot_direct, zero_shot_materialized or predict_only. Record evidence for
@@ -240,6 +269,13 @@ Write minimalist, auditable, object-oriented algorithm code. Put source-defined 
 in the algorithm-owned frozen <AlgorithmClass>Config class in config.py; validate values and prove
 serialization round trips. Keep the implementation in <algorithm_slug>.py and expose the named algorithm
 and configuration classes from the package, so callers can import them meaningfully.
+Keep the public API intentional and small. Classes, functions and modules used only inside the implementation
+should use a single leading underscore (for example _FeatureEncoder or _features.py) and should not be
+re-exported from the package __init__.py. List only intended public exports in __all__. Keep contract-required
+methods and integration hooks publicly named where required. A leading underscore signals an internal,
+unstable interface in Python; it does not enforce access control. Prefer it over double-underscore name
+mangling unless avoiding a specific inheritance collision. Do not create extra classes just to organize
+private helpers, and do not hide the algorithm/configuration classes callers are expected to import.
 For neural algorithms with matching semantics, extend core NNConfig rather than
 duplicating shared capacity, learning_rate, batch_size, weight_decay and dropout settings. Define
 source-backed defaults and the capacity-multiplier mapping (reference architecture, dimensions, rounding
@@ -418,6 +454,9 @@ and [shared-package assessment](https://github.com/McDermottHealthAI/MEDS_algori
 ## Changes
 
 ### Unreleased
+
+- Require confirmation for material scientific ambiguities by default; offer explicitly enabled exploratory
+  assumptions in the prompt builder while preserving evaluation and execution approval gates.
 
 - Generate an algorithm release guide, Trusted Publishing workflow, and installed-distribution checks.
 - Configure PyPI metadata separately from Python names and bundle portable run/profile YAMLs once at build time.
