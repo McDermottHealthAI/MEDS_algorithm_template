@@ -64,7 +64,7 @@ uv run {{ algorithm_slug | replace('_', '-') }} run execution=slurm output_dir=/
 
 A dry run prints all resolved arguments, paths, configuration and resources without writing files or
 submitting jobs. Local execution uses fresh subprocesses; Submitit submits separate dependent SLURM
-jobs. See the [shared runner guide](https://mcdermotthealthai.github.io/MEDS_algorithm_template/running/#profile-runner-prototype)
+jobs. See the [shared runner guide](https://meds-algorithm.readthedocs.io/en/latest/running/#profile-runner-prototype)
 for stage subsets, artifact reuse, resource configuration and prototype limitations. The existing
 per-step CLI and shell launcher remain available for comparison. This prototype does not implement
 Hydra multirun, multi-node training or checkpoint/resume.

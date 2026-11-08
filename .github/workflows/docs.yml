@@ -1,7 +1,7 @@
-name: Docs
+name: Documentation redirects
 
-# Builds the documentation site on every pull request (strict: warnings fail the build) and publishes it to
-# GitHub Pages on pushes to main. Publishing requires Pages to be enabled with "GitHub Actions" as source.
+# The full site is maintained in meds-algorithm and hosted on Read the Docs.
+# Keep Pages enabled to redirect existing bookmarks, including page fragments.
 
 on:
   pull_request:
@@ -16,13 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-      - run: uv sync --group docs
-      - run: uv run --group docs mkdocs build --strict
+      - run: python scripts/build_docs_redirects.py
       - if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: site-redirects
 
   deploy:
     if: github.event_name == 'push'

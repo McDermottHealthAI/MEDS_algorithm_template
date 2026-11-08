@@ -2,21 +2,18 @@
 
 These tests validate the generator and rendered repository structure. Shared runtime/contract tests have
 [their own catalogue](https://github.com/McDermottHealthAI/meds-algorithm/blob/main/src/meds_algorithm/TESTING.md),
-rendered from the installed package on the documentation site's Shared-package tests page.
+rendered from the core checkout on the documentation site's Shared-package tests page.
 Generated algorithm acceptance tests are documented separately in the next section of the site and in
 `docs/TESTING.md` inside each generated repository. Keep these three scopes distinct.
 
 ## Running template tests
 
 ```bash
-uv sync --group dev --group docs
-uv run ruff check src tests scripts docs/hooks.py
-uv run ruff format --check src tests scripts docs/hooks.py
-npm ci --ignore-scripts
-npm test
+uv sync --group dev
+uv run ruff check src tests scripts
+uv run ruff format --check src tests scripts
 uv run pytest -q
 uv run pytest tests/test_profiles.py -q
-uv run mkdocs build --strict
 ```
 
 Tests use temporary renders, toy implementations and synthetic data. MEDS-DEV provisioning is mocked or
@@ -25,29 +22,8 @@ run. Parametrized functions produce several pytest cases. Helper fixtures are no
 
 ## Test inventory
 
-### test_docs.py
-
-| Test | What it checks | Why it exists |
-|---|---|---|
-| `test_prompt_builder_embeds_the_canonical_readme_prompt` | Decodes the embedded browser prompt and compares it with the README's canonical block. | Prevent the static prompt and interactive builder from drifting apart. |
-| `test_prompt_source_cannot_close_its_json_script_element` | Embeds source text containing HTML script closers and checks the decoded value and element boundary. | Keep prompt text inert when included in the documentation HTML. |
-
-### prompt_builder.test.cjs
-
-Run with `npm test` on Node 24 after `npm ci --ignore-scripts`. jsdom is development-only; the shipped
-builder uses plain JavaScript without runtime dependencies, network calls or persisted form inputs.
-
-| Test | What it checks | Why it exists |
-|---|---|---|
-| All choice combinations | Exercises all 144 source/destination/profile/task/scope/ambiguity-mode combinations and common instructions. | Preserve scientific review and execution gates in both confirmation-required and exploratory modes. |
-| Ambiguity-mode default and validation | Confirms omitted/false mode requires confirmation and rejects non-boolean opt-ins. | Avoid enabling exploratory assumptions through an absent or truthy string value. |
-| Exploratory checkbox lifecycle | Checks unchecked defaults, explicit opt-in, stale-output invalidation, toggling back and reset in a DOM. | Require an intentional selection and restore confirmation mode on reset. |
-| Invalid plans | Rejects missing sources, destination, manual profiles or prepared-bundle metadata. | Avoid an apparently ready prompt with incomplete required inputs. |
-| Task subsets and literal text | Retains existing task identifiers and arbitrary input text without recursive replacement. | Keep the user's supplied scope and constraints intact. |
-| Conditional form fields | Exercises visibility, required fields and multi-profile generation in a DOM. | Prevent hidden fields or single-profile defaults from overriding the selected options. |
-| Edits, copy, download and reset | Copies/downloads the exact edited text, invalidates stale output after input changes and clears state on reset. | Avoid handing the agent outdated or unreviewed prompt text. |
-| Clipboard fallback | Simulates denied clipboard access and checks that the complete prompt is selected. | Keep the offline preview usable when browser clipboard permissions are unavailable. |
-| Inert HTML and repeated initialization | Supplies HTML-like source text and initializes the form again. | Prevent text injection and avoid losing edits when docs navigation reinitializes scripts. |
+Documentation and prompt-builder tests now live in
+[meds-algorithm](https://meds-algorithm.readthedocs.io/en/latest/documentation-tests/).
 
 ### test_generator.py
 
@@ -91,7 +67,7 @@ builder uses plain JavaScript without runtime dependencies, network calls or per
 | `test_example_signal_dataset_has_no_length_or_position_leak` | Checks that labels match signal-code presence, with variable history lengths and both classes. | Sanity-check the example signal fixture; this is not a statistical proof that all shortcuts are absent. |
 | `test_primary_behavior_is_a_required_failing_placeholder` | Checks the generated test requires real signal binding and a shuffled-label control. | Do not let an unimplemented scientific behavior test pass by default. |
 | `test_predicates_are_external_not_a_rendered_semantic_format` | Renders without predicates and checks the descriptor and absence of a semantics file. | Avoid inventing an algorithm feature representation in the template. |
-| `test_implementation_prompt_belongs_to_template_readme_not_rendered_repo` | Checks the copyable implementation prompt exists only in the template README. | Avoid shipping duplicate agent instructions into each generated project. |
+| `test_implementation_prompt_links_to_core_docs_not_rendered_repo` | Checks the README links to the core prompt and generated repositories do not duplicate it. | Avoid shipping duplicate agent instructions into each generated project. |
 | `test_spec_has_one_template_source_and_renders_to_root` | Checks the generated SPEC uses the single template source. | Prevent competing copies of generated specification guidance. |
 | `test_prediction_keys_are_compared_directly` | Parametrizes reordered, missing, extra and duplicate prediction rows. | Judge cohort coverage by keys rather than row count or row order. |
 | `test_meds_dev_predicates_capability_is_explicit` | Checks MEDS-DEV capability detection for predicate passthrough. | Fail unsupported integrations instead of silently dropping dataset semantics. |

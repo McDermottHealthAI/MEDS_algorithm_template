@@ -38,16 +38,10 @@ jobs:
           PY
           git merge-base --is-ancestor HEAD origin/main
       - run: python scripts/check_release.py
-      - run: uv sync --locked --group dev --group docs
-      - run: uv run ruff check src tests scripts docs/hooks.py
-      - run: uv run ruff format --check src tests scripts docs/hooks.py
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-      - run: npm ci --ignore-scripts
-      - run: npm test
+      - run: uv sync --locked --group dev
+      - run: uv run ruff check src tests scripts
+      - run: uv run ruff format --check src tests scripts
       - run: uv run pytest -q
-      - run: uv run mkdocs build --strict
       - run: uv build
       - run: uvx --from 'twine>=6' twine check --strict dist/*
       - name: Verify the installed generator

@@ -23,7 +23,7 @@ The primary-behavior placeholder intentionally **fails**, including in a freshly
 
 `tests/test_conformance.py` inherits eight acceptance checks from
 `meds_algorithm.conformance.suite.AlgorithmConformanceTests`. Their implementation and
-[what/why inventory](https://mcdermotthealthai.github.io/MEDS_algorithm_template/reference/tests/#downstream-acceptance-suite)
+[what/why inventory](https://meds-algorithm.readthedocs.io/en/latest/reference/tests/#downstream-acceptance-suite)
 live in the shared package. The matching installed inventory is available in Python through
 `meds_algorithm.spec.validation_guide()`.
 
