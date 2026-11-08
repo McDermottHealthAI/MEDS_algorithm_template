@@ -14,8 +14,8 @@ before GitHub exposes its manual dispatch action.
 
 The documentation site is built in `meds-algorithm`. When changing these release instructions or the
 generated release/test guides, update `docs/template-source.json` in that repository to the reviewed
-template commit and file checksums; its strict docs build verifies the sources. The template's own
-documentation workflow now publishes only redirects for old GitHub Pages links.
+template commit and file checksums; its strict docs build verifies the sources. Documentation builds
+and hosting are managed entirely by the core repository and Read the Docs.
 
 ## 1. Switch generated projects to the published shared package
 

@@ -218,8 +218,8 @@ and [shared-package assessment](https://meds-algorithm.readthedocs.io/en/latest/
 
 ### Unreleased
 
-- Move the documentation site and prompt builder to `meds-algorithm` on Read the Docs, and replace
-  this repository's Pages site with redirects. Generated-repository guides remain template-owned.
+- Move the documentation site and prompt builder to `meds-algorithm` on Read the Docs.
+  Generated-repository guides remain template-owned.
 - Require confirmation for material scientific ambiguities by default; offer explicitly enabled exploratory
   assumptions in the prompt builder while preserving evaluation and execution approval gates.
 
