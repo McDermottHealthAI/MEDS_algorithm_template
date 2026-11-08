@@ -40,3 +40,5 @@ site/
 
 # Documentation JavaScript tests
 node_modules/
+
+.cache/

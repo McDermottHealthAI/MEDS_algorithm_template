@@ -176,11 +176,15 @@ def test_predicates_are_external_not_a_rendered_semantic_format(tmp_path):
     assert "external_predicates_file" not in (dst / "algorithms/supervised/model.yaml").read_text()
 
 
-def test_implementation_prompt_belongs_to_template_readme_not_rendered_repo(tmp_path):
+def test_implementation_prompt_links_to_core_docs_not_rendered_repo(tmp_path):
     dst = tmp_path / "prompt-location"
     render(dst, "supervised")
     prompt_token = "<PAPER_REFERENCES_OR_NOT_SUPPLIED>"
-    assert prompt_token in (TEMPLATE_REPO / "README.md").read_text()
+    assert (
+        "https://meds-algorithm.readthedocs.io/en/latest/implementation-prompt/"
+        in (TEMPLATE_REPO / "README.md").read_text()
+    )
+    assert prompt_token not in (TEMPLATE_REPO / "README.md").read_text()
     assert prompt_token not in (dst / "README.md").read_text()
     assert "Copyable algorithm-implementation prompt" not in (dst / "README.md").read_text()
 

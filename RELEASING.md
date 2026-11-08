@@ -12,6 +12,11 @@ project `meds-algorithm-template`, owner `McDermottHealthAI`, repository `MEDS_a
 workflow `publish.yml`, and environments `testpypi` / `pypi`. The workflow must be merged into `main`
 before GitHub exposes its manual dispatch action.
 
+The documentation site is built in `meds-algorithm`. When changing these release instructions or the
+generated release/test guides, update `docs/template-source.json` in that repository to the reviewed
+template commit and file checksums; its strict docs build verifies the sources. Documentation builds
+and hosting are managed entirely by the core repository and Read the Docs.
+
 ## 1. Switch generated projects to the published shared package
 
 Generator `0.4.0a2` pins the published `meds-algorithm==0.4.0a5` release. For future updates,
@@ -36,13 +41,10 @@ Validate before merging:
 
 ```bash
 uv lock
-uv sync --locked --group dev --group docs
-uv run ruff check src tests scripts docs/hooks.py
-uv run ruff format --check src tests scripts docs/hooks.py
-npm ci --ignore-scripts
-npm test
+uv sync --locked --group dev
+uv run ruff check src tests scripts
+uv run ruff format --check src tests scripts
 uv run pytest -q
-uv run mkdocs build --strict
 uv run python scripts/check_release.py
 uv build
 uvx --from 'twine>=6' twine check --strict dist/*
