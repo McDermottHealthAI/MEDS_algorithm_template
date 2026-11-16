@@ -14,6 +14,13 @@ def run_e2e(tmp_path, *, profile: str, **inputs):
     Conformance reruns
     this hook with evaluated outcomes removed. Reuse supplied histories, not an old prepared artifact;
     emit fresh artifacts below tmp_path. Training/context splits retain their permitted labels.
+
+    Temporal cutoff: conformance also reruns this hook with ``external_meds_dir`` replaced by a copy in which
+    every evaluated subject's events after its latest prediction time are rewritten
+    (meds_algorithm.conformance.temporal.perturb_future); predictions must be bit-identical. It also calls
+    this hook with a null-world dataset (``metadata/dataset.json`` names it ``null_world``; codes
+    ``NULL//...``) whose future is independent of its past, and requires held-out AUROC at chance. Run that
+    dataset with the same small, offline test settings as the fixture.
     """
     raise NotImplementedError(
         "Prepare a small MEDS input/task, execute the selected algorithm profile's real commands, and return "
