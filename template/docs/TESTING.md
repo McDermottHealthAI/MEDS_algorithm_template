@@ -58,7 +58,10 @@ also requires a committed lockfile and a tag on main history. See the generated 
 
 ## Algorithm-specific tests to add
 
-Add source-backed tests for numerical behavior, temporal cutoffs, feature selection, frozen pretrained
+The shared suite checks temporal cutoffs from outside: a rerun with every evaluated future rewritten must
+reproduce predictions bit for bit, and a null world (future independent of the past) must give chance-level
+held-out AUROC. These see only predictions on the exercised fixture. Add source-backed tests for numerical
+behavior, internal temporal cutoffs (for example, that inputs and states at T are unchanged by events after T), feature selection, frozen pretrained
 weights where applicable, payload compatibility, configuration effects and fresh-process reconstruction.
 Neural configuration tests should prove that capacity, learning rate, batch size, weight decay and dropout
 control the intended code. The generated config round-trip test alone does not prove that.
