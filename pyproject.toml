@@ -23,7 +23,7 @@ Documentation = "https://meds-algorithm.readthedocs.io/en/latest/"
 packages = ["src/meds_algorithm_template"]
 
 [dependency-groups]
-dev = ["meds-algorithm[conformance,orchestration]==0.4.0a5", "polars>=1", "pyarrow>=15", "pytest>=8", "pyyaml>=6", "ruff"]
+dev = ["meds-algorithm[conformance,orchestration]==0.4.0a6", "polars>=1", "pyarrow>=15", "pytest>=8", "pyyaml>=6", "ruff"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

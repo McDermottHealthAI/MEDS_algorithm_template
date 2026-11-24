@@ -13,7 +13,7 @@ contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). Generated repositories pin its PyPI release
-`meds-algorithm==0.4.0a5` for reproducible installations.
+`meds-algorithm==0.4.0a6` for reproducible installations.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -211,13 +211,15 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](https://meds-algorithm.readthedocs.io/en/latest/profiles/).
-See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/v0.4.0a5/src/meds_algorithm/CONTRACT.md), [migration guide](https://meds-algorithm.readthedocs.io/en/latest/migration-v4/),
+See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/v0.4.0a6/src/meds_algorithm/CONTRACT.md), [migration guide](https://meds-algorithm.readthedocs.io/en/latest/migration-v4/),
 and [shared-package assessment](https://meds-algorithm.readthedocs.io/en/latest/shared-package-assessment/).
 
 ## Changes
 
 ### Unreleased
 
+- Generate projects using `meds-algorithm==0.4.0a6`, the first release with the temporal-leakage conformance
+  (future-blind rerun and null-world chance test) that `tests/e2e.py` documents.
 - Move the documentation site and prompt builder to `meds-algorithm` on Read the Docs.
   Generated-repository guides remain template-owned.
 - Require confirmation for material scientific ambiguities by default; offer explicitly enabled exploratory
