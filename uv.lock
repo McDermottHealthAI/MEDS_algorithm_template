@@ -233,14 +233,14 @@ wheels = [
 
 [[package]]
 name = "meds-algorithm"
-version = "0.4.0a5"
+version = "0.4.0a6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/69/70/4895cdb8642beef30a1417ad34917a13fc717d0e2f9278dbf0641b268bf8/meds_algorithm-0.4.0a5.tar.gz", hash = "sha256:7eaa2a58a2691d6d6907e5588cc97f4dfa5e73675cbffec4fa3aead65217a7ea", size = 150624, upload-time = "2026-11-03T13:10:21.533Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/30/40/1891abff0bc6c15a5790742d817e4cdc06e9e9c30452e24a8fdb5fd65b3c/meds_algorithm-0.4.0a6.tar.gz", hash = "sha256:f401aea504a725c8d5ffbf3307ce63dfe8b93be5812faaa7636814d5c0493790", size = 199122, upload-time = "2026-11-24T14:27:35.135Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/1d/e7871e650b6a5019ec3d72d0328980538ff65cdb17a5e0cc12e2201582e9/meds_algorithm-0.4.0a5-py3-none-any.whl", hash = "sha256:4cd83f2531aec02553794295a24c13dc2482d3a52b685b9cafc4aac3e9c3ebad", size = 100591, upload-time = "2026-11-03T13:10:20.079Z" },
+    { url = "https://files.pythonhosted.org/packages/fe/60/f4b4bf074e693088c855eb350021572c8df7085a0d32821ee0a46389a179/meds_algorithm-0.4.0a6-py3-none-any.whl", hash = "sha256:541dd1437617e2ae2af67efff29483470241a986ef2438625f2338d6a5d89b61", size = 109827, upload-time = "2026-11-24T14:27:33.955Z" },
 ]
 
 [package.optional-dependencies]
@@ -282,7 +282,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-algorithm", extras = ["conformance", "orchestration"], specifier = "==0.4.0a5" },
+    { name = "meds-algorithm", extras = ["conformance", "orchestration"], specifier = "==0.4.0a6" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },
@@ -920,7 +920,7 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7a/97/5a3609c4f8d58b039179648e62dd220f89864f56f7357f5d4f45c29eb2cc/scipy-1.17.1.tar.gz", hash = "sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0", size = 30573822, upload-time = "2026-02-23T00:26:24.851Z" }
 wheels = [
@@ -994,7 +994,7 @@ resolution-markers = [
     "python_full_version >= '3.12'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.5.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7e/74/66de6258867beb2ef08f35f9f2ac017a52cacd5081714d239ff1a442d458/scipy-1.18.1.tar.gz", hash = "sha256:52c4b7422442aba924d03ad4019852b08a92e64ea187b933135687bfe2747307", size = 30781235, upload-time = "2026-08-21T23:28:50.599Z" }
 wheels = [

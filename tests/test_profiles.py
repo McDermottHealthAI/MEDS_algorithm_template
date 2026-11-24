@@ -246,7 +246,8 @@ def test_generated_shared_suite_runs_and_primary_behavior_still_fails(multi, tmp
         timeout=120,
     )
     assert shared.returncode == 0, shared.stdout + shared.stderr
-    assert "20 passed, 18 skipped, 6 deselected" in shared.stdout
+    # 0.4.0a6 adds test_null_world_predictions_are_at_chance per profile, skipped while profiles are stubs.
+    assert "20 passed, 24 skipped, 6 deselected" in shared.stdout
     scientific = subprocess.run(
         [sys.executable, "-m", "pytest", "-q", "-k", "primary_behavior"],
         cwd=multi,
@@ -256,7 +257,7 @@ def test_generated_shared_suite_runs_and_primary_behavior_still_fails(multi, tmp
         timeout=60,
     )
     assert scientific.returncode == 1, scientific.stdout + scientific.stderr
-    assert "6 failed, 38 deselected" in scientific.stdout
+    assert "6 failed, 44 deselected" in scientific.stdout
 
 
 def test_recorded_upstream_inputs_become_explicit_arguments(multi, tmp_path):

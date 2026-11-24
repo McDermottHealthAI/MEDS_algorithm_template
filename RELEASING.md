@@ -19,15 +19,15 @@ and hosting are managed entirely by the core repository and Read the Docs.
 
 ## 1. Switch generated projects to the published shared package
 
-Generator `0.4.0a2` pins the published `meds-algorithm==0.4.0a5` release. For future updates,
+The generator pins the published `meds-algorithm==0.4.0a6` release (`0.4.0a2` pinned `0.4.0a5`). For future updates,
 release the shared package first, then keep all dependency pins and install examples aligned:
 
 | File | Change |
 |---|---|
-| `pyproject.toml`, development dependencies | Pin the shared conformance dependency to `meds-algorithm[conformance,orchestration]==0.4.0a5` |
-| `template/pyproject.toml.jinja`, project dependencies | Use `meds-algorithm[data]==0.4.0a5` |
-| `template/pyproject.toml.jinja`, test extra | Use `meds-algorithm[conformance]==0.4.0a5` |
-| `template/pyproject.toml.jinja`, orchestration extra | Use `meds-algorithm[orchestration]==0.4.0a5` |
+| `pyproject.toml`, development dependencies | Pin the shared conformance dependency to `meds-algorithm[conformance,orchestration]==0.4.0a6` |
+| `template/pyproject.toml.jinja`, project dependencies | Use `meds-algorithm[data]==0.4.0a6` |
+| `template/pyproject.toml.jinja`, test extra | Use `meds-algorithm[conformance]==0.4.0a6` |
+| `template/pyproject.toml.jinja`, orchestration extra | Use `meds-algorithm[orchestration]==0.4.0a6` |
 | `README.md` | Document the shared PyPI version and update the generator install example to `0.4.0a2` |
 | `uv.lock` | Regenerate with `uv lock` |
 | `template/pyproject.toml.jinja`, Hatch metadata | Remove `allow-direct-references` after replacing all Git requirements |
