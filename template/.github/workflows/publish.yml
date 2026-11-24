@@ -25,9 +25,9 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      # No fixed interpreter: uv picks one that satisfies project.requires-python, so raising the minimum (as
+      # algorithms that need Python 3.12 do) cannot break the release build.
       - uses: astral-sh/setup-uv@v6
-        with:
-          python-version: "3.11"
       - name: Require a version tag on reviewed main history
         run: |
           test "$GITHUB_REF_TYPE" = tag

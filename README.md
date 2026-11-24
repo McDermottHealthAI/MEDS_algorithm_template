@@ -38,7 +38,7 @@ GitHub repository. It needs Git and network access; it does not bundle a second 
 Install the pinned generator with:
 
 ```bash
-uvx --from 'meds-algorithm-template==0.4.0a2' meds-algorithm-template ../my-meds-algorithm --trust
+uvx --from 'meds-algorithm-template==0.4.0a3' meds-algorithm-template ../my-meds-algorithm --trust
 ```
 
 Use `--defaults --data-file answers.yaml` for unattended generation. The answers file records the
@@ -216,10 +216,12 @@ and [shared-package assessment](https://meds-algorithm.readthedocs.io/en/latest/
 
 ## Changes
 
-### Unreleased
+### 0.4.0a3 (2026-11-24)
 
 - Generate projects using `meds-algorithm==0.4.0a6`, the first release with the temporal-leakage conformance
   (future-blind rerun and null-world chance test) that `tests/e2e.py` documents.
+- Generated release workflows no longer fix Python 3.11: uv picks an interpreter that satisfies
+  `project.requires-python`, so algorithms that require a newer Python can publish.
 - Move the documentation site and prompt builder to `meds-algorithm` on Read the Docs.
   Generated-repository guides remain template-owned.
 - Require confirmation for material scientific ambiguities by default; offer explicitly enabled exploratory
