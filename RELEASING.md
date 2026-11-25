@@ -19,16 +19,16 @@ and hosting are managed entirely by the core repository and Read the Docs.
 
 ## 1. Switch generated projects to the published shared package
 
-The generator pins the published `meds-algorithm==0.4.0a6` release (`0.4.0a2` pinned `0.4.0a5`). For future updates,
+The generator pins the published `meds-algorithm==0.4.0a7` release (`0.4.0a2` pinned `0.4.0a5`). For future updates,
 release the shared package first, then keep all dependency pins and install examples aligned:
 
 | File | Change |
 |---|---|
-| `pyproject.toml`, development dependencies | Pin the shared conformance dependency to `meds-algorithm[conformance,orchestration]==0.4.0a6` |
-| `template/pyproject.toml.jinja`, project dependencies | Use `meds-algorithm[data]==0.4.0a6` |
-| `template/pyproject.toml.jinja`, test extra | Use `meds-algorithm[conformance]==0.4.0a6` |
-| `template/pyproject.toml.jinja`, orchestration extra | Use `meds-algorithm[orchestration]==0.4.0a6` |
-| `README.md` | Document the shared PyPI version and update the generator install example to `0.4.0a3` |
+| `pyproject.toml`, development dependencies | Pin the shared conformance dependency to `meds-algorithm[conformance,orchestration]==0.4.0a7` |
+| `template/pyproject.toml.jinja`, project dependencies | Use `meds-algorithm[data]==0.4.0a7` |
+| `template/pyproject.toml.jinja`, test extra | Use `meds-algorithm[conformance]==0.4.0a7` |
+| `template/pyproject.toml.jinja`, orchestration extra | Use `meds-algorithm[orchestration]==0.4.0a7` |
+| `README.md` | Document the shared PyPI version and update the generator install example to `0.4.0a4` |
 | `uv.lock` | Regenerate with `uv lock` |
 | `template/pyproject.toml.jinja`, Hatch metadata | Remove `allow-direct-references` after replacing all Git requirements |
 
@@ -61,15 +61,15 @@ update URL without creating a real release tag or fetching a nonexistent release
 
 ## 2. Tag and rehearse on TestPyPI
 
-Candidate generator version: **0.4.0a3**. Once the release changes are merged and CI passes:
+Candidate generator version: **0.4.0a4**. Once the release changes are merged and CI passes:
 
 ```bash
 git switch main
 git pull --ff-only
-git tag v0.4.0a3
-git push origin v0.4.0a3
+git tag v0.4.0a4
+git push origin v0.4.0a4
 gh workflow run publish.yml --repo McDermottHealthAI/MEDS_algorithm_template \
-  --ref v0.4.0a3 -f index=testpypi
+  --ref v0.4.0a4 -f index=testpypi
 gh run list --repo McDermottHealthAI/MEDS_algorithm_template --workflow publish.yml --limit 5
 gh run watch RUN_ID --repo McDermottHealthAI/MEDS_algorithm_template --exit-status
 ```
@@ -85,7 +85,7 @@ check_env=$(mktemp -d)
 uv venv "$check_env"
 uv pip install --python "$check_env/bin/python" 'copier>=9.17.1,<10' 'pyyaml>=6'
 uv pip install --python "$check_env/bin/python" --no-deps \
-  --index-url https://test.pypi.org/simple/ 'meds-algorithm-template==0.4.0a3'
+  --index-url https://test.pypi.org/simple/ 'meds-algorithm-template==0.4.0a4'
 "$check_env/bin/meds-algorithm-template" --version
 "$check_env/bin/meds-algorithm-template" "$check_env/generated" --defaults --trust
 uv pip install --python "$check_env/bin/python" "$check_env/generated[test]"
@@ -102,12 +102,12 @@ After the TestPyPI rehearsal succeeds:
 
 ```bash
 gh workflow run publish.yml --repo McDermottHealthAI/MEDS_algorithm_template \
-  --ref v0.4.0a3 -f index=pypi
+  --ref v0.4.0a4 -f index=pypi
 # Find and watch the new run, then approve the pypi environment deployment.
 # After it succeeds, verify in another clean environment:
 pypi_env=$(mktemp -d)
 uv venv "$pypi_env"
-uv pip install --python "$pypi_env/bin/python" 'meds-algorithm-template==0.4.0a3'
+uv pip install --python "$pypi_env/bin/python" 'meds-algorithm-template==0.4.0a4'
 "$pypi_env/bin/meds-algorithm-template" "$pypi_env/generated" --defaults --trust
 uv pip install --python "$pypi_env/bin/python" "$pypi_env/generated[test]"
 "$pypi_env/bin/minimal-meds-algorithm" profiles

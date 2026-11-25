@@ -13,7 +13,7 @@ contract-first MEDS algorithm repositories.
 
 Shared contracts and the canonical specification live in
 [`meds-algorithm`](https://github.com/McDermottHealthAI/meds-algorithm). Generated repositories pin its PyPI release
-`meds-algorithm==0.4.0a6` for reproducible installations.
+`meds-algorithm==0.4.0a7` for reproducible installations.
 The core owns the reusable infrastructure and conformance helpers; generated repositories import it directly.
 
 The template fixes the external contract—MEDS input, six algorithm profiles and standard arguments, typed
@@ -38,7 +38,7 @@ GitHub repository. It needs Git and network access; it does not bundle a second 
 Install the pinned generator with:
 
 ```bash
-uvx --from 'meds-algorithm-template==0.4.0a3' meds-algorithm-template ../my-meds-algorithm --trust
+uvx --from 'meds-algorithm-template==0.4.0a4' meds-algorithm-template ../my-meds-algorithm --trust
 ```
 
 Use `--defaults --data-file answers.yaml` for unattended generation. The answers file records the
@@ -211,10 +211,15 @@ repositories. Files under `template/` are the generated payload; root tests
 validate that payload without imposing a algorithm implementation.
 
 Profile selection and the distinct version 4 step names are described in [profiles](https://meds-algorithm.readthedocs.io/en/latest/profiles/).
-See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/v0.4.0a6/src/meds_algorithm/CONTRACT.md), [migration guide](https://meds-algorithm.readthedocs.io/en/latest/migration-v4/),
+See the [software contract](https://github.com/McDermottHealthAI/meds-algorithm/blob/v0.4.0a7/src/meds_algorithm/CONTRACT.md), [migration guide](https://meds-algorithm.readthedocs.io/en/latest/migration-v4/),
 and [shared-package assessment](https://meds-algorithm.readthedocs.io/en/latest/shared-package-assessment/).
 
 ## Changes
+
+### 0.4.0a4 (2026-11-24)
+
+- Generate projects using `meds-algorithm==0.4.0a7`: `execution=slurm` also runs an algorithm installed from PyPI
+  (a released, non-editable distribution), not only a clean Git checkout.
 
 ### 0.4.0a3 (2026-11-24)
 
