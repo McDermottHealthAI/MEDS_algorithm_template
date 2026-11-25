@@ -233,14 +233,14 @@ wheels = [
 
 [[package]]
 name = "meds-algorithm"
-version = "0.4.0a6"
+version = "0.4.0a7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/30/40/1891abff0bc6c15a5790742d817e4cdc06e9e9c30452e24a8fdb5fd65b3c/meds_algorithm-0.4.0a6.tar.gz", hash = "sha256:f401aea504a725c8d5ffbf3307ce63dfe8b93be5812faaa7636814d5c0493790", size = 199122, upload-time = "2026-11-24T14:27:35.135Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/32/7d/81c12e0dd6bb3a13abfc841375e7ce607e95787a10b52f006f697b4fd4c5/meds_algorithm-0.4.0a7.tar.gz", hash = "sha256:51fab108fabcc7cd304471db6e504d29e09f5685a0f93c58284111dea49f6650", size = 200608, upload-time = "2026-11-25T03:25:06.496Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/fe/60/f4b4bf074e693088c855eb350021572c8df7085a0d32821ee0a46389a179/meds_algorithm-0.4.0a6-py3-none-any.whl", hash = "sha256:541dd1437617e2ae2af67efff29483470241a986ef2438625f2338d6a5d89b61", size = 109827, upload-time = "2026-11-24T14:27:33.955Z" },
+    { url = "https://files.pythonhosted.org/packages/46/42/c4816562c5f6730ca57752382bd1b16a7508166483382936a99e0a44fbca/meds_algorithm-0.4.0a7-py3-none-any.whl", hash = "sha256:033865a6b0c151de1d0d7554fec45349fbf6da9cbf9ba24b98e9c72a39d631ff", size = 110977, upload-time = "2026-11-25T03:25:05.066Z" },
 ]
 
 [package.optional-dependencies]
@@ -257,7 +257,7 @@ orchestration = [
 
 [[package]]
 name = "meds-algorithm-template"
-version = "0.4.0a3"
+version = "0.4.0a4"
 source = { editable = "." }
 dependencies = [
     { name = "copier" },
@@ -282,7 +282,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "meds-algorithm", extras = ["conformance", "orchestration"], specifier = "==0.4.0a6" },
+    { name = "meds-algorithm", extras = ["conformance", "orchestration"], specifier = "==0.4.0a7" },
     { name = "polars", specifier = ">=1" },
     { name = "pyarrow", specifier = ">=15" },
     { name = "pytest", specifier = ">=8" },
